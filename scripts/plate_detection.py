@@ -202,20 +202,22 @@ def prompt_plate_labels(num_plates, plate_offset=0, split_plate=False):
     """
     print("\n--- Enter plate labels ---")
     print("  Format: 'Genotype' or 'Genotype_Condition'")
-    print("  Examples: WT, Col-0_Drought, crd-2_Salt\n")
+    print("  Examples: WT, Col-0_Drought, crd-2_Salt")
+    print("  (All plates share the same layout)\n")
     labels = []
-    for i in range(num_plates):
-        local_plate = i + 1
-        global_plate = plate_offset + i + 1
-        if split_plate:
-            print(f"  Plate {local_plate} (CSV: Plate {global_plate}) has 2 genotypes:")
-            label_a = input(f"    Genotype A (red): ").strip()
-            label_b = input(f"    Genotype B (blue): ").strip()
-            labels.append(parse_plate_label(label_a))
-            labels.append(parse_plate_label(label_b))
-        else:
-            label = input(f"  Plate {local_plate} (CSV: Plate {global_plate}): ").strip()
-            labels.append(parse_plate_label(label))
+    if split_plate:
+        label_a = input(f"    Genotype A (red): ").strip()
+        label_b = input(f"    Genotype B (blue): ").strip()
+        parsed_a = parse_plate_label(label_a)
+        parsed_b = parse_plate_label(label_b)
+        for i in range(num_plates):
+            labels.append(parsed_a)
+            labels.append(parsed_b)
+    else:
+        label = input(f"  Genotype: ").strip()
+        parsed = parse_plate_label(label)
+        for i in range(num_plates):
+            labels.append(parsed)
     return labels
 
 

@@ -90,39 +90,30 @@ def find_root_tip(binary_image, top_point, scale=SCALE_PX_PER_CM):
     if start_idx is None:
         return None
 
-    # find the lowest endpoint reachable from the start component
+    # find all endpoints (degree 1 nodes) in the same component
     component = nx.node_connected_component(G, start_idx)
     endpoints = [n for n in component if G.degree(n) == 1]
-    start_row = skel_points[start_idx][0]
 
-    if endpoints:
-        below_endpoints = [n for n in endpoints if skel_points[n][0] > start_row]
-        if below_endpoints:
-            tip_idx = max(below_endpoints, key=lambda n: skel_points[n][0])
-        else:
-            lengths = nx.single_source_dijkstra_path_length(G, start_idx, weight='weight')
-            tip_idx = max(endpoints, key=lambda n: lengths.get(n, 0))
-        tip_local = skel_points[tip_idx]
-    else:
+    if not endpoints:
+        # no clear endpoints — use the furthest point from start
         lengths = nx.single_source_dijkstra_path_length(G, start_idx, weight='weight')
         furthest = max((n for n in component), key=lambda n: lengths.get(n, 0))
         tip_local = skel_points[furthest]
+    else:
+        # find the endpoint furthest down (max row) that's reachable from start
+        # prefer endpoints that are below the start point
+        start_row = skel_points[start_idx][0]
+        below_endpoints = [n for n in endpoints if skel_points[n][0] > start_row]
 
-    # check if there are lower endpoints in other components along the root
-    # (skeleton may break at thin/faint sections)
-    start_col = skel_points[start_idx][1]
-    col_tolerance = half_w // 2  # stay near the root's column
-    best_tip = tip_local
-    for comp in nx.connected_components(G):
-        if comp == component:
-            continue
-        for n in comp:
-            if G.degree(n) != 1:
-                continue
-            r, c = skel_points[n]
-            if r > best_tip[0] and abs(c - start_col) < col_tolerance:
-                best_tip = skel_points[n]
-    tip_local = best_tip
+        if below_endpoints:
+            # pick the one furthest down
+            tip_idx = max(below_endpoints, key=lambda n: skel_points[n][0])
+        else:
+            # fallback: furthest endpoint by path length
+            lengths = nx.single_source_dijkstra_path_length(G, start_idx, weight='weight')
+            tip_idx = max(endpoints, key=lambda n: lengths.get(n, 0))
+
+        tip_local = skel_points[tip_idx]
 
     # convert back to full image coordinates
     tip_full = (tip_local[0] + rmin, tip_local[1] + cmin)

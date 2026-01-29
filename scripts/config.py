@@ -29,9 +29,9 @@ MAX_CLICK_DISTANCE_CM = 0.65  # Max distance from click to nearest skeleton pixe
 
 
 def gaussian_sigma(scale, sensitivity='thick'):
-    """Gaussian blur sigma scaled by DPI; sensitivity controls the multiplier."""
+    """Gaussian blur sigma controlled by sensitivity only (DPI-independent)."""
     s_mult, _ = SENSITIVITY_PRESETS[sensitivity]
-    return _BASE_SIGMA * (scale / _BASE_SCALE) * s_mult
+    return _BASE_SIGMA * s_mult
 
 
 def threshold_8bit(scale, sensitivity='thick'):

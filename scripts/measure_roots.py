@@ -10,12 +10,12 @@ Usage:
     python measure_roots.py image.tif 472    # with custom resolution (px/cm)
 
 Workflow:
-    1. Plates are auto-detected and shown side by side (zoomed in)
-    2. Left-click TOP then BOTTOM of each root (all roots in one session)
-    3. Right-click to undo last point
+    1. Draw rectangles around plates on the full scan
+    2. Left-click TOP of each root (tip auto-detected)
+    3. Right-click to undo last click
     4. Press Enter when done
     5. Script traces all roots and shows results overlaid on the image
-    6. CSV saved next to the input image
+    6. CSV saved to output/ folder
 """
 
 import sys
@@ -30,8 +30,8 @@ matplotlib.use('TkAgg')
 
 from config import SCALE_PX_PER_CM
 from image_processing import preprocess
-from plate_detection import (detect_two_plates, detect_single_plate,
-                             prompt_plate_labels, crop_plates_to_interior)
+from plate_detection import (select_plates_interactive,
+                             prompt_plate_labels)
 from click_collector import _format_plate_label, show_image_for_clicking
 from root_tracing import find_root_tip, trace_root
 from results_display import show_results
@@ -40,8 +40,8 @@ from utils import list_images_in_folder, select_image_from_list, _compute_segmen
 
 
 def process_image(image_path, scale, csv_path, plate_offset=0, root_offset=0,
-                  num_marks=0, plates_per_scan=2, split_plate=False):
-    """Process a single image: load, detect plates, click roots, measure, save.
+                  num_marks=0, split_plate=False):
+    """Process a single image: select plates, click roots, measure, save.
 
     Args:
         image_path: Path to the image file
@@ -50,7 +50,6 @@ def process_image(image_path, scale, csv_path, plate_offset=0, root_offset=0,
         plate_offset: starting plate number (0-based)
         root_offset: starting root number (0-based)
         num_marks: number of marks per root (0 = normal mode)
-        plates_per_scan: 1 or 2 plates per image
         split_plate: if True, each plate has 2 genotypes
 
     Returns:
@@ -81,16 +80,12 @@ def process_image(image_path, scale, csv_path, plate_offset=0, root_offset=0,
     print(f"Image: {image.shape[1]}x{image.shape[0]}, {image.dtype}")
     print(f"Scale: {scale:.1f} px/cm")
 
-    # --- detect plates ---
-    print("Detecting plates...")
-    if plates_per_scan == 1:
-        plates = detect_single_plate(image)
-    else:
-        plates = detect_two_plates(image)
-    for i, (r1, r2, c1, c2) in enumerate(plates):
-        local_plate = i + 1  # display as 1 or 2
-        print(f"  Plate {local_plate}: rows {r1}-{r2}, cols {c1}-{c2}  "
-              f"({(c2 - c1)}x{(r2 - r1)} px)")
+    # --- select plates interactively ---
+    print("Select plates on the image...")
+    plates = select_plates_interactive(image)
+    if not plates:
+        print("No plates selected. Skipping this image.")
+        return True, plate_offset, root_offset
 
     # --- get plate labels from user ---
     plate_labels = prompt_plate_labels(len(plates), plate_offset, split_plate)
@@ -100,14 +95,6 @@ def process_image(image_path, scale, csv_path, plate_offset=0, root_offset=0,
     binary = preprocess(image)
     print(f"Root pixels: {binary.sum():,} / {binary.size:,} "
           f"({100 * binary.sum() / binary.size:.1f}%)")
-
-    # --- crop plates to interior (exclude ruler/edges) ---
-    print("Cropping to plate interior...")
-    plates = crop_plates_to_interior(plates, image)
-    for i, (r1, r2, c1, c2) in enumerate(plates):
-        local_plate = i + 1  # display as 1 or 2
-        print(f"  Plate {local_plate} interior: rows {r1}-{r2}, cols {c1}-{c2}  "
-              f"({(c2 - c1)}x{(r2 - r1)} px)")
 
     # --- interactive clicking ---
     print("\n--- Instructions ---")
@@ -251,32 +238,12 @@ def prompt_for_dpi():
     return scale
 
 
-def prompt_for_plate_count():
-    """Prompt user for number of plates per scan (1 or 2) and split-plate mode.
+def prompt_for_split_plate():
+    """Prompt user for split-plate mode (2 genotypes per plate).
 
     Returns:
-        (plates_per_scan, split_plate): int, bool
-        split_plate means each plate has 2 genotypes side by side
+        split_plate: bool
     """
-    print("\n" + "=" * 60)
-    print("  How many plates per scan?")
-    print("  1 = single plate per image")
-    print("  2 = two plates stacked vertically (default)")
-    print("=" * 60)
-
-    while True:
-        response = input("\n  Plates per scan (1 or 2, default: 2): ").strip()
-        if response == "":
-            plates_per_scan = 2
-            break
-        if response in ('1', '2'):
-            plates_per_scan = int(response)
-            break
-        print("  Please enter 1 or 2.")
-
-    print(f"  Using {plates_per_scan} plate(s) per scan.")
-
-    # ask about split-plate (2 genotypes per plate)
     print("\n" + "=" * 60)
     print("  Split-plate mode")
     print("  Use this if each plate has 2 genotypes side by side")
@@ -285,10 +252,10 @@ def prompt_for_plate_count():
     while True:
         response = input("\n  Two genotypes per plate? (y/n, default: n): ").strip().lower()
         if response in ('', 'n', 'no'):
-            return plates_per_scan, False
+            return False
         elif response in ('y', 'yes'):
             print("  Split-plate mode enabled: 2 genotypes per plate.")
-            return plates_per_scan, True
+            return True
         print("  Please enter y or n.")
 
 
@@ -372,7 +339,7 @@ def main():
     # --- gather experiment info first ---
     experiment_desc = prompt_for_experiment()
     scale = prompt_for_dpi()
-    plates_per_scan, split_plate = prompt_for_plate_count()
+    split_plate = prompt_for_split_plate()
     num_marks = prompt_for_multi_measurement()
     csv_path = _build_csv_path(experiment_desc)
 
@@ -382,7 +349,7 @@ def main():
         if arg_path.is_file():
             # single file mode
             process_image(arg_path, scale, csv_path, 0, 0, num_marks,
-                          plates_per_scan, split_plate)
+                          split_plate)
             sys.exit(0)
         elif arg_path.is_dir():
             folder = arg_path
@@ -434,7 +401,7 @@ def main():
 
         success, plate_offset, root_offset = process_image(
             selected, scale, csv_path, plate_offset, root_offset, num_marks,
-            plates_per_scan, split_plate)
+            split_plate)
         processed.add(selected)
 
 

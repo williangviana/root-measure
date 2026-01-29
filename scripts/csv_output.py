@@ -23,6 +23,9 @@ def append_results_to_csv(results, csv_path, plates, plate_labels, plate_offset,
     # check if this is a factorial design (any plate has a condition)
     is_factorial = plate_labels and any(cond is not None for (geno, cond) in plate_labels)
 
+    # count plants per group to assign Plant_ID (restarts at 1 per group)
+    group_counters = {}
+
     rows = []
     for i, r in enumerate(results):
         root_num = root_offset + i + 1
@@ -46,6 +49,10 @@ def append_results_to_csv(results, csv_path, plates, plate_labels, plate_offset,
             if is_factorial:
                 row['Condition'] = condition or ''
 
+            # Plant_ID: per-group counter (restarts at 1 for each genotype group)
+            group_counters[group_idx] = group_counters.get(group_idx, 0) + 1
+            row['Plant_ID'] = group_counters[group_idx]
+
         # add segment columns if multi-measurement mode
         segments = r.get('segments', [])
         if num_marks > 0:
@@ -61,9 +68,9 @@ def append_results_to_csv(results, csv_path, plates, plate_labels, plate_offset,
 
     # set column order based on experiment type
     if is_factorial:
-        col_order = ['Root_ID', 'Plate', 'Genotype', 'Condition', 'Length_cm']
+        col_order = ['Root_ID', 'Plate', 'Genotype', 'Plant_ID', 'Condition', 'Length_cm']
     else:
-        col_order = ['Root_ID', 'Plate', 'Genotype', 'Length_cm']
+        col_order = ['Root_ID', 'Plate', 'Genotype', 'Plant_ID', 'Length_cm']
 
     # add segment columns
     if num_marks > 0:

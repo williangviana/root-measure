@@ -106,8 +106,13 @@ def find_root_tip(binary_image, top_point, scale=SCALE_PX_PER_CM):
         below_endpoints = [n for n in endpoints if skel_points[n][0] > start_row]
 
         if below_endpoints:
-            # pick the one furthest down
-            tip_idx = max(below_endpoints, key=lambda n: skel_points[n][0])
+            # pick the one furthest down, but penalize lateral drift
+            # from the start column to avoid jumping to neighboring roots
+            start_col = skel_points[start_idx][1]
+            def _tip_score(n):
+                r, c = skel_points[n]
+                return r - 2.0 * abs(c - start_col)
+            tip_idx = max(below_endpoints, key=_tip_score)
         else:
             # fallback: furthest endpoint by path length
             lengths = nx.single_source_dijkstra_path_length(G, start_idx, weight='weight')

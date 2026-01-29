@@ -9,7 +9,8 @@ from config import (SCALE_PX_PER_CM, min_component_size,
                     max_click_distance_px)
 
 
-def find_root_tip(binary_image, top_point, scale=SCALE_PX_PER_CM):
+def find_root_tip(binary_image, top_point, scale=SCALE_PX_PER_CM,
+                   plate_bottom=None):
     """Find the root tip (bottom endpoint) starting from a top click.
 
     Traces the skeleton downward from the starting point to find the
@@ -31,6 +32,8 @@ def find_root_tip(binary_image, top_point, scale=SCALE_PX_PER_CM):
     # no pixels above the click, so tracing can only go down
     rmin = max(0, top_point[0] - 10)    # tiny margin for click imprecision
     rmax = min(h, top_point[0] + vert)  # roots up to ~10 cm (plate limit)
+    if plate_bottom is not None:
+        rmax = min(rmax, plate_bottom)
     cmin = max(0, top_point[1] - half_w)
     cmax = min(w, top_point[1] + half_w)
 
@@ -108,13 +111,16 @@ def find_root_tip(binary_image, top_point, scale=SCALE_PX_PER_CM):
         furthest = max((n for n in component), key=lambda n: lengths.get(n, 0))
         tip_local = skel_points[furthest]
 
-    # check if there are lower endpoints in other components along the root
+    # check if there are lower endpoints in other large components along the root
     # (skeleton may break at thin/faint sections)
     start_col = skel_points[start_idx][1]
-    col_tolerance = half_w // 2  # stay near the root's column
+    col_tolerance = half_w // 3  # stay near the root's column
+    min_comp = min_component_size(scale)
     best_tip = tip_local
     for comp in nx.connected_components(G):
         if comp == component:
+            continue
+        if len(comp) < min_comp:
             continue
         for n in comp:
             if G.degree(n) != 1:

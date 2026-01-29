@@ -71,6 +71,8 @@ class RootClickCollector:
                                                 self._on_click)
         self.cid_key = fig.canvas.mpl_connect('key_press_event',
                                               self._on_key)
+        self.cid_scroll = fig.canvas.mpl_connect('scroll_event',
+                                                  self._on_scroll)
 
         self._update_title()
         self._highlight_current()
@@ -229,6 +231,23 @@ class RootClickCollector:
                 else:
                     self.finished = True
                     plt.close(self.fig)
+
+    def _on_scroll(self, event):
+        """Zoom in/out on scroll (trackpad or mouse wheel)."""
+        if event.inaxes is None:
+            return
+        ax = event.inaxes
+        scale_factor = 0.8 if event.button == 'up' else 1.25
+        xlim = ax.get_xlim()
+        ylim = ax.get_ylim()
+        xdata, ydata = event.xdata, event.ydata
+        new_w = (xlim[1] - xlim[0]) * scale_factor
+        new_h = (ylim[1] - ylim[0]) * scale_factor
+        ax.set_xlim([xdata - new_w * (xdata - xlim[0]) / (xlim[1] - xlim[0]),
+                     xdata + new_w * (xlim[1] - xdata) / (xlim[1] - xlim[0])])
+        ax.set_ylim([ydata - new_h * (ydata - ylim[0]) / (ylim[1] - ylim[0]),
+                     ydata + new_h * (ylim[1] - ydata) / (ylim[1] - ylim[0])])
+        self.fig.canvas.draw_idle()
 
     # -- helpers --------------------------------------------------------------
 

@@ -41,9 +41,8 @@ def threshold_8bit(scale, sensitivity='thick'):
 
 
 def min_component_size(scale):
-    """Min skeleton component size, scaled by area ratio to reference DPI."""
-    ratio = scale / _BASE_SCALE
-    return max(10, int(_BASE_MIN_COMP * ratio * ratio))
+    """Min skeleton component size (DPI-independent)."""
+    return _BASE_MIN_COMP
 
 
 def roi_half_width_px(scale):

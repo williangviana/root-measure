@@ -144,6 +144,8 @@ class RootClickCollector:
     # -- events --------------------------------------------------------------
 
     def _on_click(self, event):
+        if self._zoom_mode:
+            return
         if event.inaxes not in self.axes:
             return
 

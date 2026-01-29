@@ -44,6 +44,7 @@ class RootClickCollector:
         self.split_plate = split_plate
         self.points = []
         self.point_plates = []
+        self.point_flags = []      # None=normal, 'dead', 'touching'
         self.mark_points = []
         self.mark_plates = []
         self.artists = []
@@ -165,6 +166,7 @@ class RootClickCollector:
                 # --- clicking tops ---
                 self.points.append((full_row, full_col))
                 self.point_plates.append(self.current_group)
+                self.point_flags.append(None)
 
                 group_count = self._count_tops_for_group(self.current_group)
                 color = self._group_color(self.current_group)
@@ -208,6 +210,7 @@ class RootClickCollector:
                 if self.points and self.point_plates and self.point_plates[-1] == self.current_group:
                     self.points.pop()
                     self.point_plates.pop()
+                    self.point_flags.pop()
                     if self.artists:
                         for a in self.artists.pop():
                             a.remove()
@@ -236,6 +239,29 @@ class RootClickCollector:
             if self._zoom_mode:
                 self._zoom_mode = False
                 self.fig.canvas.toolbar.zoom()  # toggle off
+            self._update_title()
+            self.fig.canvas.draw_idle()
+            return
+        if event.key in ('d', 't') and not self.clicking_marks:
+            # D = dead seedling, T = touching roots — add placeholder entry
+            flag = 'dead' if event.key == 'd' else 'touching'
+            label_text = 'DEAD' if flag == 'dead' else 'TOUCH'
+            self.points.append((0, 0))  # dummy coords
+            self.point_plates.append(self.current_group)
+            self.point_flags.append(flag)
+
+            group_count = self._count_tops_for_group(self.current_group)
+            color = self._group_color(self.current_group)
+            ax = self._current_ax()
+            # place text marker at center of current view
+            xlim = ax.get_xlim()
+            ylim = ax.get_ylim()
+            cx = (xlim[0] + xlim[1]) / 2
+            cy = (ylim[0] + ylim[1]) / 2
+            text = ax.text(cx, cy - 20 * group_count, f"{group_count} {label_text}",
+                           color=color, fontsize=9, fontweight='bold',
+                           ha='center', bbox=dict(facecolor='yellow', alpha=0.7))
+            self.artists.append([text])
             self._update_title()
             self.fig.canvas.draw_idle()
             return
@@ -334,6 +360,10 @@ class RootClickCollector:
         """Return list of group indices for each top point."""
         return list(self.point_plates)
 
+    def get_point_flags(self):
+        """Return list of flags: None=normal, 'dead', 'touching'."""
+        return list(self.point_flags)
+
     def get_mark_points(self):
         """Return list of (row, col) mark points."""
         return list(self.mark_points)
@@ -389,4 +419,5 @@ def show_image_for_clicking(image, plates, plate_labels=None, plate_offset=0,
     plt.show()
 
     return (collector.get_top_points(), collector.get_point_plates(),
+            collector.get_point_flags(),
             collector.get_mark_points(), collector.get_mark_plates())

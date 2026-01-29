@@ -102,16 +102,18 @@ def process_image(image_path, csv_path, plate_offset=0, root_offset=0,
     # --- interactive clicking ---
     print("\n--- Instructions ---")
     print("  Left-click:   mark TOP of each root (tip auto-detected)")
+    print("  D:            dead seedling (records NA)")
+    print("  T:            roots touching (records NA)")
     if num_marks > 0:
         print(f"  Multi-measurement: {num_marks} mark(s) per root")
         print("  Workflow: click all tops → Enter → click marks (same order) → Enter")
     print("  Right-click:  undo last click")
     print("  Enter:        move to next stage / finish")
-    print("  Scroll/pan:   use matplotlib toolbar to zoom\n")
+    print("  Z/H:          zoom mode / reset view\n")
 
-    top_points, point_plates, mark_points, mark_plates = show_image_for_clicking(
-        image, plates, plate_labels, plate_offset, num_marks=num_marks,
-        split_plate=split_plate)
+    top_points, point_plates, point_flags, mark_points, mark_plates = \
+        show_image_for_clicking(image, plates, plate_labels, plate_offset,
+                                num_marks=num_marks, split_plate=split_plate)
 
     if not top_points:
         print("No roots marked. Skipping this image.")
@@ -143,12 +145,22 @@ def process_image(image_path, csv_path, plate_offset=0, root_offset=0,
         # show root number per group (local numbering for display)
         group_idx = point_plates[i]
         group_root_num = sum(1 for j in range(i + 1) if point_plates[j] == group_idx)
+        flag = point_flags[i]
         if split_plate:
             phys_plate = group_idx // 2 + 1
             geno_label = _format_plate_label(plate_labels[group_idx])
             print(f"  Plate {phys_plate} ({geno_label}), Root {group_root_num}...", end=" ", flush=True)
         else:
             print(f"  Plate {group_idx + 1}, Root {group_root_num}...", end=" ", flush=True)
+
+        # handle special flags (dead seedling / touching roots)
+        if flag is not None:
+            warning = 'dead seedling' if flag == 'dead' else 'roots touching'
+            print(warning.upper())
+            res = dict(length_cm=None, length_px=None, path=np.empty((0, 2)),
+                       method='skip', warning=warning, segments=[])
+            results.append(res)
+            continue
 
         # auto-detect the root tip
         tip = find_root_tip(binary, top, scale=scale)
@@ -195,7 +207,9 @@ def process_image(image_path, csv_path, plate_offset=0, root_offset=0,
     for i, r in enumerate(results):
         group_idx = point_plates[i]
         group_root_num = sum(1 for j in range(i + 1) if point_plates[j] == group_idx)
-        if r['warning']:
+        if r['length_cm'] is None:
+            status = f"NA — {r['warning']}"
+        elif r['warning']:
             status = r['warning']
         elif r.get('segments'):
             seg_str = " + ".join(f"{s:.2f}" for s in r['segments'])

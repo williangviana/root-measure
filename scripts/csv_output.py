@@ -31,8 +31,8 @@ def append_results_to_csv(results, csv_path, plates, plate_labels, plate_offset,
         root_num = root_offset + i + 1
         row = {
             'Root_ID': root_num,
-            'Length_cm': round(r['length_cm'], 3),
-            'Length_px': round(r['length_px'], 1),
+            'Length_cm': round(r['length_cm'], 3) if r['length_cm'] is not None else '',
+            'Length_px': round(r['length_px'], 1) if r['length_px'] is not None else '',
             'Warning': r['warning'] or '',
         }
 

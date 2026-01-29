@@ -163,10 +163,8 @@ def process_image(image_path, csv_path, plate_offset=0, root_offset=0,
             results.append(res)
             continue
 
-        # auto-detect the root tip (constrained to plate region)
-        phys_plate_idx = group_idx // 2 if split_plate else group_idx
-        plate_r1, plate_r2, plate_c1, plate_c2 = plates[phys_plate_idx]
-        tip = find_root_tip(binary, top, scale=scale, plate_bottom=plate_r2)
+        # auto-detect the root tip
+        tip = find_root_tip(binary, top, scale=scale)
         if tip is None:
             print("WARNING: Could not find root tip")
             res = dict(length_cm=0, length_px=0, path=np.empty((0, 2)),

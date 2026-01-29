@@ -375,8 +375,17 @@ def main():
             print(f"Error: {sys.argv[1]} is not a valid file or directory")
             sys.exit(1)
     else:
-        # default to script's directory
-        folder = Path(__file__).parent
+        # open folder picker dialog
+        import tkinter as tk
+        from tkinter import filedialog
+        root = tk.Tk()
+        root.withdraw()
+        selected = filedialog.askdirectory(title="Select folder containing scanned images")
+        root.destroy()
+        if not selected:
+            print("No folder selected. Exiting.")
+            sys.exit(0)
+        folder = Path(selected)
 
     # --- list images in folder ---
     images = list_images_in_folder(folder)

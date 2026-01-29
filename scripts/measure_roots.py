@@ -107,7 +107,7 @@ def process_image(image_path, csv_path, plate_offset=0, root_offset=0,
     if num_marks > 0:
         print(f"  Multi-measurement: {num_marks} mark(s) per root")
         print("  Workflow: click all tops → Enter → click marks (same order) → Enter")
-    print("  Right-click:  undo last click")
+    print("  Cmd+Z:        undo last click")
     print("  Enter:        move to next stage / finish")
     print("  Z/H:          zoom mode / reset view\n")
 

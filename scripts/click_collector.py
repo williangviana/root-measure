@@ -197,27 +197,34 @@ class RootClickCollector:
             self.fig.canvas.draw_idle()
 
         elif event.button == 3:  # right click — undo
-            if self.clicking_marks:
-                if self.mark_points and self.mark_plates and self.mark_plates[-1] == self.current_group:
-                    self.mark_points.pop()
-                    self.mark_plates.pop()
-                    if self.mark_artists:
-                        for a in self.mark_artists.pop():
-                            a.remove()
-                    self._update_title()
-                    self.fig.canvas.draw_idle()
-            else:
-                if self.points and self.point_plates and self.point_plates[-1] == self.current_group:
-                    self.points.pop()
-                    self.point_plates.pop()
-                    self.point_flags.pop()
-                    if self.artists:
-                        for a in self.artists.pop():
-                            a.remove()
-                    self._update_title()
-                    self.fig.canvas.draw_idle()
+            self._undo()
+
+    def _undo(self):
+        """Undo last click (top or mark) for the current group."""
+        if self.clicking_marks:
+            if self.mark_points and self.mark_plates and self.mark_plates[-1] == self.current_group:
+                self.mark_points.pop()
+                self.mark_plates.pop()
+                if self.mark_artists:
+                    for a in self.mark_artists.pop():
+                        a.remove()
+                self._update_title()
+                self.fig.canvas.draw_idle()
+        else:
+            if self.points and self.point_plates and self.point_plates[-1] == self.current_group:
+                self.points.pop()
+                self.point_plates.pop()
+                self.point_flags.pop()
+                if self.artists:
+                    for a in self.artists.pop():
+                        a.remove()
+                self._update_title()
+                self.fig.canvas.draw_idle()
 
     def _on_key(self, event):
+        if event.key in ('super+z', 'cmd+z', 'ctrl+z'):
+            self._undo()
+            return
         if event.key == 'z':
             # toggle zoom mode — left-click-drag to zoom rectangle
             self._zoom_mode = not self._zoom_mode

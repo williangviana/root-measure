@@ -31,15 +31,18 @@ Interactive Python tool for measuring root lengths from scanned agar plate image
 
 ```
 root_measure/
-├── measure_roots.py       # Entry point: CLI, image loading, processing pipeline
-├── config.py              # Constants and ROI helper functions
-├── image_processing.py    # preprocess() — binary root mask generation
-├── plate_detection.py     # Plate detection, interior cropping, label prompting
-├── click_collector.py     # Interactive matplotlib click handler and display
-├── root_tracing.py        # Root tip detection, skeleton graph, path tracing
-├── results_display.py     # Traced root overlay visualization
-├── csv_output.py          # CSV append logic
-├── utils.py               # Image listing, path helpers, segment computation
-├── CLAUDE.md              # This file
-└── GITHUB_SETUP.md        # Git reference
+├── scripts/
+│   ├── measure_roots.py       # Entry point: CLI, image loading, processing pipeline
+│   ├── config.py              # Constants and ROI helper functions
+│   ├── image_processing.py    # preprocess() — binary root mask generation
+│   ├── plate_detection.py     # Plate detection, interior cropping, label prompting
+│   ├── click_collector.py     # Interactive matplotlib click handler and display
+│   ├── root_tracing.py        # Root tip detection, skeleton graph, path tracing
+│   ├── results_display.py     # Traced root overlay visualization
+│   ├── csv_output.py          # CSV append logic
+│   └── utils.py               # Image listing, path helpers, segment computation
+├── output/                    # CSV results (gitignored)
+├── .gitignore
+├── CLAUDE.md                  # This file
+└── GITHUB_SETUP.md            # Git reference
 ```

@@ -355,17 +355,32 @@ def _build_csv_path(experiment_desc):
 # ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
+def _select_folder():
+    """Open a folder picker dialog and return the selected Path."""
+    import tkinter as tk
+    from tkinter import filedialog
+    root = tk.Tk()
+    root.withdraw()
+    selected = filedialog.askdirectory(title="Select folder containing scanned images")
+    root.destroy()
+    if not selected:
+        return None
+    return Path(selected)
+
+
 def main():
-    # determine working folder
+    # --- gather experiment info first ---
+    experiment_desc = prompt_for_experiment()
+    scale = prompt_for_dpi()
+    plates_per_scan, split_plate = prompt_for_plate_count()
+    num_marks = prompt_for_multi_measurement()
+    csv_path = _build_csv_path(experiment_desc)
+
+    # --- determine working folder ---
     if len(sys.argv) >= 2:
         arg_path = Path(sys.argv[1])
         if arg_path.is_file():
-            # single file mode — prompt for DPI and process
-            experiment_desc = prompt_for_experiment()
-            scale = prompt_for_dpi()
-            plates_per_scan, split_plate = prompt_for_plate_count()
-            num_marks = prompt_for_multi_measurement()
-            csv_path = _build_csv_path(experiment_desc)
+            # single file mode
             process_image(arg_path, scale, csv_path, 0, 0, num_marks,
                           plates_per_scan, split_plate)
             sys.exit(0)
@@ -375,17 +390,14 @@ def main():
             print(f"Error: {sys.argv[1]} is not a valid file or directory")
             sys.exit(1)
     else:
-        # open folder picker dialog
-        import tkinter as tk
-        from tkinter import filedialog
-        root = tk.Tk()
-        root.withdraw()
-        selected = filedialog.askdirectory(title="Select folder containing scanned images")
-        root.destroy()
-        if not selected:
+        print("\n" + "=" * 60)
+        print("  Press Enter to select the folder with your scanned images")
+        print("=" * 60)
+        input()
+        folder = _select_folder()
+        if folder is None:
             print("No folder selected. Exiting.")
             sys.exit(0)
-        folder = Path(selected)
 
     # --- list images in folder ---
     images = list_images_in_folder(folder)
@@ -394,18 +406,6 @@ def main():
         sys.exit(0)
 
     print(f"\nFound {len(images)} image(s) in: {folder}")
-
-    # --- prompt for experiment description ---
-    experiment_desc = prompt_for_experiment()
-
-    # --- prompt for DPI ---
-    scale = prompt_for_dpi()
-
-    # --- prompt for plate count ---
-    plates_per_scan, split_plate = prompt_for_plate_count()
-
-    # --- prompt for multi-measurement mode ---
-    num_marks = prompt_for_multi_measurement()
 
     # --- setup shared CSV file ---
     csv_path = _build_csv_path(experiment_desc)

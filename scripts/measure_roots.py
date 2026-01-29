@@ -19,6 +19,7 @@ Workflow:
 """
 
 import sys
+import datetime
 from pathlib import Path
 
 import numpy as np
@@ -326,6 +327,31 @@ def prompt_for_multi_measurement():
             print("  Invalid input. Enter a number like 1 or 2.")
 
 
+def prompt_for_experiment():
+    """Prompt user for experiment description, used in CSV filename."""
+    print("\n" + "=" * 60)
+    print("  Enter a short experiment description")
+    print("  This will be used in the output filename")
+    print("  Example: Salt Stress Col-0 vs crd-2")
+    print("=" * 60)
+
+    while True:
+        desc = input("\nExperiment: ").strip()
+        if desc:
+            return desc
+        print("  Please enter a description.")
+
+
+def _build_csv_path(experiment_desc):
+    """Build the output CSV path: output/YYYY-MM-DD - description.csv"""
+    project_root = Path(__file__).parent.parent
+    output_dir = project_root / 'output'
+    output_dir.mkdir(exist_ok=True)
+    date_str = datetime.date.today().strftime('%Y-%m-%d')
+    filename = f"{date_str} - {experiment_desc}.csv"
+    return output_dir / filename
+
+
 # ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
@@ -335,10 +361,11 @@ def main():
         arg_path = Path(sys.argv[1])
         if arg_path.is_file():
             # single file mode — prompt for DPI and process
+            experiment_desc = prompt_for_experiment()
             scale = prompt_for_dpi()
             plates_per_scan, split_plate = prompt_for_plate_count()
             num_marks = prompt_for_multi_measurement()
-            csv_path = arg_path.parent / 'data.csv'
+            csv_path = _build_csv_path(experiment_desc)
             process_image(arg_path, scale, csv_path, 0, 0, num_marks,
                           plates_per_scan, split_plate)
             sys.exit(0)
@@ -359,6 +386,9 @@ def main():
 
     print(f"\nFound {len(images)} image(s) in: {folder}")
 
+    # --- prompt for experiment description ---
+    experiment_desc = prompt_for_experiment()
+
     # --- prompt for DPI ---
     scale = prompt_for_dpi()
 
@@ -369,9 +399,9 @@ def main():
     num_marks = prompt_for_multi_measurement()
 
     # --- setup shared CSV file ---
-    csv_path = folder / 'data.csv'
+    csv_path = _build_csv_path(experiment_desc)
     if csv_path.exists():
-        print(f"\nNote: data.csv already exists. New data will be appended.")
+        print(f"\nNote: {csv_path.name} already exists. New data will be appended.")
 
     # --- main selection loop ---
     processed = set()

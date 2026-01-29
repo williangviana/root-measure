@@ -22,7 +22,7 @@ SENSITIVITY_PRESETS = {
 }
 
 # Physical ROI limits (in cm) — converted to pixels using DPI at runtime
-ROI_HALF_WIDTH_CM = 0.85      # Half-width of ROI around root (~8.5mm, allows curved roots)
+ROI_HALF_WIDTH_CM = 1.3       # Half-width of ROI around root (~13mm, allows curved roots)
 ROI_VERTICAL_CM = 10.6        # Max root length to search for tip (~10.6 cm, plate limit)
 ROI_PAD_CM = 0.65             # Padding above/below click pair for tracing ROI
 MAX_CLICK_DISTANCE_CM = 0.65  # Max distance from click to nearest skeleton pixel

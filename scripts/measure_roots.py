@@ -39,19 +39,17 @@ from csv_output import append_results_to_csv
 from utils import list_images_in_folder, select_image_from_list, _compute_segments
 
 
-def process_image(image_path, scale, csv_path, plate_offset=0, root_offset=0,
-                  num_marks=0, split_plate=False, sensitivity='normal'):
-    """Process a single image: select plates, click roots, measure, save.
+def process_image(image_path, csv_path, plate_offset=0, root_offset=0,
+                  num_marks=0, split_plate=False):
+    """Process a single image: ask DPI/sensitivity, select plates, click roots, measure, save.
 
     Args:
         image_path: Path to the image file
-        scale: pixels per cm
         csv_path: Path to the shared data.csv file
         plate_offset: starting plate number (0-based)
         root_offset: starting root number (0-based)
         num_marks: number of marks per root (0 = normal mode)
         split_plate: if True, each plate has 2 genotypes
-        sensitivity: 'thick', 'normal', or 'thin'
 
     Returns:
         (success, new_plate_offset, new_root_offset) or (False, plate_offset, root_offset) on error
@@ -79,7 +77,11 @@ def process_image(image_path, scale, csv_path, plate_offset=0, root_offset=0,
         return False, plate_offset, root_offset
 
     print(f"Image: {image.shape[1]}x{image.shape[0]}, {image.dtype}")
-    print(f"Scale: {scale:.1f} px/cm")
+
+    # --- per-image DPI and sensitivity ---
+    scale = prompt_for_dpi()
+    sensitivity = prompt_for_sensitivity()
+    print(f"Scale: {scale:.1f} px/cm, sensitivity: {sensitivity}")
 
     # --- select plates interactively ---
     print("Select plates on the image...")
@@ -366,8 +368,6 @@ def _select_folder():
 def main():
     # --- gather experiment info first ---
     experiment_desc = prompt_for_experiment()
-    scale = prompt_for_dpi()
-    sensitivity = prompt_for_sensitivity()
     split_plate = prompt_for_split_plate()
     num_marks = prompt_for_multi_measurement()
     csv_path = _build_csv_path(experiment_desc)
@@ -377,8 +377,8 @@ def main():
         arg_path = Path(sys.argv[1])
         if arg_path.is_file():
             # single file mode
-            process_image(arg_path, scale, csv_path, 0, 0, num_marks,
-                          split_plate, sensitivity)
+            process_image(arg_path, csv_path, 0, 0, num_marks,
+                          split_plate)
             sys.exit(0)
         elif arg_path.is_dir():
             folder = arg_path
@@ -429,8 +429,8 @@ def main():
             break
 
         success, plate_offset, root_offset = process_image(
-            selected, scale, csv_path, plate_offset, root_offset, num_marks,
-            split_plate, sensitivity)
+            selected, csv_path, plate_offset, root_offset, num_marks,
+            split_plate)
         processed.add(selected)
 
 

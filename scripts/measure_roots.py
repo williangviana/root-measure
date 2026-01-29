@@ -127,8 +127,9 @@ def process_image(image_path, csv_path, plate_offset=0, root_offset=0,
     root_marks = {}  # root_index -> list of (row, col) mark points
     if num_marks > 0 and mark_points:
         for group_idx in range(num_groups):
-            # get tops for this group, in order
-            group_top_indices = [i for i, p in enumerate(point_plates) if p == group_idx]
+            # get normal (non-flagged) tops for this group, in order
+            group_top_indices = [i for i, (p, f) in enumerate(zip(point_plates, point_flags))
+                                 if p == group_idx and f is None]
             # get marks for this group, in order
             group_mark_coords = [mark_points[i] for i, p in enumerate(mark_plates)
                                  if p == group_idx]

@@ -138,9 +138,14 @@ class RootClickCollector:
         """Count how many mark points belong to a specific group."""
         return sum(1 for p in self.mark_plates if p == group)
 
+    def _count_normal_tops_for_group(self, group):
+        """Count how many normal (non-flagged) top points belong to a group."""
+        return sum(1 for p, f in zip(self.point_plates, self.point_flags)
+                   if p == group and f is None)
+
     def _expected_marks_for_group(self, group):
-        """How many marks are expected for a group."""
-        return self._count_tops_for_group(group) * self.num_marks
+        """How many marks are expected for a group (only normal roots)."""
+        return self._count_normal_tops_for_group(group) * self.num_marks
 
     # -- events --------------------------------------------------------------
 

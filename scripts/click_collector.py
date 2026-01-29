@@ -67,6 +67,12 @@ class RootClickCollector:
         else:
             self.plate_labels = [("", None)] * self.num_groups
 
+        # store original view limits for home reset
+        self._original_lims = {}
+        for ax in self.axes:
+            self._original_lims[id(ax)] = (ax.get_xlim(), ax.get_ylim())
+        self._zoom_mode = False
+
         self.cid_click = fig.canvas.mpl_connect('button_press_event',
                                                 self._on_click)
         self.cid_key = fig.canvas.mpl_connect('key_press_event',
@@ -207,6 +213,30 @@ class RootClickCollector:
                     self.fig.canvas.draw_idle()
 
     def _on_key(self, event):
+        if event.key == 'z':
+            # toggle zoom mode — left-click-drag to zoom rectangle
+            self._zoom_mode = not self._zoom_mode
+            if self._zoom_mode:
+                self.fig.suptitle("ZOOM MODE: click and drag to zoom. Press Z to exit, H to reset.",
+                                 fontsize=11)
+                self.fig.canvas.toolbar.zoom()
+            else:
+                self.fig.canvas.toolbar.zoom()  # toggle off
+                self._update_title()
+            self.fig.canvas.draw_idle()
+            return
+        if event.key == 'h':
+            # reset all axes to original view
+            for ax in self.axes:
+                xlim, ylim = self._original_lims[id(ax)]
+                ax.set_xlim(xlim)
+                ax.set_ylim(ylim)
+            if self._zoom_mode:
+                self._zoom_mode = False
+                self.fig.canvas.toolbar.zoom()  # toggle off
+            self._update_title()
+            self.fig.canvas.draw_idle()
+            return
         if event.key == 'enter':
             last_group = self.num_groups - 1
             if self.num_marks == 0:

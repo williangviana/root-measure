@@ -268,9 +268,9 @@ def prompt_for_sensitivity():
     """
     print("\n" + "=" * 60)
     print("  Root thickness")
-    print("  1 = thick  (high contrast, e.g. S. parvula)")
-    print("  2 = normal (most Arabidopsis roots, default)")
-    print("  3 = thin   (very thin/faint roots)")
+    print("  1 = thick  (e.g. Setaria viridis, Brassica napus)")
+    print("  2 = normal (e.g. Schrenkiella parvula, default)")
+    print("  3 = thin   (e.g. Arabidopsis thaliana)")
     print("=" * 60)
 
     while True:

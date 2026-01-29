@@ -16,9 +16,9 @@ _BASE_MIN_COMP = 100          # Min skeleton component size at reference scale
 # Sensitivity presets: (sigma_multiplier, threshold_multiplier)
 # Lower sigma keeps thin roots; lower threshold keeps faint signal
 SENSITIVITY_PRESETS = {
-    'thick':  (1.0, 1.0),     # original values — thick, high-contrast roots
-    'normal': (0.7, 0.7),     # moderate — most Arabidopsis roots
-    'thin':   (0.45, 0.45),   # aggressive — very thin/faint roots
+    'thick':  (1.0, 1.0),     # Setaria viridis, Brassica napus
+    'normal': (0.7, 0.7),     # Schrenkiella parvula
+    'thin':   (0.45, 0.45),   # Arabidopsis thaliana
 }
 
 # Physical ROI limits (in cm) — converted to pixels using DPI at runtime

@@ -4,7 +4,7 @@ from scipy.spatial import cKDTree
 from skimage.morphology import skeletonize
 from skimage.graph import route_through_array
 
-from config import (SCALE_PX_PER_CM, MIN_COMPONENT_SIZE,
+from config import (SCALE_PX_PER_CM, min_component_size,
                     roi_half_width_px, roi_vertical_px, roi_pad_px,
                     max_click_distance_px)
 
@@ -83,7 +83,7 @@ def find_root_tip(binary_image, top_point, scale=SCALE_PX_PER_CM):
     for d, i in zip(dist, idx):
         if d > max_dist:
             break
-        if node_comp_size.get(int(i), 0) >= MIN_COMPONENT_SIZE:
+        if node_comp_size.get(int(i), 0) >= min_component_size(scale):
             start_idx = int(i)
             break
 
@@ -172,10 +172,11 @@ def _try_skeleton_graph(skeleton, start, end, scale=SCALE_PX_PER_CM):
 
     tree = cKDTree(skel_points)
 
+    min_comp = min_component_size(scale)
     idx_start = _snap_to_large_component(tree, start, node_comp_size,
-                                         MIN_COMPONENT_SIZE, scale=scale)
+                                         min_comp, scale=scale)
     idx_end = _snap_to_large_component(tree, end, node_comp_size,
-                                       MIN_COMPONENT_SIZE, scale=scale)
+                                       min_comp, scale=scale)
 
     if idx_start is None or idx_end is None:
         return None

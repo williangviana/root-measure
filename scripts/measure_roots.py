@@ -40,7 +40,7 @@ from utils import list_images_in_folder, select_image_from_list, _compute_segmen
 
 
 def process_image(image_path, scale, csv_path, plate_offset=0, root_offset=0,
-                  num_marks=0, split_plate=False):
+                  num_marks=0, split_plate=False, sensitivity='normal'):
     """Process a single image: select plates, click roots, measure, save.
 
     Args:
@@ -51,6 +51,7 @@ def process_image(image_path, scale, csv_path, plate_offset=0, root_offset=0,
         root_offset: starting root number (0-based)
         num_marks: number of marks per root (0 = normal mode)
         split_plate: if True, each plate has 2 genotypes
+        sensitivity: 'thick', 'normal', or 'thin'
 
     Returns:
         (success, new_plate_offset, new_root_offset) or (False, plate_offset, root_offset) on error
@@ -91,8 +92,8 @@ def process_image(image_path, scale, csv_path, plate_offset=0, root_offset=0,
     plate_labels = prompt_plate_labels(len(plates), plate_offset, split_plate)
 
     # --- preprocess ---
-    print("Preprocessing...")
-    binary = preprocess(image)
+    print(f"Preprocessing (sensitivity={sensitivity})...")
+    binary = preprocess(image, scale=scale, sensitivity=sensitivity)
     print(f"Root pixels: {binary.sum():,} / {binary.size:,} "
           f"({100 * binary.sum() / binary.size:.1f}%)")
 
@@ -259,6 +260,33 @@ def prompt_for_split_plate():
         print("  Please enter y or n.")
 
 
+def prompt_for_sensitivity():
+    """Prompt user for root thickness / sensitivity preset.
+
+    Returns:
+        sensitivity: str ('thick', 'normal', or 'thin')
+    """
+    print("\n" + "=" * 60)
+    print("  Root thickness")
+    print("  1 = thick  (high contrast, e.g. S. parvula)")
+    print("  2 = normal (most Arabidopsis roots, default)")
+    print("  3 = thin   (very thin/faint roots)")
+    print("=" * 60)
+
+    while True:
+        response = input("\n  Root thickness (1/2/3, default: 2): ").strip()
+        if response in ('', '2'):
+            print("  Using normal sensitivity.")
+            return 'normal'
+        elif response == '1':
+            print("  Using thick-root settings.")
+            return 'thick'
+        elif response == '3':
+            print("  Using thin-root settings.")
+            return 'thin'
+        print("  Please enter 1, 2, or 3.")
+
+
 def prompt_for_multi_measurement():
     """Prompt user for multi-measurement mode (segment marks on roots).
 
@@ -339,6 +367,7 @@ def main():
     # --- gather experiment info first ---
     experiment_desc = prompt_for_experiment()
     scale = prompt_for_dpi()
+    sensitivity = prompt_for_sensitivity()
     split_plate = prompt_for_split_plate()
     num_marks = prompt_for_multi_measurement()
     csv_path = _build_csv_path(experiment_desc)
@@ -349,7 +378,7 @@ def main():
         if arg_path.is_file():
             # single file mode
             process_image(arg_path, scale, csv_path, 0, 0, num_marks,
-                          split_plate)
+                          split_plate, sensitivity)
             sys.exit(0)
         elif arg_path.is_dir():
             folder = arg_path
@@ -401,7 +430,7 @@ def main():
 
         success, plate_offset, root_offset = process_image(
             selected, scale, csv_path, plate_offset, root_offset, num_marks,
-            split_plate)
+            split_plate, sensitivity)
         processed.add(selected)
 
 

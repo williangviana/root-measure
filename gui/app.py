@@ -71,13 +71,13 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
         self.canvas = ImageCanvas(self)
         self.canvas.grid(row=0, column=1, sticky="nsew", padx=(2, 0), pady=0)
 
-        # status bar at bottom
-        self.status_bar = ctk.CTkFrame(self, height=30, fg_color="gray15")
+        # controls bar at bottom
+        self.status_bar = ctk.CTkFrame(self, height=32, fg_color="gray20")
         self.status_bar.grid(row=1, column=0, columnspan=2, sticky="ew")
         self.status_bar.grid_propagate(False)
         self.lbl_bottom = ctk.CTkLabel(
             self.status_bar, text="Root Measure — Dinneny Lab",
-            font=ctk.CTkFont(size=10), text_color="gray50")
+            font=ctk.CTkFont(size=12, weight="bold"), text_color="#cccccc")
         self.lbl_bottom.pack(side="left", padx=10)
 
         # global keyboard handler — works regardless of which widget has focus

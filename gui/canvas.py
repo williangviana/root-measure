@@ -282,28 +282,42 @@ class ImageCanvas(ctk.CTkFrame):
                         font=("Helvetica", 9, "bold"))
                     self._root_marker_ids.extend([rid, tid])
 
-        # redraw mark diamonds (hide in review mode)
+        # redraw mark circles (hide in review mode)
+        # group colors for marks match genotype shading
+        _GROUP_MARK_COLORS = [
+            ["#e63333", "#ff8080"],  # group 0: dark red, light red
+            ["#3333e6", "#8080ff"],  # group 1: dark blue, light blue
+        ]
         self._mark_marker_ids.clear()
-        if self._mode == self.MODE_CLICK_MARKS:
-            for i, (row, col) in enumerate(self._mark_points):
-                cx, cy = self.image_to_canvas(col, row)
-                s = 5
-                rid = self.canvas.create_polygon(
-                    cx, cy - s, cx + s, cy, cx, cy + s, cx - s, cy,
-                    outline="white", fill="#ff9500", width=1)
-                tid = self.canvas.create_text(
-                    cx + 10, cy - 8, text=f"M{i + 1}",
-                    fill="#ff9500", anchor="w",
-                    font=("Helvetica", 8, "bold"))
-                self._mark_marker_ids.extend([rid, tid])
-        elif self._mode not in (self.MODE_REVIEW,) and self._all_marks:
+        if self._mode not in (self.MODE_REVIEW,):
+            # draw saved marks from _all_marks (persisted across groups)
             for ri, marks in self._all_marks.items():
-                for row, col in marks:
+                group = self._root_groups[ri] if ri < len(self._root_groups) else 0
+                shades = _GROUP_MARK_COLORS[group % len(_GROUP_MARK_COLORS)]
+                for mi, (row, col) in enumerate(marks):
                     cx, cy = self.image_to_canvas(col, row)
-                    s = 4
-                    self.canvas.create_polygon(
-                        cx, cy - s, cx + s, cy, cx, cy + s, cx - s, cy,
-                        outline="white", fill="#ff9500", width=1)
+                    r = 4
+                    color = shades[mi % len(shades)]
+                    self.canvas.create_oval(
+                        cx - r, cy - r, cx + r, cy + r,
+                        outline="white", fill=color, width=1)
+            # draw current batch marks (not yet saved to _all_marks)
+            if self._mode == self.MODE_CLICK_MARKS:
+                # determine group from the roots being marked
+                current_group = getattr(self, '_current_root_group', 0)
+                shades = _GROUP_MARK_COLORS[current_group % len(_GROUP_MARK_COLORS)]
+                for i, (row, col) in enumerate(self._mark_points):
+                    cx, cy = self.image_to_canvas(col, row)
+                    r = 5
+                    color = shades[i % len(shades)]
+                    rid = self.canvas.create_oval(
+                        cx - r, cy - r, cx + r, cy + r,
+                        outline="white", fill=color, width=1)
+                    tid = self.canvas.create_text(
+                        cx + 10, cy - 8, text=f"M{i + 1}",
+                        fill=color, anchor="w",
+                        font=("Helvetica", 8, "bold"))
+                    self._mark_marker_ids.extend([rid, tid])
 
         # redraw traced paths with segment coloring
         for ti, (path, shades, mark_indices) in enumerate(self._traces):
@@ -433,16 +447,23 @@ class ImageCanvas(ctk.CTkFrame):
                 return
             col, row = self.canvas_to_image(event.x, event.y)
             self._mark_points.append((row, col))
-            # draw mark as small diamond
+            # draw mark as genotype-colored circle
             cx, cy = event.x, event.y
-            s = 5
-            rid = self.canvas.create_polygon(
-                cx, cy - s, cx + s, cy, cx, cy + s, cx - s, cy,
-                outline="white", fill="#ff9500", width=1)
+            _GROUP_MARK_COLORS = [
+                ["#e63333", "#ff8080"],
+                ["#3333e6", "#8080ff"],
+            ]
+            current_group = getattr(self, '_current_root_group', 0)
+            shades = _GROUP_MARK_COLORS[current_group % len(_GROUP_MARK_COLORS)]
             n = len(self._mark_points)
+            color = shades[(n - 1) % len(shades)]
+            r = 5
+            rid = self.canvas.create_oval(
+                cx - r, cy - r, cx + r, cy + r,
+                outline="white", fill=color, width=1)
             tid = self.canvas.create_text(
                 cx + 10, cy - 8, text=f"M{n}",
-                fill="#ff9500", anchor="w",
+                fill=color, anchor="w",
                 font=("Helvetica", 8, "bold"))
             self._mark_marker_ids.extend([rid, tid])
             if self._on_click_callback:

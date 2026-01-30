@@ -143,9 +143,17 @@ def process_image(image_path, csv_path, plate_offset=0, root_offset=0,
                 root_marks[root_i] = group_mark_coords[start:end]
 
     # --- find root tips and trace ---
-    print(f"\nProcessing {len(top_points)} root(s)...")
+    total = len(top_points)
+    print(f"\nTracing {total} root(s)...")
     results = []
     for i, top in enumerate(top_points):
+        # progress bar
+        done = i + 1
+        bar_len = 30
+        filled = int(bar_len * done / total)
+        bar = '█' * filled + '░' * (bar_len - filled)
+        print(f"\r  [{bar}] {done}/{total}", end="", flush=True)
+
         # show root number per group (local numbering for display)
         group_idx = point_plates[i]
         group_root_num = sum(1 for j in range(i + 1) if point_plates[j] == group_idx)
@@ -153,9 +161,10 @@ def process_image(image_path, csv_path, plate_offset=0, root_offset=0,
         if split_plate:
             phys_plate = group_idx // 2 + 1
             geno_label = _format_plate_label(plate_labels[group_idx])
-            print(f"  Plate {phys_plate} ({geno_label}), Root {group_root_num}...", end=" ", flush=True)
+            label = f"Plate {phys_plate} ({geno_label}), Root {group_root_num}"
         else:
-            print(f"  Plate {group_idx + 1}, Root {group_root_num}...", end=" ", flush=True)
+            label = f"Plate {group_idx + 1}, Root {group_root_num}"
+        print(f"\r  [{bar}] {done}/{total}  {label}...", end=" ", flush=True)
 
         # handle special flags (dead seedling / touching roots)
         if flag is not None:

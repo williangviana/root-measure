@@ -92,18 +92,12 @@ def find_root_tip(binary_image, top_point, scale=SCALE_PX_PER_CM):
 
     # find all endpoints (degree 1 nodes) in the same component
     component = nx.node_connected_component(G, start_idx)
-    subG = G.subgraph(component).copy()
-
-    # prune short lateral branches before tip selection
-    _prune_lateral_branches(subG, {start_idx}, scale)
-
-    # find endpoints in pruned graph
-    endpoints = [n for n in subG.nodes() if subG.degree(n) == 1]
+    endpoints = [n for n in component if G.degree(n) == 1]
 
     if not endpoints:
         # no clear endpoints — use the furthest point from start
-        lengths = nx.single_source_dijkstra_path_length(subG, start_idx, weight='weight')
-        furthest = max(subG.nodes(), key=lambda n: lengths.get(n, 0))
+        lengths = nx.single_source_dijkstra_path_length(G, start_idx, weight='weight')
+        furthest = max((n for n in component), key=lambda n: lengths.get(n, 0))
         tip_local = skel_points[furthest]
     else:
         # find the endpoint furthest down (max row) that's reachable from start
@@ -112,8 +106,8 @@ def find_root_tip(binary_image, top_point, scale=SCALE_PX_PER_CM):
         below_endpoints = [n for n in endpoints if skel_points[n][0] > start_row]
 
         if below_endpoints:
-            # pick the one furthest down, penalize lateral drift
-            # to avoid jumping to neighboring roots
+            # pick the one furthest down, but strongly penalize lateral drift
+            # to avoid following lateral roots instead of the primary root
             start_col = skel_points[start_idx][1]
             def _tip_score(n):
                 r, c = skel_points[n]
@@ -121,7 +115,7 @@ def find_root_tip(binary_image, top_point, scale=SCALE_PX_PER_CM):
             tip_idx = max(below_endpoints, key=_tip_score)
         else:
             # fallback: furthest endpoint by path length
-            lengths = nx.single_source_dijkstra_path_length(subG, start_idx, weight='weight')
+            lengths = nx.single_source_dijkstra_path_length(G, start_idx, weight='weight')
             tip_idx = max(endpoints, key=lambda n: lengths.get(n, 0))
 
         tip_local = skel_points[tip_idx]
@@ -129,49 +123,6 @@ def find_root_tip(binary_image, top_point, scale=SCALE_PX_PER_CM):
     # convert back to full image coordinates
     tip_full = (tip_local[0] + rmin, tip_local[1] + cmin)
     return tip_full
-
-
-def _prune_lateral_branches(G, protected_nodes, scale):
-    """Remove short lateral branches from skeleton graph.
-
-    Iteratively removes endpoints whose branch (path to nearest junction)
-    is shorter than the prune threshold. Never removes protected nodes.
-    Modifies G in place.
-    """
-    prune_thresh = roi_half_width_px(scale) * 0.4
-    changed = True
-    while changed:
-        changed = False
-        endpoints = [n for n in G.nodes() if G.degree(n) == 1
-                     and n not in protected_nodes]
-        for ep in endpoints:
-            if ep not in G:
-                continue
-            branch_len = 0.0
-            cur = ep
-            prev = None
-            while True:
-                neighbors = [nb for nb in G.neighbors(cur) if nb != prev]
-                if len(neighbors) != 1:
-                    break
-                nxt = neighbors[0]
-                branch_len += G[cur][nxt].get('weight', 1.0)
-                if branch_len > prune_thresh:
-                    break
-                prev = cur
-                cur = nxt
-            if branch_len <= prune_thresh:
-                cur = ep
-                prev = None
-                while True:
-                    neighbors = [nb for nb in G.neighbors(cur) if nb != prev]
-                    nxt = neighbors[0] if len(neighbors) == 1 else None
-                    G.remove_node(cur)
-                    if nxt is None or G.degree(nxt) != 1 or nxt in protected_nodes:
-                        break
-                    prev = cur
-                    cur = nxt
-                changed = True
 
 
 def _snap_to_large_component(tree, point, node_comp_size, min_size,
@@ -213,7 +164,6 @@ def _try_skeleton_graph(skeleton, start, end, scale=SCALE_PX_PER_CM):
                     dist = np.sqrt(2) if (dr != 0 and dc != 0) else 1.0
                     edges.append((i, j, dist))
 
-    # undirected graph for component detection and pruning
     G = nx.Graph()
     G.add_nodes_from(range(len(skel_points)))
     G.add_weighted_edges_from(edges)
@@ -268,9 +218,8 @@ def trace_root(binary_image, top_point, bottom_point, scale=SCALE_PX_PER_CM):
     # extract local ROI (DPI-dynamic)
     pad = roi_pad_px(scale)
     half_w = roi_half_width_px(scale)
-    # only allow a tiny margin above the top click (roots grow downward)
-    rmin = max(0, top_point[0] - 10)
-    rmax = min(h, bottom_point[0] + pad)
+    rmin = max(0, min(top_point[0], bottom_point[0]) - pad)
+    rmax = min(h, max(top_point[0], bottom_point[0]) + pad)
     cmin = max(0, min(top_point[1], bottom_point[1]) - half_w)
     cmax = min(w, max(top_point[1], bottom_point[1]) + half_w)
 

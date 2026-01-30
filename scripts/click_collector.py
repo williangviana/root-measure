@@ -45,6 +45,9 @@ class RootClickCollector:
         self.points = []
         self.point_plates = []
         self.point_flags = []      # None=normal, 'dead', 'touching'
+        self.manual_bottoms = {}   # root_index -> (row, col) for manual roots
+        self._manual_mode = False  # toggle with 'm' key
+        self._awaiting_bottom = False  # waiting for bottom click
         self.mark_points = []
         self.mark_plates = []
         self.artists = []
@@ -168,6 +171,21 @@ class RootClickCollector:
             full_row, full_col = self._display_to_full(ax, dcol, drow)
 
             if not self.clicking_marks:
+                if self._awaiting_bottom:
+                    # --- manual mode: second click = bottom ---
+                    root_idx = len(self.points) - 1
+                    self.manual_bottoms[root_idx] = (full_row, full_col)
+                    self._awaiting_bottom = False
+
+                    color = self._group_color(self.current_group)
+                    marker = ax.plot(dcol, drow, 's', color=color,
+                                     markersize=8, markeredgecolor='white',
+                                     markeredgewidth=1)[0]
+                    self.artists[-1].append(marker)
+                    self._update_title()
+                    self.fig.canvas.draw_idle()
+                    return
+
                 # --- clicking tops ---
                 self.points.append((full_row, full_col))
                 self.point_plates.append(self.current_group)
@@ -176,6 +194,8 @@ class RootClickCollector:
                 group_count = self._count_tops_for_group(self.current_group)
                 color = self._group_color(self.current_group)
                 label = f"{group_count}"
+                if self._manual_mode:
+                    label += "M"
 
                 marker = ax.plot(dcol, drow, 'o', color=color,
                                  markersize=8, markeredgecolor='white',
@@ -183,6 +203,12 @@ class RootClickCollector:
                 text = ax.text(dcol + 8, drow - 8, label,
                                color=color, fontsize=9, fontweight='bold')
                 self.artists.append([marker, text])
+
+                if self._manual_mode:
+                    self._awaiting_bottom = True
+                    self._update_title()
+                    self.fig.canvas.draw_idle()
+                    return
             else:
                 # --- clicking marks ---
                 expected = self._expected_marks_for_group(self.current_group)
@@ -215,8 +241,23 @@ class RootClickCollector:
                         a.remove()
                 self._update_title()
                 self.fig.canvas.draw_idle()
+        elif self._awaiting_bottom:
+            # undo the top click that's waiting for a bottom
+            self._awaiting_bottom = False
+            root_idx = len(self.points) - 1
+            self.manual_bottoms.pop(root_idx, None)
+            self.points.pop()
+            self.point_plates.pop()
+            self.point_flags.pop()
+            if self.artists:
+                for a in self.artists.pop():
+                    a.remove()
+            self._update_title()
+            self.fig.canvas.draw_idle()
         else:
             if self.points and self.point_plates and self.point_plates[-1] == self.current_group:
+                root_idx = len(self.points) - 1
+                self.manual_bottoms.pop(root_idx, None)
                 self.points.pop()
                 self.point_plates.pop()
                 self.point_flags.pop()
@@ -254,6 +295,11 @@ class RootClickCollector:
             self._update_title()
             self.fig.canvas.draw_idle()
             return
+        if event.key == 'm' and not self.clicking_marks and not self._awaiting_bottom:
+            self._manual_mode = not self._manual_mode
+            self._update_title()
+            self.fig.canvas.draw_idle()
+            return
         if event.key in ('d', 't') and not self.clicking_marks:
             # D = dead seedling, T = touching roots — add placeholder entry
             flag = 'dead' if event.key == 'd' else 'touching'
@@ -278,6 +324,8 @@ class RootClickCollector:
             self.fig.canvas.draw_idle()
             return
         if event.key == 'enter':
+            if self._awaiting_bottom:
+                return  # must click bottom first
             last_group = self.num_groups - 1
             if self.num_marks == 0:
                 # --- normal mode (no marks) ---
@@ -336,15 +384,23 @@ class RootClickCollector:
             plate_num = self.current_group + 1
             location = f"Plate {plate_num}"
 
+        mode_tag = " [MANUAL]" if self._manual_mode else ""
+
+        if self._awaiting_bottom:
+            self.fig.suptitle(
+                f"{n_tops} root(s).  Click the BOTTOM of the root (tip).",
+                fontsize=11)
+            return
+
         if self.num_marks == 0:
             if self.current_group < last_group:
                 self.fig.suptitle(
-                    f"{n_tops} root(s) marked.  Clicking {location}.  "
+                    f"{n_tops} root(s) marked.  Clicking {location}.{mode_tag}  "
                     f"Press Enter when done.",
                     fontsize=11)
             else:
                 self.fig.suptitle(
-                    f"{n_tops} root(s) marked.  Clicking {location}.  "
+                    f"{n_tops} root(s) marked.  Clicking {location}.{mode_tag}  "
                     f"Press Enter to finish and measure.",
                     fontsize=11)
         else:
@@ -383,6 +439,10 @@ class RootClickCollector:
     def get_mark_plates(self):
         """Return list of plate indices (0 or 1) for each mark point."""
         return list(self.mark_plates)
+
+    def get_manual_bottoms(self):
+        """Return dict of root_index -> (row, col) for manually clicked bottoms."""
+        return dict(self.manual_bottoms)
 
 
 def show_image_for_clicking(image, plates, plate_labels=None, plate_offset=0,
@@ -433,4 +493,5 @@ def show_image_for_clicking(image, plates, plate_labels=None, plate_offset=0,
 
     return (collector.get_top_points(), collector.get_point_plates(),
             collector.get_point_flags(),
-            collector.get_mark_points(), collector.get_mark_plates())
+            collector.get_mark_points(), collector.get_mark_plates(),
+            collector.get_manual_bottoms())

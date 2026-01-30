@@ -103,6 +103,7 @@ def process_image(image_path, csv_path, plate_offset=0, root_offset=0,
     print("\n" + "-" * 40)
     print("  CONTROLS")
     print("  Click      Mark top of root")
+    print("  M          Toggle manual mode (click top + bottom)")
     print("  D          Dead seedling (NA)")
     print("  T          Touching roots (NA)")
     if num_marks > 0:
@@ -112,7 +113,7 @@ def process_image(image_path, csv_path, plate_offset=0, root_offset=0,
     print("  Z / H      Zoom / reset view")
     print("-" * 40)
 
-    top_points, point_plates, point_flags, mark_points, mark_plates = \
+    top_points, point_plates, point_flags, mark_points, mark_plates, manual_bottoms = \
         show_image_for_clicking(image, plates, plate_labels, plate_offset,
                                 num_marks=num_marks, split_plate=split_plate)
 
@@ -164,8 +165,11 @@ def process_image(image_path, csv_path, plate_offset=0, root_offset=0,
             results.append(res)
             continue
 
-        # auto-detect the root tip
-        tip = find_root_tip(binary, top, scale=scale)
+        # use manual bottom if provided, otherwise auto-detect
+        if i in manual_bottoms:
+            tip = manual_bottoms[i]
+        else:
+            tip = find_root_tip(binary, top, scale=scale)
         if tip is None:
             print("WARNING: Could not find root tip")
             res = dict(length_cm=0, length_px=0, path=np.empty((0, 2)),

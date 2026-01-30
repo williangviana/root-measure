@@ -111,7 +111,7 @@ def find_root_tip(binary_image, top_point, scale=SCALE_PX_PER_CM):
             start_col = skel_points[start_idx][1]
             def _tip_score(n):
                 r, c = skel_points[n]
-                return r - 3.0 * abs(c - start_col)
+                return r - 2.0 * abs(c - start_col)
             tip_idx = max(below_endpoints, key=_tip_score)
         else:
             # fallback: furthest endpoint by path length

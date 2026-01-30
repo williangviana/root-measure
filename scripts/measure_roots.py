@@ -79,7 +79,7 @@ def process_image(image_path, csv_path, plate_offset=0, root_offset=0,
     print(f"Image: {image.shape[1]}x{image.shape[0]}, {image.dtype}")
 
     # --- per-image DPI and sensitivity ---
-    scale = prompt_for_dpi()
+    scale = prompt_for_dpi(image_path)
     sensitivity = prompt_for_sensitivity()
     print(f"Scale: {scale:.1f} px/cm, sensitivity: {sensitivity}")
 
@@ -228,18 +228,52 @@ def process_image(image_path, csv_path, plate_offset=0, root_offset=0,
     return True, new_plate_offset, new_root_offset
 
 
-def prompt_for_dpi():
-    """Prompt user for scan DPI and return scale in px/cm."""
+def _detect_dpi(image_path):
+    """Try to read DPI from image metadata. Returns int DPI or None."""
+    ext = Path(image_path).suffix.lower()
+    try:
+        if ext in ('.tif', '.tiff'):
+            with tifffile.TiffFile(str(image_path)) as tif:
+                page = tif.pages[0]
+                if 282 in page.tags and 283 in page.tags:
+                    x_res = page.tags[282].value
+                    # value can be a tuple (num, denom) or a float
+                    if isinstance(x_res, tuple):
+                        dpi = x_res[0] / x_res[1]
+                    else:
+                        dpi = float(x_res)
+                    # check resolution unit (tag 296): 2=inch, 3=cm
+                    unit = page.tags.get(296)
+                    if unit and unit.value == 3:
+                        dpi = dpi * 2.54  # convert from dots/cm to DPI
+                    dpi = int(round(dpi))
+                    if dpi > 0:
+                        return dpi
+    except Exception:
+        pass
+    return None
+
+
+def prompt_for_dpi(image_path=None):
+    """Prompt user for scan DPI and return scale in px/cm.
+
+    Auto-detects DPI from image metadata if available.
+    """
+    detected = _detect_dpi(image_path) if image_path else None
+    default_dpi = detected or 1200
+
     print("\n" + "=" * 60)
+    if detected:
+        print(f"  Detected DPI from image: {detected}")
     print("  Enter scan DPI (dots per inch)")
     print("  Common values: 600, 1200, 2400")
-    print("  Press Enter for default (1200 DPI)")
+    print(f"  Press Enter for default ({default_dpi} DPI)")
     print("=" * 60)
 
     while True:
         response = input("\nDPI: ").strip()
         if response == "":
-            dpi = 1200
+            dpi = default_dpi
             break
         try:
             dpi = int(response)

@@ -318,7 +318,7 @@ class ImageCanvas(ctk.CTkFrame):
                         cx - r, cy - r, cx + r, cy + r,
                         outline="white", fill=color, width=1)
                     tid = self.canvas.create_text(
-                        cx + 10, cy - 8, text=f"M{i + 1}",
+                        cx + 10, cy - 8, text=str(i + 1),
                         fill=color, anchor="w",
                         font=("Helvetica", 8, "bold"))
                     self._mark_marker_ids.extend([rid, tid])
@@ -479,7 +479,7 @@ class ImageCanvas(ctk.CTkFrame):
                 cx - r, cy - r, cx + r, cy + r,
                 outline="white", fill=color, width=1)
             tid = self.canvas.create_text(
-                cx + 10, cy - 8, text=f"M{n}",
+                cx + 10, cy - 8, text=str(n),
                 fill=color, anchor="w",
                 font=("Helvetica", 8, "bold"))
             self._mark_marker_ids.extend([rid, tid])

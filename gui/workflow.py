@@ -195,12 +195,12 @@ class MeasurementMixin:
         pi = self._reclick_idx + 1
         cpr = self._reclick_clicks_per_root
         if cpr == 2:
-            click_desc = "TOP then BOTTOM"
-            bottom_text = "Click TOP then BOTTOM"
+            click_desc = "click 1 (top) then 2 (bottom)"
+            bottom_text = "Click 1=top, 2=bottom"
         else:
-            marks_str = ", ".join(f"MARK {i}" for i in range(1, cpr - 1))
-            click_desc = f"TOP, {marks_str}, then BOTTOM"
-            bottom_text = f"Click TOP, {marks_str}, BOTTOM"
+            nums = ", ".join(str(i) for i in range(1, cpr + 1))
+            click_desc = f"click {nums} (top to bottom)"
+            bottom_text = f"Click {nums} (top to bottom)"
         self.sidebar.set_status(
             f"Re-click root {pi}/{n}: click {click_desc}.\n"
             "Right-click=undo. Enter=confirm.")

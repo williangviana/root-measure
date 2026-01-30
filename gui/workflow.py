@@ -6,7 +6,6 @@ from image_processing import preprocess
 from root_tracing import find_root_tip, trace_root
 from utils import _compute_segments, _find_nearest_path_index
 from csv_output import append_results_to_csv
-from plate_detection import parse_plate_label
 
 from canvas import ImageCanvas
 
@@ -288,18 +287,22 @@ class MeasurementMixin:
         split = self.sidebar.var_split.get()
         point_plates = self.canvas.get_root_groups()
 
-        # build plate_labels from sidebar genotype entries (matches CLI prompt_plate_labels)
-        geno_a_text = self.sidebar.entry_genotype.get().strip()
-        label_a = parse_plate_label(geno_a_text) if geno_a_text else ("genotype", None)
+        # build plate_labels from sidebar genotype + condition entries
+        geno_text = self.sidebar.entry_genotypes.get().strip()
+        genotypes = [g.strip() for g in geno_text.split(",")
+                     if g.strip()] if geno_text else ["genotype"]
+        cond_text = self.sidebar.entry_condition.get().strip()
+        condition = cond_text if cond_text else None
+
         if split:
-            geno_b_text = self.sidebar.entry_genotype_b.get().strip()
-            label_b = parse_plate_label(geno_b_text) if geno_b_text else ("genotype_B", None)
+            geno_a = genotypes[0]
+            geno_b = genotypes[1] if len(genotypes) >= 2 else "genotype_B"
             plate_labels = []
             for _ in range(len(plates)):
-                plate_labels.append(label_a)
-                plate_labels.append(label_b)
+                plate_labels.append((geno_a, condition))
+                plate_labels.append((geno_b, condition))
         else:
-            plate_labels = [label_a] * len(plates)
+            plate_labels = [(genotypes[0], condition)] * len(plates)
 
         try:
             new_plate_offset, new_root_offset = append_results_to_csv(

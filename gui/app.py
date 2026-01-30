@@ -108,8 +108,7 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
             self.sidebar.set_status(f"No images found in {self.folder.name}")
             return
 
-        self.sidebar.set_status(f"{len(self.images)} image(s) in {self.folder.name}")
-        self.sidebar.show_image_list(self.images)
+        self.sidebar.advance_to_images(self.folder.name, self.images)
 
     def load_image(self, path):
         """Load and display a single image."""
@@ -131,16 +130,11 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
             display = _to_uint8(img)
             self.canvas.set_image(display)
 
-            self.sidebar.lbl_image_name.configure(text=path.name)
-            self.sidebar.btn_select_plates.configure(state="normal")
-
-            # auto-detect DPI and fill the field
             detected = _detect_dpi(path)
             dpi = detected or 1200
-            self.sidebar.entry_dpi.delete(0, "end")
-            self.sidebar.entry_dpi.insert(0, str(dpi))
-            dpi_src = "detected" if detected else "default"
+            self.sidebar.advance_to_settings(path.name, dpi)
 
+            dpi_src = "detected" if detected else "default"
             self.sidebar.set_status(
                 f"Loaded: {img.shape[1]}x{img.shape[0]}, {img.dtype}\n"
                 f"DPI: {dpi} ({dpi_src})")
@@ -181,6 +175,16 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
         self.sidebar.entry_dpi.delete(0, "end")
         self.sidebar.entry_dpi.insert(0, "1200")
         return SCALE_PX_PER_CM
+
+    # --- Sidebar phase callbacks ---
+
+    def _on_next_settings(self):
+        """Called when user clicks Next on image settings."""
+        self.sidebar.advance_to_experiment()
+
+    def _on_start_workflow(self):
+        """Called when user clicks Start Workflow."""
+        self.sidebar.advance_to_workflow()
 
     # --- Plate & root clicking flow ---
 
@@ -244,11 +248,14 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
             ImageCanvas.MODE_CLICK_ROOTS,
             on_done=self._plate_roots_done)
         if self._split:
+            genotypes = [g.strip() for g in
+                         self.sidebar.entry_genotypes.get().split(",")
+                         if g.strip()]
             if self._split_stage == 0:
-                geno_name = self.sidebar.entry_genotype.get().strip() or "A"
+                geno_name = genotypes[0] if genotypes else "A"
                 geno_label = f"{geno_name} (red)"
             else:
-                geno_name = self.sidebar.entry_genotype_b.get().strip() or "B"
+                geno_name = genotypes[1] if len(genotypes) >= 2 else "B"
                 geno_label = f"{geno_name} (blue)"
             self.sidebar.set_status(
                 f"Plate {pi + 1}/{len(plates)} — {geno_label}\n"

@@ -1,10 +1,65 @@
-"""Sidebar — left panel with settings, workflow buttons, and image list."""
+"""Sidebar — progressive, collapsible left panel."""
 
 import customtkinter as ctk
 
 
+class _Section:
+    """Collapsible section: clickable header + toggle-able body."""
+
+    def __init__(self, parent, title):
+        self.frame = ctk.CTkFrame(parent, fg_color="transparent")
+        # header row
+        self._header = ctk.CTkFrame(self.frame, fg_color="transparent",
+                                    cursor="hand2")
+        self._header.pack(fill="x", padx=15, pady=(8, 0))
+        self._arrow = ctk.CTkLabel(self._header, text="\u25bc",
+                                   font=ctk.CTkFont(size=10),
+                                   text_color="#4a9eff", width=14)
+        self._arrow.pack(side="left")
+        self._title = ctk.CTkLabel(self._header, text=title,
+                                   font=ctk.CTkFont(size=12, weight="bold"),
+                                   text_color="#4a9eff")
+        self._title.pack(side="left", padx=(2, 0))
+        self._summary = ctk.CTkLabel(self._header, text="",
+                                     font=ctk.CTkFont(size=10),
+                                     text_color="gray50")
+        self._summary.pack(side="left", padx=(8, 0))
+        # body
+        self.body = ctk.CTkFrame(self.frame, fg_color="transparent")
+        self.body.pack(fill="x")
+        self._expanded = True
+        # click header to toggle
+        for w in (self._header, self._arrow, self._title, self._summary):
+            w.bind("<Button-1>", lambda e: self.toggle())
+
+    def toggle(self):
+        if self._expanded:
+            self.collapse()
+        else:
+            self.expand()
+
+    def expand(self):
+        self._expanded = True
+        self.body.pack(fill="x")
+        self._arrow.configure(text="\u25bc")
+        self._summary.configure(text="")
+
+    def collapse(self, summary=""):
+        self._expanded = False
+        self.body.pack_forget()
+        self._arrow.configure(text="\u25b6")
+        if summary:
+            self._summary.configure(text=summary)
+
+    def show(self):
+        self.frame.pack(fill="x")
+
+    def hide(self):
+        self.frame.pack_forget()
+
+
 class Sidebar(ctk.CTkScrollableFrame):
-    """Left sidebar with settings and controls."""
+    """Left sidebar with progressive, collapsible sections."""
 
     def __init__(self, parent, app, **kwargs):
         super().__init__(parent, width=280, **kwargs)
@@ -20,140 +75,129 @@ class Sidebar(ctk.CTkScrollableFrame):
 
         self._add_separator()
 
-        # --- Image Loading ---
-        ctk.CTkLabel(self, text="IMAGE",
-                     font=ctk.CTkFont(size=12, weight="bold"),
-                     text_color="#4a9eff").pack(pady=(10, 5), padx=15, anchor="w")
-
+        # ===== SECTION: FOLDER =====
+        self.sec_folder = _Section(self, "FOLDER")
+        self.sec_folder.show()
+        b = self.sec_folder.body
         self.btn_load_folder = ctk.CTkButton(
-            self, text="Open Folder", command=app.load_folder)
+            b, text="Open Folder", command=app.load_folder)
         self.btn_load_folder.pack(pady=5, padx=15, fill="x")
 
-        self.lbl_image_name = ctk.CTkLabel(self, text="No image loaded",
-                                            text_color="gray",
-                                            font=ctk.CTkFont(size=11))
-        self.lbl_image_name.pack(padx=15, anchor="w")
+        # ===== SECTION: IMAGES =====
+        self.sec_images = _Section(self, "IMAGES")
+        # hidden until folder loaded
+        self._image_list_frame = None
 
-        # image list (populated after folder load)
-        self.image_listbox = None
-
-        self._add_separator()
-
-        # --- Settings ---
-        ctk.CTkLabel(self, text="SETTINGS",
-                     font=ctk.CTkFont(size=12, weight="bold"),
-                     text_color="#4a9eff").pack(pady=(10, 5), padx=15, anchor="w")
-
-        # Experiment name
-        ctk.CTkLabel(self, text="Experiment:",
+        # ===== SECTION: IMAGE SETTINGS =====
+        self.sec_settings = _Section(self, "IMAGE SETTINGS")
+        b = self.sec_settings.body
+        ctk.CTkLabel(b, text="DPI:",
                      font=ctk.CTkFont(size=11)).pack(padx=15, anchor="w")
-        self.entry_experiment = ctk.CTkEntry(self, placeholder_text="e.g. salt_screen_1")
-        self.entry_experiment.pack(pady=(2, 8), padx=15, fill="x")
-
-        # Genotype labels (format: Genotype or Genotype_Condition)
-        self.lbl_genotype = ctk.CTkLabel(self, text="Genotype:",
-                     font=ctk.CTkFont(size=11))
-        self.lbl_genotype.pack(padx=15, anchor="w")
-        self.entry_genotype = ctk.CTkEntry(self, placeholder_text="e.g. WT or Col-0_Drought")
-        self.entry_genotype.pack(pady=(2, 4), padx=15, fill="x")
-
-        # Genotype B (shown only when split plate is on)
-        self.frame_genotype_b = ctk.CTkFrame(self, fg_color="transparent")
-        ctk.CTkLabel(self.frame_genotype_b, text="Genotype B:",
-                     font=ctk.CTkFont(size=11)).pack(padx=15, anchor="w")
-        self.entry_genotype_b = ctk.CTkEntry(
-            self.frame_genotype_b, placeholder_text="e.g. crd-1 or crd-1_Drought")
-        self.entry_genotype_b.pack(pady=(2, 4), padx=15, fill="x")
-        self.frame_genotype_b.pack_forget()
-
-        ctk.CTkLabel(self, text="Format: Genotype or Genotype_Condition",
-                     font=ctk.CTkFont(size=9), text_color="gray50").pack(
-            padx=15, pady=(0, 8), anchor="w")
-
-        # DPI
-        ctk.CTkLabel(self, text="DPI:",
-                     font=ctk.CTkFont(size=11)).pack(padx=15, anchor="w")
-        self.entry_dpi = ctk.CTkEntry(self, placeholder_text="auto-detect")
+        self.entry_dpi = ctk.CTkEntry(b, placeholder_text="auto-detect")
         self.entry_dpi.pack(pady=(2, 8), padx=15, fill="x")
 
-        # Sensitivity
-        ctk.CTkLabel(self, text="Root thickness:",
+        ctk.CTkLabel(b, text="Root thickness:",
                      font=ctk.CTkFont(size=11)).pack(padx=15, anchor="w")
         self.var_sensitivity = ctk.StringVar(value="medium")
         self.menu_sensitivity = ctk.CTkSegmentedButton(
-            self, values=["thick", "medium", "thin"],
+            b, values=["thick", "medium", "thin"],
             variable=self.var_sensitivity)
         self.menu_sensitivity.pack(pady=(2, 8), padx=15, fill="x")
 
-        # Split plate
-        self.var_split = ctk.BooleanVar(value=False)
-        self.chk_split = ctk.CTkCheckBox(
-            self, text="Split plate (2 genotypes)",
-            variable=self.var_split,
-            command=self._toggle_split,
-            font=ctk.CTkFont(size=11))
-        self.chk_split.pack(pady=5, padx=15, anchor="w")
-
-        # Multi-measurement
         self.var_multi = ctk.BooleanVar(value=False)
         self.chk_multi = ctk.CTkCheckBox(
-            self, text="Multi-measurement",
+            b, text="Multi-measurement",
             variable=self.var_multi,
             command=self._toggle_segments,
             font=ctk.CTkFont(size=11))
         self.chk_multi.pack(pady=5, padx=15, anchor="w")
 
-        self.frame_segments = ctk.CTkFrame(self, fg_color="transparent")
+        self.frame_segments = ctk.CTkFrame(b, fg_color="transparent")
         ctk.CTkLabel(self.frame_segments, text="Segments per root:",
                      font=ctk.CTkFont(size=11)).pack(side="left", padx=(15, 5))
         self.entry_segments = ctk.CTkEntry(self.frame_segments, width=50,
                                             placeholder_text="2")
         self.entry_segments.pack(side="left")
-        # hidden by default
-        self.frame_segments.pack_forget()
 
-        self._add_separator()
+        self.var_split = ctk.BooleanVar(value=False)
+        self.chk_split = ctk.CTkCheckBox(
+            b, text="Split plate (2 genotypes)",
+            variable=self.var_split,
+            font=ctk.CTkFont(size=11))
+        self.chk_split.pack(pady=5, padx=15, anchor="w")
 
-        # --- Actions ---
-        ctk.CTkLabel(self, text="WORKFLOW",
-                     font=ctk.CTkFont(size=12, weight="bold"),
-                     text_color="#4a9eff").pack(pady=(10, 5), padx=15, anchor="w")
+        self.btn_next_settings = ctk.CTkButton(
+            b, text="Next \u00bb", fg_color="#217346",
+            command=lambda: app._on_next_settings())
+        self.btn_next_settings.pack(pady=(10, 5), padx=15, fill="x")
+
+        # ===== SECTION: EXPERIMENT =====
+        self.sec_experiment = _Section(self, "EXPERIMENT")
+        b = self.sec_experiment.body
+
+        ctk.CTkLabel(b, text="Experiment:",
+                     font=ctk.CTkFont(size=11)).pack(padx=15, anchor="w")
+        self.entry_experiment = ctk.CTkEntry(
+            b, placeholder_text="e.g. salt_screen_1")
+        self.entry_experiment.pack(pady=(2, 8), padx=15, fill="x")
+
+        ctk.CTkLabel(b, text="Genotypes:",
+                     font=ctk.CTkFont(size=11)).pack(padx=15, anchor="w")
+        self.entry_genotypes = ctk.CTkEntry(
+            b, placeholder_text="e.g. WT, crd-1")
+        self.entry_genotypes.pack(pady=(2, 4), padx=15, fill="x")
+        ctk.CTkLabel(b, text="Comma-separated if multiple",
+                     font=ctk.CTkFont(size=9),
+                     text_color="gray50").pack(padx=15, anchor="w")
+
+        ctk.CTkLabel(b, text="Condition:",
+                     font=ctk.CTkFont(size=11)).pack(
+            padx=15, pady=(6, 0), anchor="w")
+        self.entry_condition = ctk.CTkEntry(
+            b, placeholder_text="e.g. Drought (optional)")
+        self.entry_condition.pack(pady=(2, 4), padx=15, fill="x")
+        ctk.CTkLabel(b, text="Leave blank if no condition",
+                     font=ctk.CTkFont(size=9),
+                     text_color="gray50").pack(padx=15, anchor="w")
+
+        self.btn_start_workflow = ctk.CTkButton(
+            b, text="Start Workflow \u00bb", fg_color="#217346",
+            command=lambda: app._on_start_workflow())
+        self.btn_start_workflow.pack(pady=(10, 5), padx=15, fill="x")
+
+        # ===== SECTION: WORKFLOW =====
+        self.sec_workflow = _Section(self, "WORKFLOW")
+        b = self.sec_workflow.body
 
         self.btn_select_plates = ctk.CTkButton(
-            self, text="1. Select Plates", command=app.select_plates,
+            b, text="1. Select Plates", command=app.select_plates,
             state="disabled", fg_color="#2b5797")
         self.btn_select_plates.pack(pady=3, padx=15, fill="x")
 
         self.btn_click_roots = ctk.CTkButton(
-            self, text="2. Select Roots", command=app.click_roots,
+            b, text="2. Select Roots", command=app.click_roots,
             state="disabled", fg_color="#2b5797")
         self.btn_click_roots.pack(pady=3, padx=15, fill="x")
 
         self.btn_measure = ctk.CTkButton(
-            self, text="3. Measure & Save", command=app.measure,
+            b, text="3. Measure & Save", command=app.measure,
             state="disabled", fg_color="#217346")
         self.btn_measure.pack(pady=3, padx=15, fill="x")
 
         self._add_separator()
 
-        # --- Status ---
+        # --- Status (always visible) ---
         self.lbl_status = ctk.CTkLabel(
-            self, text="Ready",
+            self, text="Open a folder to begin.",
             font=ctk.CTkFont(size=11),
             text_color="gray", wraplength=250)
         self.lbl_status.pack(pady=10, padx=15, anchor="w")
 
-    def _add_separator(self):
-        sep = ctk.CTkFrame(self, height=1, fg_color="gray30")
-        sep.pack(fill="x", padx=15, pady=8)
+    # --- helpers ---
 
-    def _toggle_split(self):
-        if self.var_split.get():
-            self.lbl_genotype.configure(text="Genotype A (red):")
-            self.frame_genotype_b.pack(after=self.entry_genotype, pady=(0, 4), fill="x")
-        else:
-            self.lbl_genotype.configure(text="Genotype:")
-            self.frame_genotype_b.pack_forget()
+    def _add_separator(self):
+        ctk.CTkFrame(self, height=1, fg_color="gray30").pack(
+            fill="x", padx=15, pady=8)
 
     def _toggle_segments(self):
         if self.var_multi.get():
@@ -164,17 +208,20 @@ class Sidebar(ctk.CTkScrollableFrame):
     def set_status(self, text):
         self.lbl_status.configure(text=text)
 
-    def show_image_list(self, images):
-        """Show scrollable list of images in sidebar."""
-        if self.image_listbox is not None:
-            self.image_listbox.destroy()
+    # --- phase transitions ---
 
-        self.image_listbox = ctk.CTkFrame(self, fg_color="transparent")
-        self.image_listbox.pack(fill="x", padx=10, pady=5)
-
-        for i, img_path in enumerate(images):
+    def advance_to_images(self, folder_name, images):
+        """Phase 1: folder loaded — show images, collapse folder."""
+        self.sec_folder.collapse(summary=folder_name)
+        # populate image list
+        if self._image_list_frame is not None:
+            self._image_list_frame.destroy()
+        self._image_list_frame = ctk.CTkFrame(
+            self.sec_images.body, fg_color="transparent")
+        self._image_list_frame.pack(fill="x", padx=10, pady=5)
+        for img_path in images:
             btn = ctk.CTkButton(
-                self.image_listbox,
+                self._image_list_frame,
                 text=img_path.name,
                 font=ctk.CTkFont(size=11),
                 height=28,
@@ -184,3 +231,52 @@ class Sidebar(ctk.CTkScrollableFrame):
                 anchor="w",
                 command=lambda p=img_path: self.app.load_image(p))
             btn.pack(fill="x", pady=1)
+        self.sec_images.show()
+        self.sec_images.expand()
+        # hide later sections
+        self.sec_settings.hide()
+        self.sec_experiment.hide()
+        self.sec_workflow.hide()
+        self.set_status(f"{len(images)} image(s) found.")
+
+    def advance_to_settings(self, image_name, dpi):
+        """Phase 2: image selected — show settings, collapse images."""
+        self.sec_images.collapse(summary=image_name)
+        self.entry_dpi.delete(0, "end")
+        self.entry_dpi.insert(0, str(dpi))
+        self.sec_settings.show()
+        self.sec_settings.expand()
+        # hide later sections
+        self.sec_experiment.hide()
+        self.sec_workflow.hide()
+
+    def advance_to_experiment(self):
+        """Phase 3: settings confirmed — show experiment, collapse settings."""
+        dpi = self.entry_dpi.get().strip() or "auto"
+        sens = self.var_sensitivity.get()
+        parts = [f"{dpi} DPI", sens]
+        if self.var_split.get():
+            parts.append("split")
+        if self.var_multi.get():
+            segs = self.entry_segments.get().strip() or "2"
+            parts.append(f"{segs} seg")
+        self.sec_settings.collapse(summary=", ".join(parts))
+        self.sec_experiment.show()
+        self.sec_experiment.expand()
+        # hide workflow
+        self.sec_workflow.hide()
+
+    def advance_to_workflow(self):
+        """Phase 4: experiment configured — show workflow, collapse experiment."""
+        genos = self.entry_genotypes.get().strip() or "genotype"
+        cond = self.entry_condition.get().strip()
+        summary = genos
+        if cond:
+            summary += f" | {cond}"
+        self.sec_experiment.collapse(summary=summary)
+        self.sec_workflow.show()
+        self.sec_workflow.expand()
+        self.btn_select_plates.configure(state="normal")
+        self.btn_click_roots.configure(state="disabled")
+        self.btn_measure.configure(state="disabled")
+        self.set_status("Ready. Select plates to begin.")

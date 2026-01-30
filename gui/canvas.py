@@ -248,34 +248,37 @@ class ImageCanvas(ctk.CTkFrame):
                 font=("Helvetica", 12, "bold"))
 
         # redraw root markers (hide in review mode — only show traces)
+        # group colors match CLI: red for group 0 (or non-split), blue for group 1
+        _GROUP_MARKER_COLORS = ["#e63333", "#3333e6"]
         self._root_marker_ids.clear()
         if self._mode not in (self.MODE_REVIEW,):
             for i, ((row, col), flag) in enumerate(
                     zip(self._root_points, self._root_flags)):
                 cx, cy = self.image_to_canvas(col, row)
+                group = self._root_groups[i] if i < len(self._root_groups) else 0
+                marker_color = _GROUP_MARKER_COLORS[group % len(_GROUP_MARKER_COLORS)]
                 if flag is not None:
-                    color = "#ff6b6b" if flag == 'dead' else "#ffa500"
                     label = "DEAD" if flag == 'dead' else "TOUCH"
                     s = 6
                     id1 = self.canvas.create_line(
                         cx - s, cy - s, cx + s, cy + s,
-                        fill=color, width=2)
+                        fill=marker_color, width=2)
                     id2 = self.canvas.create_line(
                         cx - s, cy + s, cx + s, cy - s,
-                        fill=color, width=2)
+                        fill=marker_color, width=2)
                     id3 = self.canvas.create_text(
                         cx + 10, cy - 10, text=f"{i + 1} {label}",
-                        fill=color, anchor="w",
+                        fill=marker_color, anchor="w",
                         font=("Helvetica", 9, "bold"))
                     self._root_marker_ids.extend([id1, id2, id3])
                 else:
                     r = 5
                     rid = self.canvas.create_oval(
                         cx - r, cy - r, cx + r, cy + r,
-                        outline="white", fill="#ff3b3b", width=1)
+                        outline="white", fill=marker_color, width=1)
                     tid = self.canvas.create_text(
                         cx + 10, cy - 10, text=str(i + 1),
-                        fill="#ff3b3b", anchor="w",
+                        fill=marker_color, anchor="w",
                         font=("Helvetica", 9, "bold"))
                     self._root_marker_ids.extend([rid, tid])
 
@@ -516,6 +519,10 @@ class ImageCanvas(ctk.CTkFrame):
                 self._on_click_callback()
             return True
         elif self._mode == self.MODE_CLICK_ROOTS and self._root_points:
+            # only undo clicks from current group (matches CLI behavior)
+            current_group = getattr(self, '_current_root_group', 0)
+            if self._root_groups and self._root_groups[-1] != current_group:
+                return False
             self._root_points.pop()
             self._root_flags.pop()
             self._root_groups.pop()

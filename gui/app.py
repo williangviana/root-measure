@@ -60,6 +60,8 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
         self.image_path = None
         self.folder = None
         self.images = []           # list of Path objects
+        self._plate_offset = 0     # accumulated plate offset across images
+        self._root_offset = 0      # accumulated root offset across images
 
         # layout: sidebar + canvas
         self.grid_columnconfigure(1, weight=1)

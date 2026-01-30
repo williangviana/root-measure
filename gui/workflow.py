@@ -297,12 +297,15 @@ class MeasurementMixin:
             plate_labels = [(experiment, None)] * len(plates)
 
         try:
-            append_results_to_csv(
+            new_plate_offset, new_root_offset = append_results_to_csv(
                 results, csv_path, plates, plate_labels,
-                plate_offset=0, root_offset=0,
+                plate_offset=self._plate_offset,
+                root_offset=self._root_offset,
                 point_plates=point_plates,
                 num_marks=self._get_num_marks(),
                 split_plate=self.sidebar.var_split.get())
+            self._plate_offset = new_plate_offset
+            self._root_offset = new_root_offset
             self.sidebar.set_status(
                 self.sidebar.lbl_status.cget("text") +
                 f"\nSaved to {csv_path}")

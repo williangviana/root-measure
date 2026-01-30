@@ -54,6 +54,7 @@ class ImageCanvas(ctk.CTkFrame):
         self._rect_drag_id = None  # canvas id of live drag rect
         self._plates = []        # list of (r1, r2, c1, c2) in image coords
         self._plate_rect_ids = []  # canvas ids of confirmed rects
+        self._plates_count_at_enter = 0  # tracks plate count at last Enter
 
         # root clicking state
         self._root_points = []     # list of (row, col) in image coords
@@ -142,6 +143,29 @@ class ImageCanvas(ctk.CTkFrame):
         self._scale = min(cw / iw, ch / ih)
         self._offset_x = (cw - iw * self._scale) / 2
         self._offset_y = (ch - ih * self._scale) / 2
+
+    def zoom_to_region(self, r1, r2, c1, c2, pad_frac=0.05):
+        """Zoom canvas to show a specific image region with padding."""
+        if self._image_np is None:
+            return
+        cw = self.canvas.winfo_width()
+        ch = self.canvas.winfo_height()
+        if cw < 2 or ch < 2:
+            return
+        rh = r2 - r1
+        rw = c2 - c1
+        pad_r = rh * pad_frac
+        pad_c = rw * pad_frac
+        r1 -= pad_r
+        r2 += pad_r
+        c1 -= pad_c
+        c2 += pad_c
+        rh = r2 - r1
+        rw = c2 - c1
+        self._scale = min(cw / rw, ch / rh)
+        self._offset_x = (cw - rw * self._scale) / 2 - c1 * self._scale
+        self._offset_y = (ch - rh * self._scale) / 2 - r1 * self._scale
+        self._redraw()
 
     def _redraw(self):
         """Redraw image and all overlays."""
@@ -343,6 +367,13 @@ class ImageCanvas(ctk.CTkFrame):
                 self._pending_flag = 'touching'
                 return
         if event.keysym == 'Return':
+            if self._mode == self.MODE_SELECT_PLATES:
+                # Enter confirms drawn plate; second Enter with no new plate finishes
+                if len(self._plates) > self._plates_count_at_enter:
+                    # new plate(s) since last Enter — confirm and keep going
+                    self._plates_count_at_enter = len(self._plates)
+                    return
+                # no new plate — finish selection
             if self._on_done_callback:
                 self._on_done_callback()
 
@@ -609,14 +640,15 @@ class RootMeasureApp(ctk.CTk):
         self.canvas.clear_plates()
         self.canvas.clear_roots()
         self.canvas.clear_traces()
+        self.canvas._plates_count_at_enter = 0
         self.canvas.set_mode(
             ImageCanvas.MODE_SELECT_PLATES,
             on_done=self._plates_done)
         self.sidebar.set_status(
-            "Draw rectangles around plates.\n"
-            "Right-click to undo. Press Enter when done.")
+            "Draw rectangle around plate, then Enter.\n"
+            "Draw another + Enter, or Enter again to finish.")
         self.lbl_bottom.configure(
-            text="PLATE SELECTION — drag to draw, Right-click undo, Enter to confirm")
+            text="PLATE SELECTION — drag to draw, Enter=confirm, Enter again=done")
         # disable downstream buttons while selecting
         self.sidebar.btn_click_roots.configure(state="disabled")
         self.sidebar.btn_measure.configure(state="disabled")
@@ -640,24 +672,44 @@ class RootMeasureApp(ctk.CTk):
             return
         self.canvas.clear_roots()
         self.canvas.clear_traces()
+        self._current_plate_idx = 0
         self.canvas.set_mode(
             ImageCanvas.MODE_CLICK_ROOTS,
-            on_done=self._roots_done)
+            on_done=self._plate_roots_done)
+        # zoom into first plate
+        r1, r2, c1, c2 = plates[0]
+        self.canvas.zoom_to_region(r1, r2, c1, c2)
         self.sidebar.set_status(
-            "Click root tops. Press D then click for dead,\n"
-            "T then click for touching. Enter when done.")
+            f"Plate 1/{len(plates)} — Click root tops.\n"
+            "D+Click=dead, T+Click=touching. Enter=next plate.")
         self.lbl_bottom.configure(
             text="ROOT CLICKING — Click=root top, D+Click=dead, "
-                 "T+Click=touching, Right-click=undo, Enter=done")
+                 "T+Click=touching, Right-click=undo, Enter=next")
         self.sidebar.btn_measure.configure(state="disabled")
 
-    def _roots_done(self):
-        """Called when user presses Enter after clicking roots."""
+    def _plate_roots_done(self):
+        """Called when user presses Enter after clicking roots on a plate."""
+        plates = self.canvas.get_plates()
+        self._current_plate_idx += 1
+        if self._current_plate_idx < len(plates):
+            # advance to next plate
+            r1, r2, c1, c2 = plates[self._current_plate_idx]
+            self.canvas.zoom_to_region(r1, r2, c1, c2)
+            pi = self._current_plate_idx + 1
+            self.sidebar.set_status(
+                f"Plate {pi}/{len(plates)} — Click root tops.\n"
+                "D+Click=dead, T+Click=touching. Enter=next.")
+            return
+        # all plates done
         points = self.canvas.get_root_points()
         if not points:
             self.sidebar.set_status("No roots clicked. Click at least one root top.")
+            self._current_plate_idx = 0
             return
         self.canvas.set_mode(ImageCanvas.MODE_VIEW)
+        # zoom back to full image
+        self.canvas._fit_image()
+        self.canvas._redraw()
         n_normal = sum(1 for f in self.canvas.get_root_flags() if f is None)
         n_flagged = len(points) - n_normal
         msg = f"{len(points)} root(s) marked ({n_normal} to trace"

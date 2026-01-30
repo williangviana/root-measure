@@ -317,7 +317,8 @@ def select_plates_interactive(image, downsample=4):
             plt.close(fig)
 
     fig.canvas.mpl_connect('key_press_event', on_key)
-    plt.tight_layout(rect=[0, 0, 1, 0.93])
+    plt.tight_layout()
+    plt.subplots_adjust(top=0.93)
     plt.show()
 
     if not plates:

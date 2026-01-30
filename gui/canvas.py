@@ -363,13 +363,7 @@ class ImageCanvas(ctk.CTkFrame):
             for i, (row, col) in enumerate(self._reclick_points):
                 cx, cy = self.image_to_canvas(col, row)
                 r = 5
-                pos_in_group = i % cpr
-                if pos_in_group == 0:
-                    label = "TOP"
-                elif pos_in_group == cpr - 1:
-                    label = "BOT"
-                else:
-                    label = f"M{pos_in_group}"
+                label = str((i % cpr) + 1)
                 rid = self.canvas.create_oval(
                     cx - r, cy - r, cx + r, cy + r,
                     outline="white", fill="#1a7a1a", width=1)

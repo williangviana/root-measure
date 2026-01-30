@@ -55,6 +55,8 @@ class ImageCanvas(ctk.CTkFrame):
     MODE_VIEW = "view"
     MODE_SELECT_PLATES = "select_plates"
     MODE_CLICK_ROOTS = "click_roots"
+    MODE_REVIEW = "review"
+    MODE_RECLICK = "reclick"
 
     def __init__(self, parent, **kwargs):
         super().__init__(parent, **kwargs)
@@ -88,6 +90,15 @@ class ImageCanvas(ctk.CTkFrame):
 
         # trace overlay state
         self._traces = []          # list of (path_array, color_str)
+
+        # review state (click to toggle retry selection)
+        self._selected_for_retry = set()  # indices into _traces
+        self._trace_original_colors = []  # original colors before selection
+
+        # reclick state (top+bottom for retry roots)
+        self._reclick_points = []  # list of (row, col) pairs
+        self._reclick_expected = 0  # how many pairs expected
+        self._reclick_marker_ids = []
 
         # bindings
         self.canvas.bind("<Configure>", self._on_resize)
@@ -136,10 +147,33 @@ class ImageCanvas(ctk.CTkFrame):
 
     def clear_traces(self):
         self._traces.clear()
+        self._trace_original_colors.clear()
+        self._selected_for_retry.clear()
 
     def add_trace(self, path, color="#00ff88"):
         """Add a traced path (N,2 array of row,col) to draw on canvas."""
         self._traces.append((path, color))
+        self._trace_original_colors.append(color)
+
+    def get_selected_for_retry(self):
+        return sorted(self._selected_for_retry)
+
+    def clear_review(self):
+        self._selected_for_retry.clear()
+
+    def clear_reclick(self):
+        for rid in self._reclick_marker_ids:
+            self.canvas.delete(rid)
+        self._reclick_points.clear()
+        self._reclick_marker_ids.clear()
+        self._reclick_expected = 0
+
+    def get_reclick_pairs(self):
+        """Return list of (top, bottom) pairs from reclick points."""
+        pairs = []
+        for i in range(0, len(self._reclick_points) - 1, 2):
+            pairs.append((self._reclick_points[i], self._reclick_points[i + 1]))
+        return pairs
 
     # --- Image ---
 
@@ -261,7 +295,7 @@ class ImageCanvas(ctk.CTkFrame):
                 self._root_marker_ids.extend([rid, tid])
 
         # redraw traced paths
-        for path, color in self._traces:
+        for ti, (path, color) in enumerate(self._traces):
             if len(path) < 2:
                 continue
             # subsample for performance (draw every Nth point)
@@ -271,8 +305,18 @@ class ImageCanvas(ctk.CTkFrame):
                 cx, cy = self.image_to_canvas(col, row)
                 coords.extend([cx, cy])
             if len(coords) >= 4:
+                w = 4 if ti in self._selected_for_retry else 2
                 self.canvas.create_line(
-                    *coords, fill=color, width=2, smooth=True)
+                    *coords, fill=color, width=w, smooth=True)
+            # draw root number label at top of trace
+            if self._mode == self.MODE_REVIEW and len(path) > 0:
+                top_row, top_col = path[0]
+                lx, ly = self.image_to_canvas(top_col, top_row)
+                lbl_color = color if ti not in self._selected_for_retry else "#ffdd00"
+                self.canvas.create_text(
+                    lx, ly - 10, text=str(ti + 1),
+                    fill=lbl_color, anchor="s",
+                    font=("Helvetica", 10, "bold"))
 
     # --- Coordinate conversion ---
 
@@ -318,6 +362,22 @@ class ImageCanvas(ctk.CTkFrame):
         self._drag_start = (event.x, event.y)
         self._redraw()
 
+    def _find_nearest_trace(self, img_col, img_row, threshold=30):
+        """Find the trace index nearest to an image coordinate."""
+        best_dist = threshold
+        best_idx = None
+        pt = np.array([img_row, img_col], dtype=float)
+        for i, (path, _) in enumerate(self._traces):
+            if len(path) < 2:
+                continue
+            step = max(1, len(path) // 200)
+            dists = np.sqrt(((path[::step] - pt) ** 2).sum(axis=1))
+            d = dists.min()
+            if d < best_dist:
+                best_dist = d
+                best_idx = i
+        return best_idx
+
     def _on_left_press(self, event):
         self.canvas.focus_set()
         if self._mode == self.MODE_SELECT_PLATES:
@@ -330,6 +390,41 @@ class ImageCanvas(ctk.CTkFrame):
             self._root_points.append((row, col))
             self._root_flags.append(flag)
             self._redraw()
+            if self._on_click_callback:
+                self._on_click_callback()
+        elif self._mode == self.MODE_REVIEW:
+            col, row = self.canvas_to_image(event.x, event.y)
+            # threshold in image pixels (scale-independent)
+            threshold = 30 / self._scale if self._scale > 0 else 30
+            idx = self._find_nearest_trace(col, row, threshold=max(20, threshold))
+            if idx is not None:
+                if idx in self._selected_for_retry:
+                    self._selected_for_retry.discard(idx)
+                    self._traces[idx] = (self._traces[idx][0],
+                                         self._trace_original_colors[idx])
+                else:
+                    self._selected_for_retry.add(idx)
+                    self._traces[idx] = (self._traces[idx][0], "#ffdd00")
+                self._redraw()
+                if self._on_click_callback:
+                    self._on_click_callback()
+        elif self._mode == self.MODE_RECLICK:
+            col, row = self.canvas_to_image(event.x, event.y)
+            self._reclick_points.append((row, col))
+            self._redraw()
+            # draw marker
+            cx, cy = event.x, event.y
+            r = 5
+            color = "#ff3b3b" if len(self._reclick_points) % 2 == 1 else "#3bff3b"
+            label = "TOP" if len(self._reclick_points) % 2 == 1 else "BOT"
+            rid = self.canvas.create_oval(
+                cx - r, cy - r, cx + r, cy + r,
+                outline="white", fill=color, width=1)
+            tid = self.canvas.create_text(
+                cx + 10, cy - 10, text=label,
+                fill=color, anchor="w",
+                font=("Helvetica", 9, "bold"))
+            self._reclick_marker_ids.extend([rid, tid])
             if self._on_click_callback:
                 self._on_click_callback()
 
@@ -377,6 +472,14 @@ class ImageCanvas(ctk.CTkFrame):
             self._root_points.pop()
             self._root_flags.pop()
             self._redraw()
+            if self._on_click_callback:
+                self._on_click_callback()
+        elif self._mode == self.MODE_RECLICK and self._reclick_points:
+            self._reclick_points.pop()
+            # remove last 2 marker items (oval + text)
+            for _ in range(2):
+                if self._reclick_marker_ids:
+                    self.canvas.delete(self._reclick_marker_ids.pop())
             if self._on_click_callback:
                 self._on_click_callback()
         else:
@@ -753,7 +856,7 @@ class RootMeasureApp(ctk.CTk):
         self.sidebar.btn_measure.configure(state="normal")
 
     def measure(self):
-        """Run preprocessing, tracing, and display results."""
+        """Run preprocessing, tracing, and show results for review."""
         points = self.canvas.get_root_points()
         flags = self.canvas.get_root_flags()
         plates = self.canvas.get_plates()
@@ -762,17 +865,23 @@ class RootMeasureApp(ctk.CTk):
             self.sidebar.set_status("Nothing to measure.")
             return
 
-        scale = self._get_scale()
-        sensitivity = self.sidebar.var_sensitivity.get()
+        self._scale_val = self._get_scale()
+        self._sensitivity = self.sidebar.var_sensitivity.get()
 
         self.sidebar.set_status("Preprocessing...")
         self.sidebar.btn_measure.configure(state="disabled")
+        self.sidebar.btn_select_plates.configure(state="disabled")
+        self.sidebar.btn_click_roots.configure(state="disabled")
         self.update_idletasks()
 
-        binary = preprocess(self.image, scale=scale, sensitivity=sensitivity)
+        self._binary = preprocess(self.image, scale=self._scale_val,
+                                  sensitivity=self._sensitivity)
 
         self.canvas.clear_traces()
-        results = []
+        self._results = []
+        # map trace index -> result index (skip flagged roots with no trace)
+        self._trace_to_result = []
+
         for i, (top, flag) in enumerate(zip(points, flags)):
             self.sidebar.set_status(f"Tracing root {i + 1}/{len(points)}...")
             self.update_idletasks()
@@ -782,31 +891,153 @@ class RootMeasureApp(ctk.CTk):
                 res = dict(length_cm=None, length_px=None,
                            path=np.empty((0, 2)),
                            method='skip', warning=warning, segments=[])
-                results.append(res)
+                self._results.append(res)
                 continue
 
-            tip = find_root_tip(binary, top, scale=scale)
+            tip = find_root_tip(self._binary, top, scale=self._scale_val)
             if tip is None:
                 res = dict(length_cm=0, length_px=0,
                            path=np.empty((0, 2)),
                            method='error', warning='Could not find root tip',
                            segments=[])
-                results.append(res)
+                self._results.append(res)
                 continue
 
-            res = trace_root(binary, top, tip, scale)
+            res = trace_root(self._binary, top, tip, self._scale_val)
             res['segments'] = []
-            results.append(res)
+            self._results.append(res)
 
-            # draw traced path on canvas
             if res['path'].size > 0:
                 color = "#00ff88" if res['warning'] is None else "#ffaa00"
                 self.canvas.add_trace(res['path'], color)
+                self._trace_to_result.append(i)
 
+        # enter review mode
+        self._show_review()
+
+    def _show_review(self):
+        """Show traced results and let user click bad traces to retry."""
+        self.canvas.set_mode(
+            ImageCanvas.MODE_REVIEW,
+            on_done=self._review_done)
+        self.canvas._fit_image()
         self.canvas._redraw()
 
-        # summary
-        traced = [r for r in results if r['method'] not in ('skip', 'error')]
+        traced = [r for r in self._results
+                  if r['method'] not in ('skip', 'error')]
+        lengths = [r['length_cm'] for r in traced if r['length_cm']]
+        msg = f"Traced {len(traced)} root(s)."
+        if lengths:
+            msg += f" Mean: {np.mean(lengths):.2f} cm"
+        msg += "\nClick a bad trace to select for retry."
+        msg += "\nEnter = accept / retry selected."
+        self.sidebar.set_status(msg)
+        self.lbl_bottom.configure(
+            text="REVIEW — Click trace=toggle retry (yellow), Enter=done")
+
+    def _review_done(self):
+        """Called when user presses Enter in review mode."""
+        selected = self.canvas.get_selected_for_retry()
+        if not selected:
+            # accept all — save and finish
+            self.canvas.set_mode(ImageCanvas.MODE_VIEW)
+            self._finish_measurement()
+            return
+        # map trace indices to result indices
+        self._retry_result_indices = [self._trace_to_result[s]
+                                       for s in selected
+                                       if s < len(self._trace_to_result)]
+        if not self._retry_result_indices:
+            self.canvas.set_mode(ImageCanvas.MODE_VIEW)
+            self._finish_measurement()
+            return
+        # enter reclick mode
+        self._start_reclick()
+
+    def _start_reclick(self):
+        """Enter reclick mode for bad traces."""
+        self.canvas.clear_reclick()
+        self._reclick_idx = 0  # which retry root we're on
+        n = len(self._retry_result_indices)
+        self.canvas.set_mode(
+            ImageCanvas.MODE_RECLICK,
+            on_done=self._reclick_enter)
+        # zoom to first bad root
+        ri = self._retry_result_indices[0]
+        top = self.canvas.get_root_points()[ri]
+        plates = self.canvas.get_plates()
+        # find which plate this root is in
+        for r1, r2, c1, c2 in plates:
+            if r1 <= top[0] <= r2 and c1 <= top[1] <= c2:
+                self.canvas.zoom_to_region(r1, r2, c1, c2)
+                break
+        self.sidebar.set_status(
+            f"Re-click root 1/{n}: click TOP then BOTTOM.\n"
+            "Right-click=undo. Enter=confirm pair.")
+        self.lbl_bottom.configure(
+            text="RECLICK — Click TOP then BOTTOM, Right-click=undo, Enter=next")
+
+    def _reclick_enter(self):
+        """Called when user presses Enter during reclick."""
+        pts = self.canvas._reclick_points
+        # need exactly 2 points (top + bottom) for current root
+        if len(pts) < (self._reclick_idx + 1) * 2:
+            self.sidebar.set_status("Click both TOP and BOTTOM before pressing Enter.")
+            return
+        self._reclick_idx += 1
+        n = len(self._retry_result_indices)
+        if self._reclick_idx < n:
+            # advance to next retry root
+            ri = self._retry_result_indices[self._reclick_idx]
+            top = self.canvas.get_root_points()[ri]
+            plates = self.canvas.get_plates()
+            for r1, r2, c1, c2 in plates:
+                if r1 <= top[0] <= r2 and c1 <= top[1] <= c2:
+                    self.canvas.zoom_to_region(r1, r2, c1, c2)
+                    break
+            pi = self._reclick_idx + 1
+            self.sidebar.set_status(
+                f"Re-click root {pi}/{n}: click TOP then BOTTOM.\n"
+                "Right-click=undo. Enter=confirm pair.")
+            return
+        # all re-clicks done — re-trace
+        self._do_retrace()
+
+    def _do_retrace(self):
+        """Re-trace roots with manually clicked top/bottom."""
+        pairs = self.canvas.get_reclick_pairs()
+        self.canvas.set_mode(ImageCanvas.MODE_VIEW)
+
+        # remove old traces for retried roots and rebuild
+        old_traces = list(self._traces_backup) if hasattr(self, '_traces_backup') else []
+
+        for j, ri in enumerate(self._retry_result_indices):
+            if j >= len(pairs):
+                break
+            top_manual, bot_manual = pairs[j]
+            self.sidebar.set_status(f"Re-tracing root {j + 1}/{len(pairs)}...")
+            self.update_idletasks()
+            res = trace_root(self._binary, top_manual, bot_manual, self._scale_val)
+            res['segments'] = []
+            self._results[ri] = res
+
+        # rebuild all traces
+        self.canvas.clear_traces()
+        self._trace_to_result.clear()
+        for i, res in enumerate(self._results):
+            if res['path'].size > 0 and res['method'] not in ('skip', 'error'):
+                color = "#00ff88" if res['warning'] is None else "#ffaa00"
+                self.canvas.add_trace(res['path'], color)
+                self._trace_to_result.append(i)
+
+        # back to review
+        self._show_review()
+
+    def _finish_measurement(self):
+        """Save results and show final summary."""
+        plates = self.canvas.get_plates()
+        traced = [r for r in self._results
+                  if r['method'] not in ('skip', 'error')]
         lengths = [r['length_cm'] for r in traced if r['length_cm']]
         msg = f"Done! {len(traced)} root(s) traced."
         if lengths:
@@ -814,11 +1045,12 @@ class RootMeasureApp(ctk.CTk):
             msg += f"Range: {min(lengths):.2f}–{max(lengths):.2f} cm"
         self.sidebar.set_status(msg)
         self.lbl_bottom.configure(
-            text=f"Traced {len(traced)}/{len(points)} roots")
+            text=f"Traced {len(traced)}/{len(self._results)} roots")
 
-        # save CSV
-        self._save_results(results, plates, scale)
+        self._save_results(self._results, plates, self._scale_val)
         self.sidebar.btn_measure.configure(state="normal")
+        self.sidebar.btn_select_plates.configure(state="normal")
+        self.sidebar.btn_click_roots.configure(state="normal")
 
     def _save_results(self, results, plates, scale):
         """Save measurement results to CSV."""

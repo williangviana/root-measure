@@ -172,6 +172,9 @@ class MeasurementMixin:
         """Enter reclick mode for bad traces."""
         self.canvas.clear_reclick()
         self._reclick_idx = 0  # which retry root we're on
+        num_marks = self._get_num_marks()
+        self._reclick_clicks_per_root = 2 + num_marks
+        self.canvas._reclick_clicks_per_root = self._reclick_clicks_per_root
         n = len(self._retry_result_indices)
         self.canvas.set_mode(
             ImageCanvas.MODE_RECLICK,
@@ -180,23 +183,39 @@ class MeasurementMixin:
         ri = self._retry_result_indices[0]
         top = self.canvas.get_root_points()[ri]
         plates = self.canvas.get_plates()
-        # find which plate this root is in
         for r1, r2, c1, c2 in plates:
             if r1 <= top[0] <= r2 and c1 <= top[1] <= c2:
                 self.canvas.zoom_to_region(r1, r2, c1, c2)
                 break
+        self._show_reclick_status()
+
+    def _show_reclick_status(self):
+        """Show status for current reclick root."""
+        n = len(self._retry_result_indices)
+        pi = self._reclick_idx + 1
+        cpr = self._reclick_clicks_per_root
+        if cpr == 2:
+            click_desc = "TOP then BOTTOM"
+            bottom_text = "Click TOP then BOTTOM"
+        else:
+            marks_str = ", ".join(f"MARK {i}" for i in range(1, cpr - 1))
+            click_desc = f"TOP, {marks_str}, then BOTTOM"
+            bottom_text = f"Click TOP, {marks_str}, BOTTOM"
         self.sidebar.set_status(
-            f"Re-click root 1/{n}: click TOP then BOTTOM.\n"
-            "Right-click=undo. Enter=confirm pair.")
+            f"Re-click root {pi}/{n}: click {click_desc}.\n"
+            "Right-click=undo. Enter=confirm.")
         self.lbl_bottom.configure(
-            text="Click TOP then BOTTOM  |  Right-click=undo  |  Enter=confirm pair  |  Scroll=zoom")
+            text=f"{bottom_text}  |  Right-click=undo  |  Enter=confirm  |  Scroll=zoom")
 
     def _reclick_enter(self):
         """Called when user presses Enter during reclick."""
         pts = self.canvas._reclick_points
-        # need exactly 2 points (top + bottom) for current root
-        if len(pts) < (self._reclick_idx + 1) * 2:
-            self.sidebar.set_status("Click both TOP and BOTTOM before pressing Enter.")
+        cpr = self._reclick_clicks_per_root
+        # need exactly cpr points for current root
+        if len(pts) < (self._reclick_idx + 1) * cpr:
+            self.sidebar.set_status(
+                f"Need {cpr} clicks per root. "
+                f"Click all points before pressing Enter.")
             return
         self._reclick_idx += 1
         n = len(self._retry_result_indices)
@@ -209,28 +228,32 @@ class MeasurementMixin:
                 if r1 <= top[0] <= r2 and c1 <= top[1] <= c2:
                     self.canvas.zoom_to_region(r1, r2, c1, c2)
                     break
-            pi = self._reclick_idx + 1
-            self.sidebar.set_status(
-                f"Re-click root {pi}/{n}: click TOP then BOTTOM.\n"
-                "Right-click=undo. Enter=confirm pair.")
+            self._show_reclick_status()
             return
         # all re-clicks done — re-trace
         self._do_retrace()
 
     def _do_retrace(self):
-        """Re-trace roots with manually clicked top/bottom."""
-        pairs = self.canvas.get_reclick_pairs()
+        """Re-trace roots with manually clicked points."""
+        cpr = self._reclick_clicks_per_root
+        groups = self.canvas.get_reclick_groups(cpr)
         self.canvas.set_mode(ImageCanvas.MODE_VIEW)
 
         for j, ri in enumerate(self._retry_result_indices):
-            if j >= len(pairs):
+            if j >= len(groups):
                 break
-            top_manual, bot_manual = pairs[j]
-            self.sidebar.set_status(f"Re-tracing root {j + 1}/{len(pairs)}...")
+            clicks = groups[j]
+            top_manual = clicks[0]
+            bot_manual = clicks[-1]
+            self.sidebar.set_status(f"Re-tracing root {j + 1}/{len(groups)}...")
             self.update_idletasks()
             res = trace_root(self._binary, top_manual, bot_manual, self._scale_val)
-            # recompute segments if marks exist for this root
-            mark_coords = self.canvas._all_marks.get(ri, [])
+            # use reclick marks if provided (clicks between top and bottom)
+            if cpr > 2:
+                mark_coords = list(clicks[1:-1])
+                self.canvas._all_marks[ri] = mark_coords
+            else:
+                mark_coords = self.canvas._all_marks.get(ri, [])
             if mark_coords and res['path'].size > 0:
                 res['segments'] = _compute_segments(
                     res['path'], mark_coords, self._scale_val)

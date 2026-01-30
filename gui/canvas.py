@@ -154,12 +154,17 @@ class ImageCanvas(ctk.CTkFrame):
         self._reclick_marker_ids.clear()
         self._reclick_expected = 0
 
-    def get_reclick_pairs(self):
-        """Return list of (top, bottom) pairs from reclick points."""
-        pairs = []
-        for i in range(0, len(self._reclick_points) - 1, 2):
-            pairs.append((self._reclick_points[i], self._reclick_points[i + 1]))
-        return pairs
+    def get_reclick_groups(self, clicks_per_root):
+        """Return list of click groups from reclick points.
+
+        Each group has clicks_per_root points: [top, mark1, ..., markN, bottom].
+        """
+        groups = []
+        for i in range(0, len(self._reclick_points), clicks_per_root):
+            chunk = self._reclick_points[i:i + clicks_per_root]
+            if len(chunk) == clicks_per_root:
+                groups.append(chunk)
+        return groups
 
     # --- Image ---
 
@@ -351,6 +356,29 @@ class ImageCanvas(ctk.CTkFrame):
                     fill=lbl_color, anchor="s",
                     font=("Helvetica", 10, "bold"))
 
+        # redraw reclick markers (persist across redraws)
+        if self._mode == self.MODE_RECLICK and self._reclick_points:
+            cpr = getattr(self, '_reclick_clicks_per_root', 2)
+            self._reclick_marker_ids.clear()
+            for i, (row, col) in enumerate(self._reclick_points):
+                cx, cy = self.image_to_canvas(col, row)
+                r = 5
+                pos_in_group = i % cpr
+                if pos_in_group == 0:
+                    label = "TOP"
+                elif pos_in_group == cpr - 1:
+                    label = "BOT"
+                else:
+                    label = f"M{pos_in_group}"
+                rid = self.canvas.create_oval(
+                    cx - r, cy - r, cx + r, cy + r,
+                    outline="white", fill="#1a7a1a", width=1)
+                tid = self.canvas.create_text(
+                    cx + 10, cy - 8, text=label,
+                    fill="#1a7a1a", anchor="w",
+                    font=("Helvetica", 8, "bold"))
+                self._reclick_marker_ids.extend([rid, tid])
+
     def _draw_path_segment(self, path, color, width):
         """Draw a subsection of a path on the canvas."""
         if len(path) < 2:
@@ -479,13 +507,6 @@ class ImageCanvas(ctk.CTkFrame):
             col, row = self.canvas_to_image(event.x, event.y)
             self._reclick_points.append((row, col))
             self._redraw()
-            # draw marker
-            cx, cy = event.x, event.y
-            r = 5
-            rid = self.canvas.create_oval(
-                cx - r, cy - r, cx + r, cy + r,
-                outline="white", fill="#1a7a1a", width=1)
-            self._reclick_marker_ids.append(rid)
             if self._on_click_callback:
                 self._on_click_callback()
 
@@ -556,8 +577,7 @@ class ImageCanvas(ctk.CTkFrame):
             return True
         elif self._mode == self.MODE_RECLICK and self._reclick_points:
             self._reclick_points.pop()
-            if self._reclick_marker_ids:
-                self.canvas.delete(self._reclick_marker_ids.pop())
+            self._redraw()
             if self._on_click_callback:
                 self._on_click_callback()
             return True

@@ -154,9 +154,9 @@ class Sidebar(ctk.CTkScrollableFrame):
                      font=ctk.CTkFont(size=11)).pack(
             padx=15, pady=(6, 0), anchor="w")
         self.entry_condition = ctk.CTkEntry(
-            b, placeholder_text="e.g. Drought (optional)")
+            b, placeholder_text="e.g. Control, PEG")
         self.entry_condition.pack(pady=(2, 4), padx=15, fill="x")
-        ctk.CTkLabel(b, text="Leave blank if no condition",
+        ctk.CTkLabel(b, text="Comma-separated, maps to plates in order",
                      font=ctk.CTkFont(size=9),
                      text_color="gray50").pack(padx=15, anchor="w")
 

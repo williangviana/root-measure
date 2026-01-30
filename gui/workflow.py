@@ -292,17 +292,24 @@ class MeasurementMixin:
         genotypes = [g.strip() for g in geno_text.split(",")
                      if g.strip()] if geno_text else ["genotype"]
         cond_text = self.sidebar.entry_condition.get().strip()
-        condition = cond_text if cond_text else None
+        conditions = [c.strip() for c in cond_text.split(",")
+                      if c.strip()] if cond_text else []
 
         if split:
             geno_a = genotypes[0]
             geno_b = genotypes[1] if len(genotypes) >= 2 else "genotype_B"
             plate_labels = []
-            for _ in range(len(plates)):
-                plate_labels.append((geno_a, condition))
-                plate_labels.append((geno_b, condition))
+            for pi in range(len(plates)):
+                cond = conditions[pi] if pi < len(conditions) else (
+                    conditions[0] if conditions else None)
+                plate_labels.append((geno_a, cond))
+                plate_labels.append((geno_b, cond))
         else:
-            plate_labels = [(genotypes[0], condition)] * len(plates)
+            plate_labels = []
+            for pi in range(len(plates)):
+                cond = conditions[pi] if pi < len(conditions) else (
+                    conditions[0] if conditions else None)
+                plate_labels.append((genotypes[0], cond))
 
         try:
             new_plate_offset, new_root_offset = append_results_to_csv(

@@ -423,7 +423,7 @@ def main():
     print("  ROOT MEASURE")
     print("  Interactive root length measurement tool")
     print("")
-    print("  Developed by Willian Viana")
+    print("  Developed by Willian Viana — Dinneny Lab")
     print("  Contact: williangviana@outlook.com")
     print("=" * 60)
 

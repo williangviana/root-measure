@@ -244,7 +244,12 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
             ImageCanvas.MODE_CLICK_ROOTS,
             on_done=self._plate_roots_done)
         if self._split:
-            geno_label = "genotype A (red)" if self._split_stage == 0 else "genotype B (blue)"
+            if self._split_stage == 0:
+                geno_name = self.sidebar.entry_genotype.get().strip() or "A"
+                geno_label = f"{geno_name} (red)"
+            else:
+                geno_name = self.sidebar.entry_genotype_b.get().strip() or "B"
+                geno_label = f"{geno_name} (blue)"
             self.sidebar.set_status(
                 f"Plate {pi + 1}/{len(plates)} — {geno_label}\n"
                 "Click root tops. Enter=next.")

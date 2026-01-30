@@ -47,8 +47,28 @@ class Sidebar(ctk.CTkScrollableFrame):
         # Experiment name
         ctk.CTkLabel(self, text="Experiment:",
                      font=ctk.CTkFont(size=11)).pack(padx=15, anchor="w")
-        self.entry_experiment = ctk.CTkEntry(self, placeholder_text="e.g. WT vs crd-1")
+        self.entry_experiment = ctk.CTkEntry(self, placeholder_text="e.g. salt_screen_1")
         self.entry_experiment.pack(pady=(2, 8), padx=15, fill="x")
+
+        # Genotype labels (format: Genotype or Genotype_Condition)
+        self.lbl_genotype = ctk.CTkLabel(self, text="Genotype:",
+                     font=ctk.CTkFont(size=11))
+        self.lbl_genotype.pack(padx=15, anchor="w")
+        self.entry_genotype = ctk.CTkEntry(self, placeholder_text="e.g. WT or Col-0_Drought")
+        self.entry_genotype.pack(pady=(2, 4), padx=15, fill="x")
+
+        # Genotype B (shown only when split plate is on)
+        self.frame_genotype_b = ctk.CTkFrame(self, fg_color="transparent")
+        ctk.CTkLabel(self.frame_genotype_b, text="Genotype B:",
+                     font=ctk.CTkFont(size=11)).pack(padx=15, anchor="w")
+        self.entry_genotype_b = ctk.CTkEntry(
+            self.frame_genotype_b, placeholder_text="e.g. crd-1 or crd-1_Drought")
+        self.entry_genotype_b.pack(pady=(2, 4), padx=15, fill="x")
+        self.frame_genotype_b.pack_forget()
+
+        ctk.CTkLabel(self, text="Format: Genotype or Genotype_Condition",
+                     font=ctk.CTkFont(size=9), text_color="gray50").pack(
+            padx=15, pady=(0, 8), anchor="w")
 
         # DPI
         ctk.CTkLabel(self, text="DPI:",
@@ -70,6 +90,7 @@ class Sidebar(ctk.CTkScrollableFrame):
         self.chk_split = ctk.CTkCheckBox(
             self, text="Split plate (2 genotypes)",
             variable=self.var_split,
+            command=self._toggle_split,
             font=ctk.CTkFont(size=11))
         self.chk_split.pack(pady=5, padx=15, anchor="w")
 
@@ -125,6 +146,14 @@ class Sidebar(ctk.CTkScrollableFrame):
     def _add_separator(self):
         sep = ctk.CTkFrame(self, height=1, fg_color="gray30")
         sep.pack(fill="x", padx=15, pady=8)
+
+    def _toggle_split(self):
+        if self.var_split.get():
+            self.lbl_genotype.configure(text="Genotype A (red):")
+            self.frame_genotype_b.pack(after=self.entry_genotype, pady=(0, 4), fill="x")
+        else:
+            self.lbl_genotype.configure(text="Genotype:")
+            self.frame_genotype_b.pack_forget()
 
     def _toggle_segments(self):
         if self.var_multi.get():

@@ -6,6 +6,7 @@ from image_processing import preprocess
 from root_tracing import find_root_tip, trace_root
 from utils import _compute_segments, _find_nearest_path_index
 from csv_output import append_results_to_csv
+from plate_detection import parse_plate_label
 
 from canvas import ImageCanvas
 
@@ -283,18 +284,22 @@ class MeasurementMixin:
         csv_path = folder / 'output' / 'data.csv'
         csv_path.parent.mkdir(exist_ok=True)
 
-        experiment = self.sidebar.entry_experiment.get().strip() or "experiment"
-
         # use stored group indices for each root
         split = self.sidebar.var_split.get()
         point_plates = self.canvas.get_root_groups()
 
-        # plate_labels: one entry per group
+        # build plate_labels from sidebar genotype entries (matches CLI prompt_plate_labels)
+        geno_a_text = self.sidebar.entry_genotype.get().strip()
+        label_a = parse_plate_label(geno_a_text) if geno_a_text else ("genotype", None)
         if split:
-            # 2 groups per plate: (experiment, None) for each group
-            plate_labels = [(experiment, None)] * (len(plates) * 2)
+            geno_b_text = self.sidebar.entry_genotype_b.get().strip()
+            label_b = parse_plate_label(geno_b_text) if geno_b_text else ("genotype_B", None)
+            plate_labels = []
+            for _ in range(len(plates)):
+                plate_labels.append(label_a)
+                plate_labels.append(label_b)
         else:
-            plate_labels = [(experiment, None)] * len(plates)
+            plate_labels = [label_a] * len(plates)
 
         try:
             new_plate_offset, new_root_offset = append_results_to_csv(

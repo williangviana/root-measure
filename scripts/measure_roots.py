@@ -402,16 +402,18 @@ def _build_csv_path(experiment_desc):
 # Main
 # ---------------------------------------------------------------------------
 def _select_folder():
-    """Open a folder picker dialog and return the selected Path."""
-    import tkinter as tk
-    from tkinter import filedialog
-    root = tk.Tk()
-    root.withdraw()
-    selected = filedialog.askdirectory(title="Select folder containing scanned images")
-    root.destroy()
-    if not selected:
+    """Prompt user to type or drag-and-drop a folder path in the terminal."""
+    raw = input("Drag a folder here or type the path: ").strip()
+    if not raw:
         return None
-    return Path(selected)
+    # macOS drag-and-drop wraps paths in quotes and escapes spaces
+    raw = raw.strip("'\"")
+    raw = raw.replace("\\ ", " ")
+    folder = Path(raw)
+    if not folder.is_dir():
+        print(f"Error: {folder} is not a valid directory")
+        return None
+    return folder
 
 
 def main():
@@ -436,9 +438,8 @@ def main():
             sys.exit(1)
     else:
         print("\n" + "=" * 60)
-        print("  Press Enter to select the folder with your scanned images")
+        print("  Select the folder with your scanned images")
         print("=" * 60)
-        input()
         folder = _select_folder()
         if folder is None:
             print("No folder selected. Exiting.")

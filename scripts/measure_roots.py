@@ -37,6 +37,7 @@ from click_collector import (_format_plate_label, show_image_for_clicking,
 from root_tracing import find_root_tip, trace_root
 from results_display import show_results
 from csv_output import append_results_to_csv
+from plotting import plot_results
 from utils import list_images_in_folder, select_image_from_list, _compute_segments
 
 
@@ -485,6 +486,9 @@ def main():
             # single file mode
             process_image(arg_path, csv_path, 0, 0, num_marks,
                           split_plate)
+            response = input("\n  Generate plot? (y/n, default: y): ").strip().lower()
+            if response in ('', 'y', 'yes'):
+                plot_results(csv_path)
             sys.exit(0)
         elif arg_path.is_dir():
             folder = arg_path
@@ -527,6 +531,10 @@ def main():
         selected = select_image_from_list(images, processed)
         if selected is None:
             print(f"\n  Data saved to: {csv_path}")
+            # offer to plot
+            response = input("\n  Generate plot? (y/n, default: y): ").strip().lower()
+            if response in ('', 'y', 'yes'):
+                plot_results(csv_path)
             print("  Done!")
             break
 

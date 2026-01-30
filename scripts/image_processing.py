@@ -1,8 +1,7 @@
 import numpy as np
 import cv2
 
-from config import (THRESHOLD_FRAC, SCALE_PX_PER_CM, gaussian_sigma,
-                    threshold_8bit, mark_max_half_width_px)
+from config import THRESHOLD_FRAC, SCALE_PX_PER_CM, gaussian_sigma, threshold_8bit
 
 
 def preprocess(image, scale=SCALE_PX_PER_CM, sensitivity='thick'):
@@ -19,19 +18,3 @@ def preprocess(image, scale=SCALE_PX_PER_CM, sensitivity='thick'):
     blurred = cv2.GaussianBlur(binary, (0, 0), sigma)
     clean = blurred > thresh
     return clean
-
-
-def remove_wide_regions(binary_roi, scale=SCALE_PX_PER_CM):
-    """Remove pixels in regions wider than a root (e.g. ink marks).
-
-    Uses distance transform: pixels far from background are inside wide blobs.
-    """
-    max_hw = mark_max_half_width_px(scale)
-    roi_uint8 = binary_roi.astype(np.uint8) * 255
-    dist = cv2.distanceTransform(roi_uint8, cv2.DIST_L2, 5)
-    cleaned = binary_roi.copy()
-    cleaned[dist > max_hw] = False
-    # small dilation to reconnect root fragments broken by mark removal
-    kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (3, 3))
-    reconnected = cv2.dilate(cleaned.astype(np.uint8) * 255, kernel, iterations=1)
-    return reconnected > 0

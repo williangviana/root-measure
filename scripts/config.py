@@ -26,7 +26,6 @@ ROI_HALF_WIDTH_CM = 1.3       # Half-width of ROI around root (~13mm, allows cur
 ROI_VERTICAL_CM = 10.6        # Max root length to search for tip (~10.6 cm, plate limit)
 ROI_PAD_CM = 0.65             # Padding above/below click pair for tracing ROI
 MAX_CLICK_DISTANCE_CM = 0.65  # Max distance from click to nearest skeleton pixel
-MARK_MAX_HALF_WIDTH_CM = 0.08 # Max root half-width (cm); wider regions = ink marks
 
 
 def gaussian_sigma(scale, sensitivity='thick'):
@@ -64,8 +63,3 @@ def roi_pad_px(scale):
 def max_click_distance_px(scale):
     """Max click-to-skeleton distance in pixels, computed from scale (px/cm)."""
     return int(MAX_CLICK_DISTANCE_CM * scale)
-
-
-def mark_max_half_width_px(scale):
-    """Max root half-width in pixels; wider regions are ink marks."""
-    return int(MARK_MAX_HALF_WIDTH_CM * scale)

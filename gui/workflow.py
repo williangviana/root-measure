@@ -248,14 +248,19 @@ class MeasurementMixin:
         groups = self.canvas.get_reclick_groups(cpr)
         self.canvas.set_mode(ImageCanvas.MODE_VIEW)
 
+        total = min(len(self._retry_result_indices), len(groups))
+        self.sidebar.show_progress(total)
+        self.update()
+
         for j, ri in enumerate(self._retry_result_indices):
             if j >= len(groups):
                 break
             clicks = groups[j]
             top_manual = clicks[0]
             bot_manual = clicks[-1]
-            self.sidebar.set_status(f"Re-tracing root {j + 1}/{len(groups)}...")
-            self.update_idletasks()
+            self.sidebar.set_status(f"Re-tracing root {j + 1}/{total}...")
+            self.sidebar.update_progress(j + 1)
+            self.update()
             res = trace_root(self._binary, top_manual, bot_manual, self._scale_val)
             # use reclick marks if provided (clicks between top and bottom)
             if cpr > 2:

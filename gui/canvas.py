@@ -69,10 +69,9 @@ class ImageCanvas(ctk.CTkFrame):
         self.canvas.bind("<ButtonPress-1>", self._on_left_press)
         self.canvas.bind("<B1-Motion>", self._on_left_drag)
         self.canvas.bind("<ButtonRelease-1>", self._on_left_release)
-        self.canvas.bind("<ButtonPress-2>", self._on_pan_start)
-        self.canvas.bind("<B2-Motion>", self._on_pan_drag)
+        # macOS trackpad: two-finger click = Button-2; physical right = Button-3
+        self.canvas.bind("<ButtonPress-2>", self._on_right_click)
         self.canvas.bind("<ButtonPress-3>", self._on_right_click)
-        self.canvas.bind("<B3-Motion>", self._on_pan_drag)
         self.canvas.bind("<MouseWheel>", self._on_scroll)
         # keyboard — bound at window level via bind_all in RootMeasureApp
         self.canvas.focus_set()
@@ -479,9 +478,8 @@ class ImageCanvas(ctk.CTkFrame):
                 self._on_click_callback()
 
     def _on_right_click(self, event):
-        """Right-click: undo last action in current mode, or start pan."""
-        if not self._undo():
-            self._on_pan_start(event)
+        """Right-click / two-finger click: undo last action."""
+        self._undo()
 
     def _undo(self):
         """Undo last action in current mode."""

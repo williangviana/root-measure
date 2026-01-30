@@ -243,10 +243,16 @@ class MeasurementMixin:
 
     def _save_results(self, results, plates, scale):
         """Save measurement results to CSV."""
-        if not self.folder:
+        folder = self.folder
+        if not folder and self.image_path:
+            folder = self.image_path.parent
+        if not folder:
+            self.sidebar.set_status(
+                self.sidebar.lbl_status.cget("text") +
+                "\nNo folder set — could not save CSV.")
             return
 
-        csv_path = self.folder / 'output' / 'data.csv'
+        csv_path = folder / 'output' / 'data.csv'
         csv_path.parent.mkdir(exist_ok=True)
 
         experiment = self.sidebar.entry_experiment.get().strip() or "experiment"
@@ -264,13 +270,17 @@ class MeasurementMixin:
         # simple labels: experiment name for each plate
         plate_labels = [(experiment, None)] * len(plates)
 
-        append_results_to_csv(
-            results, csv_path, plates, plate_labels,
-            plate_offset=0, root_offset=0,
-            point_plates=point_plates,
-            num_marks=self._get_num_marks(),
-            split_plate=self.sidebar.var_split.get())
-
-        self.sidebar.set_status(
-            self.sidebar.lbl_status.cget("text") +
-            f"\nSaved to {csv_path.name}")
+        try:
+            append_results_to_csv(
+                results, csv_path, plates, plate_labels,
+                plate_offset=0, root_offset=0,
+                point_plates=point_plates,
+                num_marks=self._get_num_marks(),
+                split_plate=self.sidebar.var_split.get())
+            self.sidebar.set_status(
+                self.sidebar.lbl_status.cget("text") +
+                f"\nSaved to {csv_path}")
+        except Exception as e:
+            self.sidebar.set_status(
+                self.sidebar.lbl_status.cget("text") +
+                f"\nCSV save error: {e}")

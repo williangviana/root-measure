@@ -13,15 +13,24 @@ import tifffile
 # allow importing from scripts/
 sys.path.insert(0, str(Path(__file__).parent.parent / 'scripts'))
 
-from config import DISPLAY_DOWNSAMPLE
+from config import DISPLAY_DOWNSAMPLE, SCALE_PX_PER_CM
 from plate_detection import _to_uint8
+from image_processing import preprocess
+from root_tracing import find_root_tip, trace_root
+from utils import _compute_segments
+from csv_output import append_results_to_csv
 
 ctk.set_appearance_mode("dark")
 ctk.set_default_color_theme("blue")
 
 
 class ImageCanvas(ctk.CTkFrame):
-    """Zoomable, pannable image canvas using tkinter Canvas."""
+    """Zoomable, pannable image canvas with overlay drawing."""
+
+    # Interaction modes
+    MODE_VIEW = "view"
+    MODE_SELECT_PLATES = "select_plates"
+    MODE_CLICK_ROOTS = "click_roots"
 
     def __init__(self, parent, **kwargs):
         super().__init__(parent, **kwargs)
@@ -35,13 +44,79 @@ class ImageCanvas(ctk.CTkFrame):
         self._offset_y = 0
         self._drag_start = None
 
+        # interaction mode
+        self._mode = self.MODE_VIEW
+        self._on_click_callback = None
+        self._on_done_callback = None
+
+        # plate selection state
+        self._rect_start = None  # image coords of rect drag start
+        self._rect_drag_id = None  # canvas id of live drag rect
+        self._plates = []        # list of (r1, r2, c1, c2) in image coords
+        self._plate_rect_ids = []  # canvas ids of confirmed rects
+
+        # root clicking state
+        self._root_points = []     # list of (row, col) in image coords
+        self._root_flags = []      # None, 'dead', 'touching'
+        self._root_marker_ids = [] # canvas ids of markers
+        self._pending_flag = None  # 'dead' or 'touching'
+
+        # trace overlay state
+        self._traces = []          # list of (path_array, color_str)
+
         # bindings
         self.canvas.bind("<Configure>", self._on_resize)
+        self.canvas.bind("<ButtonPress-1>", self._on_left_press)
+        self.canvas.bind("<B1-Motion>", self._on_left_drag)
+        self.canvas.bind("<ButtonRelease-1>", self._on_left_release)
         self.canvas.bind("<ButtonPress-2>", self._on_pan_start)
         self.canvas.bind("<B2-Motion>", self._on_pan_drag)
-        self.canvas.bind("<ButtonPress-3>", self._on_pan_start)
+        self.canvas.bind("<ButtonPress-3>", self._on_right_click)
         self.canvas.bind("<B3-Motion>", self._on_pan_drag)
         self.canvas.bind("<MouseWheel>", self._on_scroll)
+        # keyboard (canvas needs focus)
+        self.canvas.bind("<Key>", self._on_key)
+        self.canvas.focus_set()
+
+    # --- Mode management ---
+
+    def set_mode(self, mode, on_done=None):
+        """Set interaction mode."""
+        self._mode = mode
+        self._on_done_callback = on_done
+        self.canvas.focus_set()
+
+    def get_plates(self):
+        return list(self._plates)
+
+    def get_root_points(self):
+        return list(self._root_points)
+
+    def get_root_flags(self):
+        return list(self._root_flags)
+
+    def clear_plates(self):
+        for rid in self._plate_rect_ids:
+            self.canvas.delete(rid)
+        self._plates.clear()
+        self._plate_rect_ids.clear()
+
+    def clear_roots(self):
+        for rid in self._root_marker_ids:
+            self.canvas.delete(rid)
+        self._root_points.clear()
+        self._root_flags.clear()
+        self._root_marker_ids.clear()
+        self._pending_flag = None
+
+    def clear_traces(self):
+        self._traces.clear()
+
+    def add_trace(self, path, color="#00ff88"):
+        """Add a traced path (N,2 array of row,col) to draw on canvas."""
+        self._traces.append((path, color))
+
+    # --- Image ---
 
     def set_image(self, img_np):
         """Set image from numpy array (grayscale or RGB uint8)."""
@@ -49,6 +124,9 @@ class ImageCanvas(ctk.CTkFrame):
         self._scale = 1.0
         self._offset_x = 0
         self._offset_y = 0
+        self.clear_plates()
+        self.clear_roots()
+        self.clear_traces()
         self._fit_image()
         self._redraw()
 
@@ -66,7 +144,7 @@ class ImageCanvas(ctk.CTkFrame):
         self._offset_y = (ch - ih * self._scale) / 2
 
     def _redraw(self):
-        """Redraw image on canvas at current zoom/pan."""
+        """Redraw image and all overlays."""
         self.canvas.delete("all")
         if self._image_np is None:
             return
@@ -86,6 +164,83 @@ class ImageCanvas(ctk.CTkFrame):
             int(self._offset_x), int(self._offset_y),
             image=self._photo, anchor="nw"
         )
+
+        # redraw plate rectangles
+        self._plate_rect_ids.clear()
+        for i, (r1, r2, c1, c2) in enumerate(self._plates):
+            cx1, cy1 = self.image_to_canvas(c1, r1)
+            cx2, cy2 = self.image_to_canvas(c2, r2)
+            rid = self.canvas.create_rectangle(
+                cx1, cy1, cx2, cy2,
+                outline="#4a9eff", width=2, dash=(6, 3))
+            self._plate_rect_ids.append(rid)
+            self.canvas.create_text(
+                cx1 + 5, cy1 + 5, text=f"Plate {i + 1}",
+                fill="#4a9eff", anchor="nw",
+                font=("Helvetica", 12, "bold"))
+
+        # redraw root markers
+        self._root_marker_ids.clear()
+        for i, ((row, col), flag) in enumerate(
+                zip(self._root_points, self._root_flags)):
+            cx, cy = self.image_to_canvas(col, row)
+            if flag is not None:
+                # dead/touching: X marker
+                color = "#ff6b6b" if flag == 'dead' else "#ffa500"
+                label = "DEAD" if flag == 'dead' else "TOUCH"
+                s = 6
+                id1 = self.canvas.create_line(
+                    cx - s, cy - s, cx + s, cy + s,
+                    fill=color, width=2)
+                id2 = self.canvas.create_line(
+                    cx - s, cy + s, cx + s, cy - s,
+                    fill=color, width=2)
+                id3 = self.canvas.create_text(
+                    cx + 10, cy - 10, text=f"{i + 1} {label}",
+                    fill=color, anchor="w",
+                    font=("Helvetica", 9, "bold"))
+                self._root_marker_ids.extend([id1, id2, id3])
+            else:
+                # normal: circle
+                r = 5
+                rid = self.canvas.create_oval(
+                    cx - r, cy - r, cx + r, cy + r,
+                    outline="white", fill="#ff3b3b", width=1)
+                tid = self.canvas.create_text(
+                    cx + 10, cy - 10, text=str(i + 1),
+                    fill="#ff3b3b", anchor="w",
+                    font=("Helvetica", 9, "bold"))
+                self._root_marker_ids.extend([rid, tid])
+
+        # redraw traced paths
+        for path, color in self._traces:
+            if len(path) < 2:
+                continue
+            # subsample for performance (draw every Nth point)
+            step = max(1, len(path) // 500)
+            coords = []
+            for row, col in path[::step]:
+                cx, cy = self.image_to_canvas(col, row)
+                coords.extend([cx, cy])
+            if len(coords) >= 4:
+                self.canvas.create_line(
+                    *coords, fill=color, width=2, smooth=True)
+
+    # --- Coordinate conversion ---
+
+    def canvas_to_image(self, cx, cy):
+        """Convert canvas coords to image pixel coords (col, row)."""
+        ix = (cx - self._offset_x) / self._scale
+        iy = (cy - self._offset_y) / self._scale
+        return int(ix), int(iy)
+
+    def image_to_canvas(self, ix, iy):
+        """Convert image pixel coords (col, row) to canvas coords."""
+        cx = ix * self._scale + self._offset_x
+        cy = iy * self._scale + self._offset_y
+        return cx, cy
+
+    # --- Event handlers ---
 
     def _on_resize(self, event):
         if self._image_np is not None:
@@ -115,17 +270,81 @@ class ImageCanvas(ctk.CTkFrame):
         self._drag_start = (event.x, event.y)
         self._redraw()
 
-    def canvas_to_image(self, cx, cy):
-        """Convert canvas coords to image pixel coords."""
-        ix = (cx - self._offset_x) / self._scale
-        iy = (cy - self._offset_y) / self._scale
-        return int(ix), int(iy)
+    def _on_left_press(self, event):
+        self.canvas.focus_set()
+        if self._mode == self.MODE_SELECT_PLATES:
+            col, row = self.canvas_to_image(event.x, event.y)
+            self._rect_start = (row, col)
+        elif self._mode == self.MODE_CLICK_ROOTS:
+            col, row = self.canvas_to_image(event.x, event.y)
+            flag = self._pending_flag
+            self._pending_flag = None
+            self._root_points.append((row, col))
+            self._root_flags.append(flag)
+            self._redraw()
+            if self._on_click_callback:
+                self._on_click_callback()
 
-    def image_to_canvas(self, ix, iy):
-        """Convert image pixel coords to canvas coords."""
-        cx = ix * self._scale + self._offset_x
-        cy = iy * self._scale + self._offset_y
-        return cx, cy
+    def _on_left_drag(self, event):
+        if self._mode == self.MODE_SELECT_PLATES and self._rect_start is not None:
+            # draw live rubber-band rectangle
+            if self._rect_drag_id is not None:
+                self.canvas.delete(self._rect_drag_id)
+            r1, c1 = self._rect_start
+            cx1, cy1 = self.image_to_canvas(c1, r1)
+            self._rect_drag_id = self.canvas.create_rectangle(
+                cx1, cy1, event.x, event.y,
+                outline="#4a9eff", width=2, dash=(4, 2))
+
+    def _on_left_release(self, event):
+        if self._mode == self.MODE_SELECT_PLATES and self._rect_start is not None:
+            if self._rect_drag_id is not None:
+                self.canvas.delete(self._rect_drag_id)
+                self._rect_drag_id = None
+            r1, c1 = self._rect_start
+            c2, r2 = self.canvas_to_image(event.x, event.y)
+            self._rect_start = None
+
+            # normalize
+            rmin, rmax = min(r1, r2), max(r1, r2)
+            cmin, cmax = min(c1, c2), max(c1, c2)
+
+            # ignore tiny rectangles (accidental clicks)
+            if (rmax - rmin) < 20 or (cmax - cmin) < 20:
+                return
+
+            self._plates.append((rmin, rmax, cmin, cmax))
+            self._redraw()
+            if self._on_click_callback:
+                self._on_click_callback()
+
+    def _on_right_click(self, event):
+        """Right-click: undo last action in current mode, or start pan."""
+        if self._mode == self.MODE_SELECT_PLATES and self._plates:
+            self._plates.pop()
+            self._redraw()
+            if self._on_click_callback:
+                self._on_click_callback()
+        elif self._mode == self.MODE_CLICK_ROOTS and self._root_points:
+            self._root_points.pop()
+            self._root_flags.pop()
+            self._redraw()
+            if self._on_click_callback:
+                self._on_click_callback()
+        else:
+            self._on_pan_start(event)
+
+    def _on_key(self, event):
+        if self._mode == self.MODE_CLICK_ROOTS:
+            if event.keysym.lower() == 'd':
+                self._pending_flag = 'dead'
+                return
+            elif event.keysym.lower() == 't':
+                self._pending_flag = 'touching'
+                return
+        if event.keysym == 'Return':
+            if self._on_done_callback:
+                self._on_done_callback()
 
 
 class Sidebar(ctk.CTkScrollableFrame):
@@ -362,14 +581,194 @@ class RootMeasureApp(ctk.CTk):
         except Exception as e:
             self.sidebar.set_status(f"Error: {e}")
 
+    def _get_scale(self):
+        """Get scale (px/cm) from DPI entry or auto-detect."""
+        dpi_text = self.sidebar.entry_dpi.get().strip()
+        if dpi_text:
+            try:
+                dpi = int(dpi_text)
+                if dpi > 0:
+                    return dpi / 2.54
+            except ValueError:
+                pass
+        # try auto-detect from image metadata
+        if self.image_path:
+            from measure_roots import _detect_dpi
+            detected = _detect_dpi(self.image_path)
+            if detected:
+                self.sidebar.entry_dpi.delete(0, "end")
+                self.sidebar.entry_dpi.insert(0, str(detected))
+                return detected / 2.54
+        # default 1200 DPI
+        self.sidebar.entry_dpi.delete(0, "end")
+        self.sidebar.entry_dpi.insert(0, "1200")
+        return SCALE_PX_PER_CM
+
     def select_plates(self):
-        self.sidebar.set_status("Plate selection — coming soon")
+        """Enter plate selection mode on canvas."""
+        self.canvas.clear_plates()
+        self.canvas.clear_roots()
+        self.canvas.clear_traces()
+        self.canvas.set_mode(
+            ImageCanvas.MODE_SELECT_PLATES,
+            on_done=self._plates_done)
+        self.sidebar.set_status(
+            "Draw rectangles around plates.\n"
+            "Right-click to undo. Press Enter when done.")
+        self.lbl_bottom.configure(
+            text="PLATE SELECTION — drag to draw, Right-click undo, Enter to confirm")
+        # disable downstream buttons while selecting
+        self.sidebar.btn_click_roots.configure(state="disabled")
+        self.sidebar.btn_measure.configure(state="disabled")
+
+    def _plates_done(self):
+        """Called when user presses Enter after selecting plates."""
+        plates = self.canvas.get_plates()
+        if not plates:
+            self.sidebar.set_status("No plates selected. Draw at least one rectangle.")
+            return
+        self.canvas.set_mode(ImageCanvas.MODE_VIEW)
+        self.sidebar.set_status(f"{len(plates)} plate(s) selected.")
+        self.lbl_bottom.configure(text="Root Measure — Dinneny Lab")
+        self.sidebar.btn_click_roots.configure(state="normal")
 
     def click_roots(self):
-        self.sidebar.set_status("Root clicking — coming soon")
+        """Enter root clicking mode on canvas."""
+        plates = self.canvas.get_plates()
+        if not plates:
+            self.sidebar.set_status("Select plates first.")
+            return
+        self.canvas.clear_roots()
+        self.canvas.clear_traces()
+        self.canvas.set_mode(
+            ImageCanvas.MODE_CLICK_ROOTS,
+            on_done=self._roots_done)
+        self.sidebar.set_status(
+            "Click root tops. Press D then click for dead,\n"
+            "T then click for touching. Enter when done.")
+        self.lbl_bottom.configure(
+            text="ROOT CLICKING — Click=root top, D+Click=dead, "
+                 "T+Click=touching, Right-click=undo, Enter=done")
+        self.sidebar.btn_measure.configure(state="disabled")
+
+    def _roots_done(self):
+        """Called when user presses Enter after clicking roots."""
+        points = self.canvas.get_root_points()
+        if not points:
+            self.sidebar.set_status("No roots clicked. Click at least one root top.")
+            return
+        self.canvas.set_mode(ImageCanvas.MODE_VIEW)
+        n_normal = sum(1 for f in self.canvas.get_root_flags() if f is None)
+        n_flagged = len(points) - n_normal
+        msg = f"{len(points)} root(s) marked ({n_normal} to trace"
+        if n_flagged:
+            msg += f", {n_flagged} flagged"
+        msg += ")."
+        self.sidebar.set_status(msg)
+        self.lbl_bottom.configure(text="Root Measure — Dinneny Lab")
+        self.sidebar.btn_measure.configure(state="normal")
 
     def measure(self):
-        self.sidebar.set_status("Measurement — coming soon")
+        """Run preprocessing, tracing, and display results."""
+        points = self.canvas.get_root_points()
+        flags = self.canvas.get_root_flags()
+        plates = self.canvas.get_plates()
+
+        if not points or self.image is None:
+            self.sidebar.set_status("Nothing to measure.")
+            return
+
+        scale = self._get_scale()
+        sensitivity = self.sidebar.var_sensitivity.get()
+
+        self.sidebar.set_status("Preprocessing...")
+        self.sidebar.btn_measure.configure(state="disabled")
+        self.update_idletasks()
+
+        binary = preprocess(self.image, scale=scale, sensitivity=sensitivity)
+
+        self.canvas.clear_traces()
+        results = []
+        for i, (top, flag) in enumerate(zip(points, flags)):
+            self.sidebar.set_status(f"Tracing root {i + 1}/{len(points)}...")
+            self.update_idletasks()
+
+            if flag is not None:
+                warning = 'dead seedling' if flag == 'dead' else 'roots touching'
+                res = dict(length_cm=None, length_px=None,
+                           path=np.empty((0, 2)),
+                           method='skip', warning=warning, segments=[])
+                results.append(res)
+                continue
+
+            tip = find_root_tip(binary, top, scale=scale)
+            if tip is None:
+                res = dict(length_cm=0, length_px=0,
+                           path=np.empty((0, 2)),
+                           method='error', warning='Could not find root tip',
+                           segments=[])
+                results.append(res)
+                continue
+
+            res = trace_root(binary, top, tip, scale)
+            res['segments'] = []
+            results.append(res)
+
+            # draw traced path on canvas
+            if res['path'].size > 0:
+                color = "#00ff88" if res['warning'] is None else "#ffaa00"
+                self.canvas.add_trace(res['path'], color)
+
+        self.canvas._redraw()
+
+        # summary
+        traced = [r for r in results if r['method'] not in ('skip', 'error')]
+        lengths = [r['length_cm'] for r in traced if r['length_cm']]
+        msg = f"Done! {len(traced)} root(s) traced."
+        if lengths:
+            msg += f"\nMean: {np.mean(lengths):.2f} cm, "
+            msg += f"Range: {min(lengths):.2f}–{max(lengths):.2f} cm"
+        self.sidebar.set_status(msg)
+        self.lbl_bottom.configure(
+            text=f"Traced {len(traced)}/{len(points)} roots")
+
+        # save CSV
+        self._save_results(results, plates, scale)
+        self.sidebar.btn_measure.configure(state="normal")
+
+    def _save_results(self, results, plates, scale):
+        """Save measurement results to CSV."""
+        if not self.folder:
+            return
+
+        csv_path = self.folder / 'output' / 'data.csv'
+        csv_path.parent.mkdir(exist_ok=True)
+
+        experiment = self.sidebar.entry_experiment.get().strip() or "experiment"
+
+        # assign roots to plates based on position
+        point_plates = []
+        for row, col in self.canvas.get_root_points():
+            assigned = 0
+            for pi, (r1, r2, c1, c2) in enumerate(plates):
+                if r1 <= row <= r2 and c1 <= col <= c2:
+                    assigned = pi
+                    break
+            point_plates.append(assigned)
+
+        # simple labels: experiment name for each plate
+        plate_labels = [(experiment, None)] * len(plates)
+
+        append_results_to_csv(
+            results, csv_path, plates, plate_labels,
+            plate_offset=0, root_offset=0,
+            point_plates=point_plates,
+            num_marks=0,
+            split_plate=self.sidebar.var_split.get())
+
+        self.sidebar.set_status(
+            self.sidebar.lbl_status.cget("text") +
+            f"\nSaved to {csv_path.name}")
 
 
 def main():

@@ -331,9 +331,9 @@ class ImageCanvas(ctk.CTkFrame):
             w = 4 if is_selected else 2
 
             if is_selected:
-                # selected for retry: semi-transparent orange in reclick, bright in review
+                # selected for retry: dashed orange in reclick, bright in review
                 if self._mode == self.MODE_RECLICK:
-                    self._draw_path_segment(path, "#ff8c00", w, stipple="gray25")
+                    self._draw_path_segment(path, "#ff8c00", w, dash=(1, 2))
                 else:
                     self._draw_path_segment(path, "#ff8c00", w)
             elif mark_indices:
@@ -375,7 +375,7 @@ class ImageCanvas(ctk.CTkFrame):
                     font=("Helvetica", 8, "bold"))
                 self._reclick_marker_ids.extend([rid, tid])
 
-    def _draw_path_segment(self, path, color, width, stipple=""):
+    def _draw_path_segment(self, path, color, width, dash=None):
         """Draw a subsection of a path on the canvas."""
         if len(path) < 2:
             return
@@ -385,9 +385,10 @@ class ImageCanvas(ctk.CTkFrame):
             cx, cy = self.image_to_canvas(col, row)
             coords.extend([cx, cy])
         if len(coords) >= 4:
-            self.canvas.create_line(
-                *coords, fill=color, width=width, smooth=True,
-                stipple=stipple)
+            kwargs = dict(fill=color, width=width, smooth=True)
+            if dash:
+                kwargs['dash'] = dash
+            self.canvas.create_line(*coords, **kwargs)
 
     # --- Coordinate conversion ---
 

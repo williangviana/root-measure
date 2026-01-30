@@ -1,5 +1,6 @@
 """Measurement workflow — tracing, review, retry, and CSV saving."""
 
+import cv2
 import numpy as np
 
 from image_processing import preprocess
@@ -274,6 +275,47 @@ class MeasurementMixin:
         # back to review
         self._show_review()
 
+    def _save_trace_screenshot(self):
+        """Save plate image with traced root overlays (no UI elements)."""
+        folder = self.folder
+        if not folder and self.image_path:
+            folder = self.image_path.parent
+        if not folder or self.canvas._image_np is None:
+            return
+        img = self.canvas._image_np.copy()
+        if img.ndim == 2:
+            img_bgr = cv2.cvtColor(img, cv2.COLOR_GRAY2BGR)
+        else:
+            img_bgr = img
+        for path, shades, mark_indices in self.canvas._traces:
+            if len(path) < 2:
+                continue
+            if mark_indices:
+                boundaries = [0] + list(mark_indices) + [len(path) - 1]
+                for j in range(len(boundaries) - 1):
+                    start = boundaries[j]
+                    end = boundaries[j + 1] + 1
+                    color_hex = shades[j % len(shades)]
+                    bgr = self._hex_to_bgr(color_hex)
+                    pts = path[start:end, [1, 0]].astype(np.int32)
+                    cv2.polylines(img_bgr, [pts], False, bgr, thickness=3)
+            else:
+                bgr = self._hex_to_bgr(shades[0])
+                pts = path[:, [1, 0]].astype(np.int32)
+                cv2.polylines(img_bgr, [pts], False, bgr, thickness=3)
+        out_path = folder / 'output' / f'{self.image_path.stem}_traces.png'
+        out_path.parent.mkdir(exist_ok=True)
+        cv2.imwrite(str(out_path), img_bgr)
+        self.sidebar.set_status(
+            self.sidebar.lbl_status.cget("text") +
+            f"\nScreenshot: {out_path.name}")
+
+    @staticmethod
+    def _hex_to_bgr(hex_color):
+        h = hex_color.lstrip('#')
+        r, g, b = int(h[0:2], 16), int(h[2:4], 16), int(h[4:6], 16)
+        return (b, g, r)
+
     def _finish_measurement(self):
         """Save results and show final summary."""
         plates = self.canvas.get_plates()
@@ -289,6 +331,7 @@ class MeasurementMixin:
             text=f"Traced {len(traced)}/{len(self._results)} roots")
 
         self._save_results(self._results, plates, self._scale_val)
+        self._save_trace_screenshot()
         self.sidebar.btn_measure.configure(state="normal")
         self.sidebar.btn_select_plates.configure(state="normal")
         self.sidebar.btn_click_roots.configure(state="normal")

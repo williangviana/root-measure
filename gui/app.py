@@ -310,6 +310,30 @@ class ImageCanvas(ctk.CTkFrame):
                     font=("Helvetica", 9, "bold"))
                 self._root_marker_ids.extend([rid, tid])
 
+        # redraw mark diamonds (current plate's marks during clicking)
+        self._mark_marker_ids.clear()
+        if self._mode == self.MODE_CLICK_MARKS:
+            for i, (row, col) in enumerate(self._mark_points):
+                cx, cy = self.image_to_canvas(col, row)
+                s = 5
+                rid = self.canvas.create_polygon(
+                    cx, cy - s, cx + s, cy, cx, cy + s, cx - s, cy,
+                    outline="white", fill="#ff9500", width=1)
+                tid = self.canvas.create_text(
+                    cx + 10, cy - 8, text=f"M{i + 1}",
+                    fill="#ff9500", anchor="w",
+                    font=("Helvetica", 8, "bold"))
+                self._mark_marker_ids.extend([rid, tid])
+        elif self._all_marks:
+            # draw all persisted marks (after clicking is done)
+            for ri, marks in self._all_marks.items():
+                for row, col in marks:
+                    cx, cy = self.image_to_canvas(col, row)
+                    s = 4
+                    self.canvas.create_polygon(
+                        cx, cy - s, cx + s, cy, cx, cy + s, cx - s, cy,
+                        outline="white", fill="#ff9500", width=1)
+
         # redraw traced paths
         for ti, (path, color) in enumerate(self._traces):
             if len(path) < 2:
@@ -1019,6 +1043,11 @@ class RootMeasureApp(ctk.CTk):
         # map trace index -> result index (skip flagged roots with no trace)
         self._trace_to_result = []
 
+        num_marks = self._get_num_marks()
+        if num_marks > 0:
+            print(f"[marks] num_marks={num_marks}, "
+                  f"all_marks keys={sorted(self.canvas._all_marks.keys())}")
+
         for i, (top, flag) in enumerate(zip(points, flags)):
             self.sidebar.set_status(f"Tracing root {i + 1}/{len(points)}...")
             self.update_idletasks()
@@ -1047,8 +1076,13 @@ class RootMeasureApp(ctk.CTk):
                 res['segments'] = _compute_segments(
                     res['path'], mark_coords, self._scale_val)
                 res['mark_coords'] = mark_coords
+                seg_str = " + ".join(f"{s:.2f}" for s in res['segments'])
+                print(f"  Root {i + 1}: {res['length_cm']:.2f} cm "
+                      f"(segments: {seg_str})")
             else:
                 res['segments'] = []
+                if res.get('length_cm'):
+                    print(f"  Root {i + 1}: {res['length_cm']:.2f} cm")
             self._results.append(res)
 
             if res['path'].size > 0:
@@ -1070,9 +1104,12 @@ class RootMeasureApp(ctk.CTk):
         traced = [r for r in self._results
                   if r['method'] not in ('skip', 'error')]
         lengths = [r['length_cm'] for r in traced if r['length_cm']]
+        n_with_segs = sum(1 for r in traced if r.get('segments'))
         msg = f"Traced {len(traced)} root(s)."
         if lengths:
             msg += f" Mean: {np.mean(lengths):.2f} cm"
+        if n_with_segs:
+            msg += f"\n{n_with_segs} root(s) with segments."
         msg += "\nClick a bad trace to select for retry."
         msg += "\nEnter = accept / retry selected."
         self.sidebar.set_status(msg)

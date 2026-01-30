@@ -428,7 +428,7 @@ def show_image_for_clicking(image, plates, plate_labels=None, plate_offset=0,
                                    plate_labels, plate_offset, num_marks,
                                    split_plate)
     plt.tight_layout()
-    plt.subplots_adjust(top=0.95)
+    plt.subplots_adjust(top=0.92)
     plt.show()
 
     return (collector.get_top_points(), collector.get_point_plates(),

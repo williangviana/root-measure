@@ -93,5 +93,5 @@ def show_results(image, results, plates, point_plates,
         f"Traced {len(results)} root(s).  Close window to continue.",
         fontsize=12)
     plt.tight_layout()
-    plt.subplots_adjust(top=0.95)
+    plt.subplots_adjust(top=0.92)
     plt.show()

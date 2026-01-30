@@ -273,8 +273,9 @@ def trace_root(binary_image, top_point, bottom_point, scale=SCALE_PX_PER_CM):
     # extract local ROI (DPI-dynamic)
     pad = roi_pad_px(scale)
     half_w = roi_half_width_px(scale)
-    rmin = max(0, min(top_point[0], bottom_point[0]) - pad)
-    rmax = min(h, max(top_point[0], bottom_point[0]) + pad)
+    # only allow a tiny margin above the top click (roots grow downward)
+    rmin = max(0, top_point[0] - 10)
+    rmax = min(h, bottom_point[0] + pad)
     cmin = max(0, min(top_point[1], bottom_point[1]) - half_w)
     cmax = min(w, max(top_point[1], bottom_point[1]) + half_w)
 

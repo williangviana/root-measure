@@ -480,17 +480,24 @@ class ImageCanvas(ctk.CTkFrame):
 
     def _on_right_click(self, event):
         """Right-click: undo last action in current mode, or start pan."""
+        if not self._undo():
+            self._on_pan_start(event)
+
+    def _undo(self):
+        """Undo last action in current mode."""
         if self._mode == self.MODE_SELECT_PLATES and self._plates:
             self._plates.pop()
             self._redraw()
             if self._on_click_callback:
                 self._on_click_callback()
+            return True
         elif self._mode == self.MODE_CLICK_ROOTS and self._root_points:
             self._root_points.pop()
             self._root_flags.pop()
             self._redraw()
             if self._on_click_callback:
                 self._on_click_callback()
+            return True
         elif self._mode == self.MODE_CLICK_MARKS and self._mark_points:
             self._mark_points.pop()
             for _ in range(2):
@@ -498,19 +505,22 @@ class ImageCanvas(ctk.CTkFrame):
                     self.canvas.delete(self._mark_marker_ids.pop())
             if self._on_click_callback:
                 self._on_click_callback()
+            return True
         elif self._mode == self.MODE_RECLICK and self._reclick_points:
             self._reclick_points.pop()
-            # remove last 2 marker items (oval + text)
             for _ in range(2):
                 if self._reclick_marker_ids:
                     self.canvas.delete(self._reclick_marker_ids.pop())
             if self._on_click_callback:
                 self._on_click_callback()
-        else:
-            self._on_pan_start(event)
+            return True
+        return False
 
     def handle_key(self, event):
         """Handle keyboard events (called from app-level binding)."""
+        # Cmd+Z / Ctrl+Z = undo
+        if event.keysym.lower() == 'z' and (event.state & 0x8 or event.state & 0x4):
+            return self._undo()
         if self._mode == self.MODE_CLICK_ROOTS:
             if event.keysym.lower() == 'd':
                 self._pending_flag = 'dead'

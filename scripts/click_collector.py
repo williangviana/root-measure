@@ -298,14 +298,21 @@ class RootClickCollector:
                 if not self.clicking_marks:
                     self.clicking_marks = True
                     self._update_title()
-                elif self.current_group < last_group:
-                    self.clicking_marks = False
-                    self.current_group += 1
-                    self._highlight_current()
-                    self._update_title()
                 else:
-                    self.finished = True
-                    plt.close(self.fig)
+                    # only advance when all marks for this group are placed
+                    expected = self._expected_marks_for_group(self.current_group)
+                    current_marks = self._count_marks_for_group(self.current_group)
+                    if current_marks < expected:
+                        # not done yet — ignore Enter
+                        return
+                    if self.current_group < last_group:
+                        self.clicking_marks = False
+                        self.current_group += 1
+                        self._highlight_current()
+                        self._update_title()
+                    else:
+                        self.finished = True
+                        plt.close(self.fig)
 
     def _on_scroll(self, event):
         """Zoom in/out on scroll (trackpad or mouse wheel)."""
@@ -362,11 +369,19 @@ class RootClickCollector:
             else:
                 group_marks = self._count_marks_for_group(self.current_group)
                 expected = self._expected_marks_for_group(self.current_group)
+                normal_tops = self._count_normal_tops_for_group(self.current_group)
+                # which mark row (1-based) and which root within that row
+                if normal_tops > 0:
+                    current_mark_row = group_marks // normal_tops + 1
+                    current_root_in_row = group_marks % normal_tops + 1
+                else:
+                    current_mark_row = 1
+                    current_root_in_row = 1
                 self.fig.suptitle(
-                    f"{location} — Click MARKS on roots "
-                    f"({group_marks}/{expected}).  "
-                    f"{self.num_marks} mark(s) per root, same order as tops.  "
-                    f"Press Enter when done.",
+                    f"{location} — Click MARKS ({group_marks}/{expected}).  "
+                    f"Mark {current_mark_row}/{self.num_marks}, "
+                    f"root {current_root_in_row}/{normal_tops}.  "
+                    f"Press Enter when all marks placed.",
                     fontsize=11)
 
     def get_top_points(self):

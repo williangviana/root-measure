@@ -55,6 +55,7 @@ class ImageCanvas(ctk.CTkFrame):
     MODE_VIEW = "view"
     MODE_SELECT_PLATES = "select_plates"
     MODE_CLICK_ROOTS = "click_roots"
+    MODE_CLICK_MARKS = "click_marks"
     MODE_REVIEW = "review"
     MODE_RECLICK = "reclick"
 
@@ -87,6 +88,11 @@ class ImageCanvas(ctk.CTkFrame):
         self._root_flags = []      # None, 'dead', 'touching'
         self._root_marker_ids = [] # canvas ids of markers
         self._pending_flag = None  # 'dead' or 'touching'
+
+        # mark clicking state (multi-measurement)
+        self._mark_points = []     # list of (row, col) in image coords
+        self._mark_marker_ids = [] # canvas ids of mark markers
+        self._all_marks = {}       # {root_index: [(row,col), ...]} all collected marks
 
         # trace overlay state
         self._traces = []          # list of (path_array, color_str)
@@ -144,6 +150,15 @@ class ImageCanvas(ctk.CTkFrame):
         self._root_flags.clear()
         self._root_marker_ids.clear()
         self._pending_flag = None
+
+    def clear_marks(self):
+        for rid in self._mark_marker_ids:
+            self.canvas.delete(rid)
+        self._mark_points.clear()
+        self._mark_marker_ids.clear()
+
+    def get_mark_points(self):
+        return list(self._mark_points)
 
     def clear_traces(self):
         self._traces.clear()
@@ -392,6 +407,23 @@ class ImageCanvas(ctk.CTkFrame):
             self._redraw()
             if self._on_click_callback:
                 self._on_click_callback()
+        elif self._mode == self.MODE_CLICK_MARKS:
+            col, row = self.canvas_to_image(event.x, event.y)
+            self._mark_points.append((row, col))
+            # draw mark as small diamond
+            cx, cy = event.x, event.y
+            s = 5
+            rid = self.canvas.create_polygon(
+                cx, cy - s, cx + s, cy, cx, cy + s, cx - s, cy,
+                outline="white", fill="#ff9500", width=1)
+            n = len(self._mark_points)
+            tid = self.canvas.create_text(
+                cx + 10, cy - 8, text=f"M{n}",
+                fill="#ff9500", anchor="w",
+                font=("Helvetica", 8, "bold"))
+            self._mark_marker_ids.extend([rid, tid])
+            if self._on_click_callback:
+                self._on_click_callback()
         elif self._mode == self.MODE_REVIEW:
             col, row = self.canvas_to_image(event.x, event.y)
             # threshold in image pixels (scale-independent)
@@ -472,6 +504,13 @@ class ImageCanvas(ctk.CTkFrame):
             self._root_points.pop()
             self._root_flags.pop()
             self._redraw()
+            if self._on_click_callback:
+                self._on_click_callback()
+        elif self._mode == self.MODE_CLICK_MARKS and self._mark_points:
+            self._mark_points.pop()
+            for _ in range(2):
+                if self._mark_marker_ids:
+                    self.canvas.delete(self._mark_marker_ids.pop())
             if self._on_click_callback:
                 self._on_click_callback()
         elif self._mode == self.MODE_RECLICK and self._reclick_points:
@@ -606,7 +645,7 @@ class Sidebar(ctk.CTkScrollableFrame):
         self.btn_select_plates.pack(pady=3, padx=15, fill="x")
 
         self.btn_click_roots = ctk.CTkButton(
-            self, text="2. Click Root Tops", command=app.click_roots,
+            self, text="2. Select Roots", command=app.click_roots,
             state="disabled", fg_color="#2b5797")
         self.btn_click_roots.pack(pady=3, padx=15, fill="x")
 
@@ -748,6 +787,19 @@ class RootMeasureApp(ctk.CTk):
         except Exception as e:
             self.sidebar.set_status(f"Error: {e}")
 
+    def _get_num_marks(self):
+        """Get number of marks per root from sidebar (0 if multi-measurement off)."""
+        if not self.sidebar.var_multi.get():
+            return 0
+        text = self.sidebar.entry_segments.get().strip()
+        try:
+            segments = int(text)
+            if segments >= 2:
+                return segments - 1  # N segments = N-1 marks
+        except (ValueError, TypeError):
+            pass
+        return 1  # default: 2 segments = 1 mark
+
     def _get_scale(self):
         """Get scale (px/cm) from DPI entry or auto-detect."""
         dpi_text = self.sidebar.entry_dpi.get().strip()
@@ -806,7 +858,9 @@ class RootMeasureApp(ctk.CTk):
             self.sidebar.set_status("Select plates first.")
             return
         self.canvas.clear_roots()
+        self.canvas.clear_marks()
         self.canvas.clear_traces()
+        self.canvas._all_marks = {}
         self._current_plate_idx = 0
         self.canvas.set_mode(
             ImageCanvas.MODE_CLICK_ROOTS,
@@ -824,6 +878,15 @@ class RootMeasureApp(ctk.CTk):
 
     def _plate_roots_done(self):
         """Called when user presses Enter after clicking roots on a plate."""
+        num_marks = self._get_num_marks()
+        if num_marks > 0:
+            # enter marks phase for this plate before advancing
+            self._start_marks_phase()
+            return
+        self._advance_to_next_plate()
+
+    def _advance_to_next_plate(self):
+        """Advance to next plate for root clicking, or finish."""
         plates = self.canvas.get_plates()
         self._current_plate_idx += 1
         if self._current_plate_idx < len(plates):
@@ -831,9 +894,15 @@ class RootMeasureApp(ctk.CTk):
             r1, r2, c1, c2 = plates[self._current_plate_idx]
             self.canvas.zoom_to_region(r1, r2, c1, c2)
             pi = self._current_plate_idx + 1
+            self.canvas.set_mode(
+                ImageCanvas.MODE_CLICK_ROOTS,
+                on_done=self._plate_roots_done)
             self.sidebar.set_status(
                 f"Plate {pi}/{len(plates)} — Click root tops.\n"
                 "D+Click=dead, T+Click=touching. Enter=next.")
+            self.lbl_bottom.configure(
+                text="ROOT CLICKING — Click=root top, D+Click=dead, "
+                     "T+Click=touching, Right-click=undo, Enter=next")
             return
         # all plates done
         points = self.canvas.get_root_points()
@@ -854,6 +923,65 @@ class RootMeasureApp(ctk.CTk):
         self.sidebar.set_status(msg)
         self.lbl_bottom.configure(text="Root Measure — Dinneny Lab")
         self.sidebar.btn_measure.configure(state="normal")
+
+    def _start_marks_phase(self):
+        """Enter mark clicking mode for normal roots on the current plate."""
+        plates = self.canvas.get_plates()
+        pi = self._current_plate_idx
+        r1, r2, c1, c2 = plates[pi]
+        # find normal (non-flagged) roots on this plate
+        points = self.canvas.get_root_points()
+        flags = self.canvas.get_root_flags()
+        self._marks_plate_roots = []  # indices of normal roots on this plate
+        for i, ((row, col), flag) in enumerate(zip(points, flags)):
+            if flag is None and r1 <= row <= r2 and c1 <= col <= c2:
+                self._marks_plate_roots.append(i)
+        if not self._marks_plate_roots:
+            # no normal roots on this plate, skip marks
+            self._advance_to_next_plate()
+            return
+        self._marks_root_cursor = 0  # which root we're collecting marks for
+        num_marks = self._get_num_marks()
+        self.canvas.clear_marks()
+        self.canvas.set_mode(
+            ImageCanvas.MODE_CLICK_MARKS,
+            on_done=self._plate_marks_done)
+        self.canvas.zoom_to_region(r1, r2, c1, c2)
+        ri = self._marks_plate_roots[0]
+        self.sidebar.set_status(
+            f"Plate {pi + 1} — Click {num_marks} mark(s) on root {ri + 1}.\n"
+            "Right-click=undo. Enter=confirm marks.")
+        self.lbl_bottom.configure(
+            text="MARKS — Click marks on root, Right-click=undo, Enter=next root")
+
+    def _plate_marks_done(self):
+        """Called when user presses Enter after clicking marks for a root."""
+        num_marks = self._get_num_marks()
+        ri = self._marks_plate_roots[self._marks_root_cursor]
+        # collect marks placed since last Enter for this root
+        # marks for this root are the last num_marks in _mark_points
+        all_marks = self.canvas.get_mark_points()
+        expected_so_far = (self._marks_root_cursor + 1) * num_marks
+        if len(all_marks) < expected_so_far:
+            placed = len(all_marks) - self._marks_root_cursor * num_marks
+            self.sidebar.set_status(
+                f"Need {num_marks} mark(s) for root {ri + 1}, "
+                f"only {placed} placed. Click more marks.")
+            return
+        # store marks for this root
+        start = self._marks_root_cursor * num_marks
+        self.canvas._all_marks[ri] = all_marks[start:start + num_marks]
+        self._marks_root_cursor += 1
+        if self._marks_root_cursor < len(self._marks_plate_roots):
+            # next root on this plate
+            ri_next = self._marks_plate_roots[self._marks_root_cursor]
+            pi = self._current_plate_idx + 1
+            self.sidebar.set_status(
+                f"Plate {pi} — Click {num_marks} mark(s) on root {ri_next + 1}.\n"
+                "Right-click=undo. Enter=confirm marks.")
+            return
+        # all roots on this plate marked — advance to next plate
+        self._advance_to_next_plate()
 
     def measure(self):
         """Run preprocessing, tracing, and show results for review."""
@@ -904,7 +1032,14 @@ class RootMeasureApp(ctk.CTk):
                 continue
 
             res = trace_root(self._binary, top, tip, self._scale_val)
-            res['segments'] = []
+            # compute segments if marks were collected for this root
+            mark_coords = self.canvas._all_marks.get(i, [])
+            if mark_coords and res['path'].size > 0:
+                res['segments'] = _compute_segments(
+                    res['path'], mark_coords, self._scale_val)
+                res['mark_coords'] = mark_coords
+            else:
+                res['segments'] = []
             self._results.append(res)
 
             if res['path'].size > 0:
@@ -1079,7 +1214,7 @@ class RootMeasureApp(ctk.CTk):
             results, csv_path, plates, plate_labels,
             plate_offset=0, root_offset=0,
             point_plates=point_plates,
-            num_marks=0,
+            num_marks=self._get_num_marks(),
             split_plate=self.sidebar.var_split.get())
 
         self.sidebar.set_status(

@@ -252,32 +252,37 @@ class ImageCanvas(ctk.CTkFrame):
         _GROUP_MARKER_COLORS = ["#e63333", "#3333e6"]
         self._root_marker_ids.clear()
         if self._mode not in (self.MODE_REVIEW,):
+            # per-group numbering (restarts at 1 for each group)
+            group_counters = {}
+            is_view = self._mode == self.MODE_VIEW
+            dot_r = 3 if is_view else 5
+            cross_s = 4 if is_view else 6
             for i, ((row, col), flag) in enumerate(
                     zip(self._root_points, self._root_flags)):
                 cx, cy = self.image_to_canvas(col, row)
                 group = self._root_groups[i] if i < len(self._root_groups) else 0
+                group_counters[group] = group_counters.get(group, 0) + 1
+                display_num = group_counters[group]
                 marker_color = _GROUP_MARKER_COLORS[group % len(_GROUP_MARKER_COLORS)]
                 if flag is not None:
                     label = "DEAD" if flag == 'dead' else "TOUCH"
-                    s = 6
                     id1 = self.canvas.create_line(
-                        cx - s, cy - s, cx + s, cy + s,
+                        cx - cross_s, cy - cross_s, cx + cross_s, cy + cross_s,
                         fill=marker_color, width=2)
                     id2 = self.canvas.create_line(
-                        cx - s, cy + s, cx + s, cy - s,
+                        cx - cross_s, cy + cross_s, cx + cross_s, cy - cross_s,
                         fill=marker_color, width=2)
                     id3 = self.canvas.create_text(
-                        cx + 10, cy - 10, text=f"{i + 1} {label}",
+                        cx + 10, cy - 10, text=f"{display_num} {label}",
                         fill=marker_color, anchor="w",
                         font=("Helvetica", 9, "bold"))
                     self._root_marker_ids.extend([id1, id2, id3])
                 else:
-                    r = 5
                     rid = self.canvas.create_oval(
-                        cx - r, cy - r, cx + r, cy + r,
+                        cx - dot_r, cy - dot_r, cx + dot_r, cy + dot_r,
                         outline="white", fill=marker_color, width=1)
                     tid = self.canvas.create_text(
-                        cx + 10, cy - 10, text=str(i + 1),
+                        cx + 10, cy - 10, text=str(display_num),
                         fill=marker_color, anchor="w",
                         font=("Helvetica", 9, "bold"))
                     self._root_marker_ids.extend([rid, tid])
@@ -288,14 +293,14 @@ class ImageCanvas(ctk.CTkFrame):
         self._mark_marker_ids.clear()
         if self._mode not in (self.MODE_REVIEW,):
             # draw saved marks from _all_marks (persisted across groups)
+            mark_r = 3 if is_view else 4
             for ri, marks in self._all_marks.items():
                 group = self._root_groups[ri] if ri < len(self._root_groups) else 0
                 color = _GROUP_MARK_COLOR[group % len(_GROUP_MARK_COLOR)]
                 for mi, (row, col) in enumerate(marks):
                     cx, cy = self.image_to_canvas(col, row)
-                    r = 4
                     self.canvas.create_oval(
-                        cx - r, cy - r, cx + r, cy + r,
+                        cx - mark_r, cy - mark_r, cx + mark_r, cy + mark_r,
                         outline="white", fill=color, width=1)
             # draw current batch marks (not yet saved to _all_marks)
             if self._mode == self.MODE_CLICK_MARKS:

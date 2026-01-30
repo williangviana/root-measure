@@ -380,7 +380,7 @@ def prompt_for_experiment():
     print("\n" + "=" * 60)
     print("  EXPERIMENT NAME")
     print("  Used in the output filename")
-    print("  Example: Salt Stress Col-0 vs crd-2")
+    print("  Example: Rewatering WT vs crd-1")
     print("=" * 60)
 
     while True:

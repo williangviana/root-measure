@@ -473,7 +473,6 @@ def main():
             print("\n" + "=" * 50)
             print("  ALL IMAGES PROCESSED")
             print("  Enter number to re-process, or 'q' to quit")
-            print("=" * 50)
 
         selected = select_image_from_list(images, processed)
         if selected is None:

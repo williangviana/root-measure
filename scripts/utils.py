@@ -32,17 +32,14 @@ def select_image_from_list(images, processed=None):
     total_count = len(images)
 
     print("\n" + "=" * 50)
-    print(f"  Available images: ({done_count}/{total_count} done)")
-    print("=" * 50)
+    print(f"  IMAGES ({done_count}/{total_count} done)")
     for i, img in enumerate(images, 1):
         status = "   DONE" if img in processed else ""
         print(f"  {i:2d}.  {img.name:<25}{status}")
-    print("=" * 50)
     print("  Enter number to process, or 'q' to quit")
-    print("=" * 50)
 
     while True:
-        choice = input("\nSelect image: ").strip().lower()
+        choice = input("\n  Select: ").strip().lower()
         if choice == 'q':
             return None
         try:

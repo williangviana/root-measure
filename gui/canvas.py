@@ -498,6 +498,9 @@ class ImageCanvas(ctk.CTkFrame):
                 if self._on_click_callback:
                     self._on_click_callback()
         elif self._mode == self.MODE_RECLICK:
+            if self._reclick_expected > 0 and \
+               len(self._reclick_points) >= self._reclick_expected:
+                return
             col, row = self.canvas_to_image(event.x, event.y)
             self._reclick_points.append((row, col))
             self._redraw()

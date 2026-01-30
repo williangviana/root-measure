@@ -176,6 +176,7 @@ class MeasurementMixin:
         self._reclick_clicks_per_root = 2 + num_marks
         self.canvas._reclick_clicks_per_root = self._reclick_clicks_per_root
         n = len(self._retry_result_indices)
+        self.canvas._reclick_expected = n * self._reclick_clicks_per_root
         self.canvas.set_mode(
             ImageCanvas.MODE_RECLICK,
             on_done=self._reclick_enter)

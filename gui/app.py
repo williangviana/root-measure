@@ -92,6 +92,7 @@ class ImageCanvas(ctk.CTkFrame):
         # mark clicking state (multi-measurement)
         self._mark_points = []     # list of (row, col) in image coords
         self._mark_marker_ids = [] # canvas ids of mark markers
+        self._marks_expected = 0   # how many marks expected (stops clicks beyond this)
         self._all_marks = {}       # {root_index: [(row,col), ...]} all collected marks
 
         # trace overlay state
@@ -408,6 +409,10 @@ class ImageCanvas(ctk.CTkFrame):
             if self._on_click_callback:
                 self._on_click_callback()
         elif self._mode == self.MODE_CLICK_MARKS:
+            # stop accepting clicks once expected count reached
+            if self._marks_expected > 0 and \
+               len(self._mark_points) >= self._marks_expected:
+                return
             col, row = self.canvas_to_image(event.x, event.y)
             self._mark_points.append((row, col))
             # draw mark as small diamond
@@ -940,26 +945,44 @@ class RootMeasureApp(ctk.CTk):
             self._advance_to_next_plate()
             return
         num_marks = self._get_num_marks()
-        self._marks_expected = len(self._marks_plate_roots) * num_marks
+        self.canvas._marks_expected = len(self._marks_plate_roots) * num_marks
         self.canvas.clear_marks()
+        self.canvas._on_click_callback = self._update_marks_status
         self.canvas.set_mode(
             ImageCanvas.MODE_CLICK_MARKS,
             on_done=self._plate_marks_done)
         self.canvas.zoom_to_region(r1, r2, c1, c2)
-        n_roots = len(self._marks_plate_roots)
-        self.sidebar.set_status(
-            f"Plate {pi + 1} — Click {num_marks} mark(s) on each of "
-            f"{n_roots} root(s) ({self._marks_expected} total).\n"
-            "Right-click=undo. Enter when all placed.")
+        self._update_marks_status()
         self.lbl_bottom.configure(
             text="MARKS — Click marks on roots, Right-click=undo, Enter=done")
+
+    def _update_marks_status(self):
+        """Update status bar with marks progress."""
+        pi = self._current_plate_idx
+        num_marks = self._get_num_marks()
+        n_roots = len(self._marks_plate_roots)
+        expected = self.canvas._marks_expected
+        placed = len(self.canvas.get_mark_points())
+        if placed >= expected:
+            self.sidebar.set_status(
+                f"Plate {pi + 1} — All {expected} mark(s) placed.\n"
+                "Press Enter to continue.")
+        else:
+            # show which root and which mark we're on
+            current_root_idx = placed // num_marks + 1
+            current_mark_in_root = placed % num_marks + 1
+            self.sidebar.set_status(
+                f"Plate {pi + 1} — Marks: {placed}/{expected}.\n"
+                f"Root {current_root_idx}/{n_roots}, "
+                f"mark {current_mark_in_root}/{num_marks}.\n"
+                "Right-click=undo. Enter when all placed.")
 
     def _plate_marks_done(self):
         """Called when user presses Enter after clicking marks for a plate."""
         all_marks = self.canvas.get_mark_points()
-        if len(all_marks) < self._marks_expected:
+        if len(all_marks) < self.canvas._marks_expected:
             self.sidebar.set_status(
-                f"Need {self._marks_expected} mark(s), "
+                f"Need {self.canvas._marks_expected} mark(s), "
                 f"only {len(all_marks)} placed. Click more marks.")
             return
         # assign num_marks marks to each normal root, in click order
@@ -1129,9 +1152,6 @@ class RootMeasureApp(ctk.CTk):
         pairs = self.canvas.get_reclick_pairs()
         self.canvas.set_mode(ImageCanvas.MODE_VIEW)
 
-        # remove old traces for retried roots and rebuild
-        old_traces = list(self._traces_backup) if hasattr(self, '_traces_backup') else []
-
         for j, ri in enumerate(self._retry_result_indices):
             if j >= len(pairs):
                 break
@@ -1139,7 +1159,14 @@ class RootMeasureApp(ctk.CTk):
             self.sidebar.set_status(f"Re-tracing root {j + 1}/{len(pairs)}...")
             self.update_idletasks()
             res = trace_root(self._binary, top_manual, bot_manual, self._scale_val)
-            res['segments'] = []
+            # recompute segments if marks exist for this root
+            mark_coords = self.canvas._all_marks.get(ri, [])
+            if mark_coords and res['path'].size > 0:
+                res['segments'] = _compute_segments(
+                    res['path'], mark_coords, self._scale_val)
+                res['mark_coords'] = mark_coords
+            else:
+                res['segments'] = []
             self._results[ri] = res
 
         # rebuild all traces

@@ -477,7 +477,7 @@ def show_manual_reclick(image, plates, root_labels, retry_indices=None,
             dp_row = (path[:, 0] - r1) / downsample
             dp_col = (path[:, 1] - c1) / downsample
             axes[plate_idx].plot(dp_col, dp_row, '-',
-                                 color=(1.0, 0.85, 0.0), linewidth=3, alpha=0.7)
+                                 color=(1.0, 0.85, 0.0), linewidth=1.5, alpha=0.35)
 
     clicks = []         # list of (row, col) in full-image coords
     artists = []
@@ -512,9 +512,7 @@ def show_manual_reclick(image, plates, root_labels, retry_indices=None,
             # top click
             m = ax.plot(dcol, drow, 'o', color='green', markersize=8,
                         markeredgecolor='white', markeredgewidth=1)[0]
-            t = ax.text(dcol + 8, drow - 8, f"{root_labels[current_root[0]]}",
-                        color='green', fontsize=9, fontweight='bold')
-            artists.append([m, t])
+            artists.append([m])
         else:
             # bottom click — advance to next root
             m = ax.plot(dcol, drow, 's', color='green', markersize=8,

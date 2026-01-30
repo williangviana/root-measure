@@ -305,8 +305,9 @@ class ImageCanvas(ctk.CTkFrame):
             w = 4 if is_selected else 2
 
             if is_selected:
-                # selected for retry: draw entire path in yellow
-                self._draw_path_segment(path, "#ffdd00", w)
+                # selected for retry: bright in review, dim in reclick
+                sel_color = "#66580a" if self._mode == self.MODE_RECLICK else "#ffdd00"
+                self._draw_path_segment(path, sel_color, w)
             elif mark_indices:
                 # draw each segment in alternating shades
                 boundaries = [0] + list(mark_indices) + [len(path) - 1]
@@ -456,16 +457,10 @@ class ImageCanvas(ctk.CTkFrame):
             # draw marker
             cx, cy = event.x, event.y
             r = 5
-            color = "#ff3b3b" if len(self._reclick_points) % 2 == 1 else "#3bff3b"
-            label = "TOP" if len(self._reclick_points) % 2 == 1 else "BOT"
             rid = self.canvas.create_oval(
                 cx - r, cy - r, cx + r, cy + r,
-                outline="white", fill=color, width=1)
-            tid = self.canvas.create_text(
-                cx + 10, cy - 10, text=label,
-                fill=color, anchor="w",
-                font=("Helvetica", 9, "bold"))
-            self._reclick_marker_ids.extend([rid, tid])
+                outline="white", fill="#1a7a1a", width=1)
+            self._reclick_marker_ids.append(rid)
             if self._on_click_callback:
                 self._on_click_callback()
 
@@ -531,9 +526,8 @@ class ImageCanvas(ctk.CTkFrame):
             return True
         elif self._mode == self.MODE_RECLICK and self._reclick_points:
             self._reclick_points.pop()
-            for _ in range(2):
-                if self._reclick_marker_ids:
-                    self.canvas.delete(self._reclick_marker_ids.pop())
+            if self._reclick_marker_ids:
+                self.canvas.delete(self._reclick_marker_ids.pop())
             if self._on_click_callback:
                 self._on_click_callback()
             return True

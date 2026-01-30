@@ -435,11 +435,13 @@ def show_image_for_clicking(image, plates, plate_labels=None, plate_offset=0,
             collector.get_mark_points(), collector.get_mark_plates())
 
 
-def show_manual_reclick(image, plates, root_labels,
+def show_manual_reclick(image, plates, root_labels, retry_indices=None,
+                        results=None, point_plates=None, split_plate=False,
                         downsample=DISPLAY_DOWNSAMPLE):
     """Open plate view for manual two-click re-tracing of specific roots.
 
     User clicks top then bottom of each root listed in root_labels.
+    Shows old bad traces in yellow so user knows which roots to fix.
     Returns list of (top, bottom) tuples in full-image coords.
     """
     num_plates = len(plates)
@@ -458,6 +460,24 @@ def show_manual_reclick(image, plates, root_labels,
     for i, (ax, img) in enumerate(zip(axes, crops_8)):
         ax.imshow(img, cmap='gray', aspect='equal')
         ax.set_title(f"Plate {i + 1}", fontsize=10)
+
+    # draw old bad traces in yellow so user can see which roots to re-click
+    if results and retry_indices and point_plates is not None:
+        for ri in retry_indices:
+            res = results[ri]
+            if res['path'].size == 0:
+                continue
+            path = res['path']
+            group_idx = point_plates[ri]
+            if split_plate:
+                plate_idx = group_idx // 2
+            else:
+                plate_idx = group_idx
+            r1, r2, c1, c2 = plates[plate_idx]
+            dp_row = (path[:, 0] - r1) / downsample
+            dp_col = (path[:, 1] - c1) / downsample
+            axes[plate_idx].plot(dp_col, dp_row, '-',
+                                 color=(1.0, 0.85, 0.0), linewidth=3, alpha=0.7)
 
     clicks = []         # list of (row, col) in full-image coords
     artists = []

@@ -217,7 +217,11 @@ def process_image(image_path, csv_path, plate_offset=0, root_offset=0,
         retry_labels = [_root_labels[i] for i in retry_indices]
         print(f"\n  Re-clicking {len(retry_indices)} root(s): {', '.join(retry_labels)}")
 
-        pairs = show_manual_reclick(image, plates, retry_labels)
+        pairs = show_manual_reclick(image, plates, retry_labels,
+                                    retry_indices=retry_indices,
+                                    results=results,
+                                    point_plates=point_plates,
+                                    split_plate=split_plate)
 
         # re-trace with manual top/bottom
         for j, idx in enumerate(retry_indices):

@@ -932,55 +932,41 @@ class RootMeasureApp(ctk.CTk):
         # find normal (non-flagged) roots on this plate
         points = self.canvas.get_root_points()
         flags = self.canvas.get_root_flags()
-        self._marks_plate_roots = []  # indices of normal roots on this plate
+        self._marks_plate_roots = []
         for i, ((row, col), flag) in enumerate(zip(points, flags)):
             if flag is None and r1 <= row <= r2 and c1 <= col <= c2:
                 self._marks_plate_roots.append(i)
         if not self._marks_plate_roots:
-            # no normal roots on this plate, skip marks
             self._advance_to_next_plate()
             return
-        self._marks_root_cursor = 0  # which root we're collecting marks for
         num_marks = self._get_num_marks()
+        self._marks_expected = len(self._marks_plate_roots) * num_marks
         self.canvas.clear_marks()
         self.canvas.set_mode(
             ImageCanvas.MODE_CLICK_MARKS,
             on_done=self._plate_marks_done)
         self.canvas.zoom_to_region(r1, r2, c1, c2)
-        ri = self._marks_plate_roots[0]
+        n_roots = len(self._marks_plate_roots)
         self.sidebar.set_status(
-            f"Plate {pi + 1} — Click {num_marks} mark(s) on root {ri + 1}.\n"
-            "Right-click=undo. Enter=confirm marks.")
+            f"Plate {pi + 1} — Click {num_marks} mark(s) on each of "
+            f"{n_roots} root(s) ({self._marks_expected} total).\n"
+            "Right-click=undo. Enter when all placed.")
         self.lbl_bottom.configure(
-            text="MARKS — Click marks on root, Right-click=undo, Enter=next root")
+            text="MARKS — Click marks on roots, Right-click=undo, Enter=done")
 
     def _plate_marks_done(self):
-        """Called when user presses Enter after clicking marks for a root."""
-        num_marks = self._get_num_marks()
-        ri = self._marks_plate_roots[self._marks_root_cursor]
-        # collect marks placed since last Enter for this root
-        # marks for this root are the last num_marks in _mark_points
+        """Called when user presses Enter after clicking marks for a plate."""
         all_marks = self.canvas.get_mark_points()
-        expected_so_far = (self._marks_root_cursor + 1) * num_marks
-        if len(all_marks) < expected_so_far:
-            placed = len(all_marks) - self._marks_root_cursor * num_marks
+        if len(all_marks) < self._marks_expected:
             self.sidebar.set_status(
-                f"Need {num_marks} mark(s) for root {ri + 1}, "
-                f"only {placed} placed. Click more marks.")
+                f"Need {self._marks_expected} mark(s), "
+                f"only {len(all_marks)} placed. Click more marks.")
             return
-        # store marks for this root
-        start = self._marks_root_cursor * num_marks
-        self.canvas._all_marks[ri] = all_marks[start:start + num_marks]
-        self._marks_root_cursor += 1
-        if self._marks_root_cursor < len(self._marks_plate_roots):
-            # next root on this plate
-            ri_next = self._marks_plate_roots[self._marks_root_cursor]
-            pi = self._current_plate_idx + 1
-            self.sidebar.set_status(
-                f"Plate {pi} — Click {num_marks} mark(s) on root {ri_next + 1}.\n"
-                "Right-click=undo. Enter=confirm marks.")
-            return
-        # all roots on this plate marked — advance to next plate
+        # assign num_marks marks to each normal root, in click order
+        num_marks = self._get_num_marks()
+        for j, ri in enumerate(self._marks_plate_roots):
+            start = j * num_marks
+            self.canvas._all_marks[ri] = all_marks[start:start + num_marks]
         self._advance_to_next_plate()
 
     def measure(self):

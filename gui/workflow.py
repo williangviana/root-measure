@@ -69,7 +69,8 @@ class MeasurementMixin:
         self.sidebar.btn_measure.configure(state="disabled")
         self.sidebar.btn_select_plates.configure(state="disabled")
         self.sidebar.btn_click_roots.configure(state="disabled")
-        self.update_idletasks()
+        self.sidebar.set_step(3)
+        self.update()
 
         self._binary = preprocess(self.image, scale=self._scale_val,
                                   sensitivity=self._sensitivity)
@@ -136,6 +137,7 @@ class MeasurementMixin:
     def _show_review(self):
         """Show traced results and let user click bad traces to retry."""
         self.sidebar.hide_progress()
+        self.sidebar.set_step(4)
         self.canvas.set_mode(
             ImageCanvas.MODE_REVIEW,
             on_done=self._review_done)
@@ -330,6 +332,7 @@ class MeasurementMixin:
 
     def _finish_measurement(self):
         """Save results and show final summary."""
+        self.sidebar.set_step(5)
         plates = self.canvas.get_plates()
         traced = [r for r in self._results
                   if r['method'] not in ('skip', 'error')]
@@ -348,9 +351,9 @@ class MeasurementMixin:
         if self.sidebar.var_plot.get():
             self._run_plot()
 
-        self.sidebar.btn_measure.configure(state="normal")
         self.sidebar.btn_select_plates.configure(state="normal")
         self.sidebar.btn_click_roots.configure(state="normal")
+        self.sidebar.btn_measure.configure(state="normal")
 
     def _save_results(self, results, plates, scale):
         """Save measurement results to CSV."""

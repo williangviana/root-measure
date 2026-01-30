@@ -176,20 +176,35 @@ class Sidebar(ctk.CTkScrollableFrame):
         self.sec_workflow = _Section(self, "WORKFLOW")
         b = self.sec_workflow.body
 
+        # step button style constants
+        self._step_color_idle = "#3a3a3a"
+        self._step_color_active = "#2b5797"
+        self._step_color_done = "#217346"
+
         self.btn_select_plates = ctk.CTkButton(
             b, text="1. Select Plates", command=app.select_plates,
-            state="disabled", fg_color="#2b5797")
+            state="disabled", fg_color=self._step_color_idle)
         self.btn_select_plates.pack(pady=3, padx=15, fill="x")
 
         self.btn_click_roots = ctk.CTkButton(
-            b, text="2. Select Roots", command=app.click_roots,
-            state="disabled", fg_color="#2b5797")
+            b, text="2. Click Roots", command=app.click_roots,
+            state="disabled", fg_color=self._step_color_idle)
         self.btn_click_roots.pack(pady=3, padx=15, fill="x")
 
         self.btn_measure = ctk.CTkButton(
-            b, text="3. Measure & Save", command=app.measure,
-            state="disabled", fg_color="#217346")
+            b, text="3. Trace", command=app.measure,
+            state="disabled", fg_color=self._step_color_idle)
         self.btn_measure.pack(pady=3, padx=15, fill="x")
+
+        self.btn_review = ctk.CTkButton(
+            b, text="4. Review", command=None,
+            state="disabled", fg_color=self._step_color_idle)
+        self.btn_review.pack(pady=3, padx=15, fill="x")
+
+        self.btn_save = ctk.CTkButton(
+            b, text="5. Save & Plot", command=None,
+            state="disabled", fg_color=self._step_color_idle)
+        self.btn_save.pack(pady=3, padx=15, fill="x")
 
         self._add_separator()
 
@@ -226,6 +241,21 @@ class Sidebar(ctk.CTkScrollableFrame):
 
     def set_status(self, text):
         self.lbl_status.configure(text=text)
+
+    def set_step(self, step):
+        """Highlight the current workflow step (1-5). Previous steps turn green."""
+        buttons = [
+            self.btn_select_plates, self.btn_click_roots,
+            self.btn_measure, self.btn_review, self.btn_save,
+        ]
+        for i, btn in enumerate(buttons):
+            num = i + 1
+            if num < step:
+                btn.configure(fg_color=self._step_color_done)
+            elif num == step:
+                btn.configure(fg_color=self._step_color_active)
+            else:
+                btn.configure(fg_color=self._step_color_idle)
 
     def show_progress(self, total):
         self._progress_total = total
@@ -313,4 +343,7 @@ class Sidebar(ctk.CTkScrollableFrame):
         self.btn_select_plates.configure(state="normal")
         self.btn_click_roots.configure(state="disabled")
         self.btn_measure.configure(state="disabled")
+        self.btn_review.configure(state="disabled")
+        self.btn_save.configure(state="disabled")
+        self.set_step(1)
         self.set_status("Ready. Select plates to begin.")

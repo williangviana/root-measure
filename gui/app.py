@@ -204,6 +204,7 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
             text="Drag=draw plate  |  Right-click=undo  |  Enter=confirm  |  Enter again=done  |  Scroll=zoom")
         self.sidebar.btn_click_roots.configure(state="disabled")
         self.sidebar.btn_measure.configure(state="disabled")
+        self.sidebar.set_step(1)
 
     def _plates_done(self):
         """Called when user presses Enter after selecting plates."""
@@ -215,6 +216,7 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
         self.sidebar.set_status(f"{len(plates)} plate(s) selected.")
         self.lbl_bottom.configure(text="Root Measure — Dinneny Lab")
         self.sidebar.btn_click_roots.configure(state="normal")
+        self.sidebar.set_step(2)
 
     def click_roots(self):
         """Enter root clicking mode on canvas."""
@@ -236,6 +238,7 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
         self.canvas._current_root_group = 0
         self._enter_root_click_stage()
         self.sidebar.btn_measure.configure(state="disabled")
+        self.sidebar.set_step(2)
 
     def _enter_root_click_stage(self):
         """Set up the canvas for the current root clicking stage."""

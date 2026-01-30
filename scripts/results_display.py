@@ -91,6 +91,6 @@ def show_results(image, results, plates, point_plates,
 
     fig.suptitle(
         f"Traced {len(results)} root(s).  Close window to continue.",
-        fontsize=12)
+        fontsize=12, y=1.02)
     plt.tight_layout()
     plt.show()

@@ -83,8 +83,12 @@ class MeasurementMixin:
             print(f"[marks] num_marks={num_marks}, "
                   f"all_marks keys={sorted(self.canvas._all_marks.keys())}")
 
+        total = len(points)
+        self.sidebar.show_progress(total)
+
         for i, (top, flag) in enumerate(zip(points, flags)):
-            self.sidebar.set_status(f"Tracing root {i + 1}/{len(points)}...")
+            self.sidebar.set_status(f"Tracing root {i + 1}/{total}...")
+            self.sidebar.update_progress(i + 1)
             self.update_idletasks()
 
             if flag is not None:
@@ -129,6 +133,7 @@ class MeasurementMixin:
 
     def _show_review(self):
         """Show traced results and let user click bad traces to retry."""
+        self.sidebar.hide_progress()
         self.canvas.set_mode(
             ImageCanvas.MODE_REVIEW,
             on_done=self._review_done)

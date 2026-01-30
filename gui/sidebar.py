@@ -193,6 +193,16 @@ class Sidebar(ctk.CTkScrollableFrame):
             text_color="gray", wraplength=250)
         self.lbl_status.pack(pady=10, padx=15, anchor="w")
 
+        # --- Progress bar (hidden until needed) ---
+        self._progress_frame = ctk.CTkFrame(self, fg_color="transparent")
+        self.progress_bar = ctk.CTkProgressBar(self._progress_frame, width=250)
+        self.progress_bar.set(0)
+        self.progress_bar.pack(padx=15, pady=(0, 2), fill="x")
+        self.lbl_progress = ctk.CTkLabel(
+            self._progress_frame, text="",
+            font=ctk.CTkFont(size=10), text_color="gray50")
+        self.lbl_progress.pack(padx=15, anchor="w")
+
     # --- helpers ---
 
     def _add_separator(self):
@@ -207,6 +217,21 @@ class Sidebar(ctk.CTkScrollableFrame):
 
     def set_status(self, text):
         self.lbl_status.configure(text=text)
+
+    def show_progress(self, total):
+        self._progress_total = total
+        self.progress_bar.set(0)
+        self.lbl_progress.configure(text=f"0 / {total}")
+        self._progress_frame.pack(after=self.lbl_status, fill="x")
+
+    def update_progress(self, current):
+        frac = current / self._progress_total
+        self.progress_bar.set(frac)
+        self.lbl_progress.configure(
+            text=f"{current} / {self._progress_total}")
+
+    def hide_progress(self):
+        self._progress_frame.pack_forget()
 
     # --- phase transitions ---
 

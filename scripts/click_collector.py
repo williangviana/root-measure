@@ -45,9 +45,6 @@ class RootClickCollector:
         self.points = []
         self.point_plates = []
         self.point_flags = []      # None=normal, 'dead', 'touching'
-        self.manual_bottoms = {}   # root_index -> (row, col) for manual roots
-        self._manual_mode = False  # toggle with 'm' key
-        self._awaiting_bottom = False  # waiting for bottom click
         self.mark_points = []
         self.mark_plates = []
         self.artists = []
@@ -171,21 +168,6 @@ class RootClickCollector:
             full_row, full_col = self._display_to_full(ax, dcol, drow)
 
             if not self.clicking_marks:
-                if self._awaiting_bottom:
-                    # --- manual mode: second click = bottom ---
-                    root_idx = len(self.points) - 1
-                    self.manual_bottoms[root_idx] = (full_row, full_col)
-                    self._awaiting_bottom = False
-
-                    color = self._group_color(self.current_group)
-                    marker = ax.plot(dcol, drow, 's', color=color,
-                                     markersize=8, markeredgecolor='white',
-                                     markeredgewidth=1)[0]
-                    self.artists[-1].append(marker)
-                    self._update_title()
-                    self.fig.canvas.draw_idle()
-                    return
-
                 # --- clicking tops ---
                 self.points.append((full_row, full_col))
                 self.point_plates.append(self.current_group)
@@ -194,8 +176,6 @@ class RootClickCollector:
                 group_count = self._count_tops_for_group(self.current_group)
                 color = self._group_color(self.current_group)
                 label = f"{group_count}"
-                if self._manual_mode:
-                    label += "M"
 
                 marker = ax.plot(dcol, drow, 'o', color=color,
                                  markersize=8, markeredgecolor='white',
@@ -203,12 +183,6 @@ class RootClickCollector:
                 text = ax.text(dcol + 8, drow - 8, label,
                                color=color, fontsize=9, fontweight='bold')
                 self.artists.append([marker, text])
-
-                if self._manual_mode:
-                    self._awaiting_bottom = True
-                    self._update_title()
-                    self.fig.canvas.draw_idle()
-                    return
             else:
                 # --- clicking marks ---
                 expected = self._expected_marks_for_group(self.current_group)
@@ -241,23 +215,8 @@ class RootClickCollector:
                         a.remove()
                 self._update_title()
                 self.fig.canvas.draw_idle()
-        elif self._awaiting_bottom:
-            # undo the top click that's waiting for a bottom
-            self._awaiting_bottom = False
-            root_idx = len(self.points) - 1
-            self.manual_bottoms.pop(root_idx, None)
-            self.points.pop()
-            self.point_plates.pop()
-            self.point_flags.pop()
-            if self.artists:
-                for a in self.artists.pop():
-                    a.remove()
-            self._update_title()
-            self.fig.canvas.draw_idle()
         else:
             if self.points and self.point_plates and self.point_plates[-1] == self.current_group:
-                root_idx = len(self.points) - 1
-                self.manual_bottoms.pop(root_idx, None)
                 self.points.pop()
                 self.point_plates.pop()
                 self.point_flags.pop()
@@ -295,11 +254,6 @@ class RootClickCollector:
             self._update_title()
             self.fig.canvas.draw_idle()
             return
-        if event.key == 'm' and not self.clicking_marks and not self._awaiting_bottom:
-            self._manual_mode = not self._manual_mode
-            self._update_title()
-            self.fig.canvas.draw_idle()
-            return
         if event.key in ('d', 't') and not self.clicking_marks:
             # D = dead seedling, T = touching roots — add placeholder entry
             flag = 'dead' if event.key == 'd' else 'touching'
@@ -324,8 +278,6 @@ class RootClickCollector:
             self.fig.canvas.draw_idle()
             return
         if event.key == 'enter':
-            if self._awaiting_bottom:
-                return  # must click bottom first
             last_group = self.num_groups - 1
             if self.num_marks == 0:
                 # --- normal mode (no marks) ---
@@ -384,23 +336,15 @@ class RootClickCollector:
             plate_num = self.current_group + 1
             location = f"Plate {plate_num}"
 
-        mode_tag = " [MANUAL]" if self._manual_mode else ""
-
-        if self._awaiting_bottom:
-            self.fig.suptitle(
-                f"{n_tops} root(s).  Click the BOTTOM of the root (tip).",
-                fontsize=11)
-            return
-
         if self.num_marks == 0:
             if self.current_group < last_group:
                 self.fig.suptitle(
-                    f"{n_tops} root(s) marked.  Clicking {location}.{mode_tag}  "
+                    f"{n_tops} root(s) marked.  Clicking {location}.  "
                     f"Press Enter when done.",
                     fontsize=11)
             else:
                 self.fig.suptitle(
-                    f"{n_tops} root(s) marked.  Clicking {location}.{mode_tag}  "
+                    f"{n_tops} root(s) marked.  Clicking {location}.  "
                     f"Press Enter to finish and measure.",
                     fontsize=11)
         else:
@@ -439,11 +383,6 @@ class RootClickCollector:
     def get_mark_plates(self):
         """Return list of plate indices (0 or 1) for each mark point."""
         return list(self.mark_plates)
-
-    def get_manual_bottoms(self):
-        """Return dict of root_index -> (row, col) for manually clicked bottoms."""
-        return dict(self.manual_bottoms)
-
 
 def show_image_for_clicking(image, plates, plate_labels=None, plate_offset=0,
                             downsample=DISPLAY_DOWNSAMPLE, num_marks=0,
@@ -493,5 +432,106 @@ def show_image_for_clicking(image, plates, plate_labels=None, plate_offset=0,
 
     return (collector.get_top_points(), collector.get_point_plates(),
             collector.get_point_flags(),
-            collector.get_mark_points(), collector.get_mark_plates(),
-            collector.get_manual_bottoms())
+            collector.get_mark_points(), collector.get_mark_plates())
+
+
+def show_manual_reclick(image, plates, root_labels,
+                        downsample=DISPLAY_DOWNSAMPLE):
+    """Open plate view for manual two-click re-tracing of specific roots.
+
+    User clicks top then bottom of each root listed in root_labels.
+    Returns list of (top, bottom) tuples in full-image coords.
+    """
+    num_plates = len(plates)
+    crops_8 = []
+    for r1, r2, c1, c2 in plates:
+        crop = image[r1:r2, c1:c2]
+        small = crop[::downsample, ::downsample]
+        crops_8.append(_to_uint8(small))
+
+    fig, axes = plt.subplots(1, num_plates, figsize=(9 * num_plates, 10))
+    if num_plates == 1:
+        axes = [axes]
+    else:
+        axes = axes.tolist()
+
+    for i, (ax, img) in enumerate(zip(axes, crops_8)):
+        ax.imshow(img, cmap='gray', aspect='equal')
+        ax.set_title(f"Plate {i + 1}", fontsize=10)
+
+    clicks = []         # list of (row, col) in full-image coords
+    artists = []
+    current_root = [0]  # mutable index into root_labels
+
+    def _to_full(ax, dcol, drow):
+        idx = axes.index(ax)
+        r1, r2, c1, c2 = plates[idx]
+        return int(drow * downsample) + r1, int(dcol * downsample) + c1
+
+    def _update():
+        ri = current_root[0]
+        if ri >= len(root_labels):
+            fig.suptitle("All roots re-clicked.  Press Enter to finish.", fontsize=11)
+        elif len(clicks) % 2 == 0:
+            fig.suptitle(f"Root {root_labels[ri]}: click the TOP of the root.", fontsize=11)
+        else:
+            fig.suptitle(f"Root {root_labels[ri]}: click the BOTTOM (tip) of the root.", fontsize=11)
+        fig.canvas.draw_idle()
+
+    def _on_click(event):
+        if event.inaxes not in axes or event.button != 1:
+            return
+        if current_root[0] >= len(root_labels):
+            return
+        ax = event.inaxes
+        dcol, drow = event.xdata, event.ydata
+        full_row, full_col = _to_full(ax, dcol, drow)
+        clicks.append((full_row, full_col))
+
+        if len(clicks) % 2 == 1:
+            # top click
+            m = ax.plot(dcol, drow, 'o', color='green', markersize=8,
+                        markeredgecolor='white', markeredgewidth=1)[0]
+            t = ax.text(dcol + 8, drow - 8, f"{root_labels[current_root[0]]}",
+                        color='green', fontsize=9, fontweight='bold')
+            artists.append([m, t])
+        else:
+            # bottom click — advance to next root
+            m = ax.plot(dcol, drow, 's', color='green', markersize=8,
+                        markeredgecolor='white', markeredgewidth=1)[0]
+            artists[-1].append(m)
+            current_root[0] += 1
+
+        _update()
+
+    def _on_key(event):
+        if event.key in ('super+z', 'cmd+z', 'ctrl+z') and clicks:
+            clicks.pop()
+            if len(clicks) % 2 == 0 and current_root[0] > 0:
+                current_root[0] -= 1
+            if artists:
+                last = artists[-1]
+                if len(clicks) % 2 == 0:
+                    # removed both clicks — remove whole artist group
+                    for a in artists.pop():
+                        a.remove()
+                else:
+                    # removed bottom click only — remove last marker from group
+                    last[-1].remove()
+                    last.pop()
+            _update()
+        elif event.key == 'enter' and current_root[0] >= len(root_labels):
+            plt.close(fig)
+
+    fig.canvas.mpl_connect('button_press_event', _on_click)
+    fig.canvas.mpl_connect('key_press_event', _on_key)
+    _update()
+    plt.tight_layout()
+    plt.subplots_adjust(top=0.92)
+    plt.show()
+
+    # pair up clicks into (top, bottom) tuples
+    pairs = []
+    for j in range(0, len(clicks) - 1, 2):
+        pairs.append((clicks[j], clicks[j + 1]))
+    return pairs

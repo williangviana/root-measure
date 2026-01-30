@@ -422,6 +422,21 @@ def prompt_for_multi_measurement():
             print("  Invalid input. Enter a number like 2 or 3.")
 
 
+def prompt_for_plot():
+    """Prompt user whether to generate a plot after measurement."""
+    print("\n" + "=" * 60)
+    print("  PLOT")
+    print("  Generate box plot with statistics after measuring")
+
+    while True:
+        response = input("\n  Generate plot when done? (y/n, default: y): ").strip().lower()
+        if response in ('', 'y', 'yes'):
+            return True
+        elif response in ('n', 'no'):
+            return False
+        print("  Please enter y or n.")
+
+
 def prompt_for_experiment():
     """Prompt user for experiment description, used in CSV filename."""
     print("\n" + "=" * 60)
@@ -477,6 +492,7 @@ def main():
     experiment_desc = prompt_for_experiment()
     split_plate = prompt_for_split_plate()
     num_marks = prompt_for_multi_measurement()
+    do_plot = prompt_for_plot()
     csv_path = _build_csv_path(experiment_desc)
 
     # --- determine working folder ---
@@ -486,8 +502,7 @@ def main():
             # single file mode
             process_image(arg_path, csv_path, 0, 0, num_marks,
                           split_plate)
-            response = input("\n  Generate plot? (y/n, default: y): ").strip().lower()
-            if response in ('', 'y', 'yes'):
+            if do_plot:
                 plot_results(csv_path)
             sys.exit(0)
         elif arg_path.is_dir():
@@ -531,9 +546,7 @@ def main():
         selected = select_image_from_list(images, processed)
         if selected is None:
             print(f"\n  Data saved to: {csv_path}")
-            # offer to plot
-            response = input("\n  Generate plot? (y/n, default: y): ").strip().lower()
-            if response in ('', 'y', 'yes'):
+            if do_plot:
                 plot_results(csv_path)
             print("  Done!")
             break

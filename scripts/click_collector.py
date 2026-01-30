@@ -442,12 +442,14 @@ def show_image_for_clicking(image, plates, plate_labels=None, plate_offset=0,
 
 def show_manual_reclick(image, plates, root_labels, retry_indices=None,
                         results=None, point_plates=None, split_plate=False,
-                        downsample=DISPLAY_DOWNSAMPLE):
+                        downsample=DISPLAY_DOWNSAMPLE, num_marks=0):
     """Open plate view for manual two-click re-tracing of specific roots.
 
     User clicks top then bottom of each root listed in root_labels.
+    If num_marks > 0, also collects mark points for each root after top/bottom.
     Shows old bad traces in yellow so user knows which roots to fix.
-    Returns list of (top, bottom) tuples in full-image coords.
+    Returns (pairs, mark_dict) where pairs is list of (top, bottom) tuples
+    and mark_dict maps root list index -> list of mark coords.
     """
     num_plates = len(plates)
     crops_8 = []
@@ -487,6 +489,11 @@ def show_manual_reclick(image, plates, root_labels, retry_indices=None,
     clicks = []         # list of (row, col) in full-image coords
     artists = []
     current_root = [0]  # mutable index into root_labels
+    # phase: 'tops' = clicking top/bottom pairs, 'marks' = clicking mark points
+    phase = ['tops']
+    mark_clicks = []         # flat list of mark coords for current phase
+    mark_dict = {}           # root list index -> list of mark coords
+    marks_for_root = [0]     # which root index (in root_labels) we're collecting marks for
 
     def _to_full(ax, dcol, drow):
         idx = axes.index(ax)
@@ -494,57 +501,120 @@ def show_manual_reclick(image, plates, root_labels, retry_indices=None,
         return int(drow * downsample) + r1, int(dcol * downsample) + c1
 
     def _update():
-        ri = current_root[0]
-        if ri >= len(root_labels):
-            fig.suptitle("All roots re-clicked.  Press Enter to finish.", fontsize=11)
-        elif len(clicks) % 2 == 0:
-            fig.suptitle(f"Root {root_labels[ri]}: click the TOP of the root.", fontsize=11)
+        if phase[0] == 'tops':
+            ri = current_root[0]
+            if ri >= len(root_labels):
+                if num_marks > 0:
+                    fig.suptitle(
+                        "All roots re-clicked.  Press Enter to continue to mark points.",
+                        fontsize=11)
+                else:
+                    fig.suptitle("All roots re-clicked.  Press Enter to finish.",
+                                 fontsize=11)
+            elif len(clicks) % 2 == 0:
+                fig.suptitle(
+                    f"Root {root_labels[ri]}: click the TOP of the root.",
+                    fontsize=11)
+            else:
+                fig.suptitle(
+                    f"Root {root_labels[ri]}: click the BOTTOM (tip) of the root.",
+                    fontsize=11)
         else:
-            fig.suptitle(f"Root {root_labels[ri]}: click the BOTTOM (tip) of the root.", fontsize=11)
+            # marks phase
+            mi = marks_for_root[0]
+            if mi >= len(root_labels):
+                fig.suptitle("All marks placed.  Press Enter to finish.",
+                             fontsize=11)
+            else:
+                n_placed = len(mark_clicks)
+                fig.suptitle(
+                    f"Root {root_labels[mi]}: click mark {n_placed + 1} of "
+                    f"{num_marks}.",
+                    fontsize=11)
         fig.canvas.draw_idle()
 
     def _on_click(event):
         if event.inaxes not in axes or event.button != 1:
             return
-        if current_root[0] >= len(root_labels):
-            return
         ax = event.inaxes
         dcol, drow = event.xdata, event.ydata
         full_row, full_col = _to_full(ax, dcol, drow)
-        clicks.append((full_row, full_col))
 
-        if len(clicks) % 2 == 1:
-            # top click
-            m = ax.plot(dcol, drow, 'o', color='green', markersize=8,
-                        markeredgecolor='white', markeredgewidth=1)[0]
-            artists.append([m])
+        if phase[0] == 'tops':
+            if current_root[0] >= len(root_labels):
+                return
+            clicks.append((full_row, full_col))
+
+            if len(clicks) % 2 == 1:
+                # top click
+                m = ax.plot(dcol, drow, 'o', color='green', markersize=8,
+                            markeredgecolor='white', markeredgewidth=1)[0]
+                artists.append([m])
+            else:
+                # bottom click — advance to next root
+                m = ax.plot(dcol, drow, 's', color='green', markersize=8,
+                            markeredgecolor='white', markeredgewidth=1)[0]
+                artists[-1].append(m)
+                current_root[0] += 1
         else:
-            # bottom click — advance to next root
-            m = ax.plot(dcol, drow, 's', color='green', markersize=8,
-                        markeredgecolor='white', markeredgewidth=1)[0]
-            artists[-1].append(m)
-            current_root[0] += 1
+            # marks phase
+            mi = marks_for_root[0]
+            if mi >= len(root_labels):
+                return
+            mark_clicks.append((full_row, full_col))
+            m = ax.plot(dcol, drow, 'x', color='green', markersize=10,
+                        markeredgewidth=2)[0]
+            artists.append([m])
+            if len(mark_clicks) >= num_marks:
+                # done with this root's marks
+                mark_dict[mi] = list(mark_clicks)
+                mark_clicks.clear()
+                marks_for_root[0] += 1
 
         _update()
 
     def _on_key(event):
-        if event.key in ('super+z', 'cmd+z', 'ctrl+z') and clicks:
-            clicks.pop()
-            if len(clicks) % 2 == 0 and current_root[0] > 0:
-                current_root[0] -= 1
-            if artists:
-                last = artists[-1]
-                if len(clicks) % 2 == 0:
-                    # removed both clicks — remove whole artist group
-                    for a in artists.pop():
-                        a.remove()
+        if event.key in ('super+z', 'cmd+z', 'ctrl+z'):
+            if phase[0] == 'tops' and clicks:
+                clicks.pop()
+                if len(clicks) % 2 == 0 and current_root[0] > 0:
+                    current_root[0] -= 1
+                if artists:
+                    last = artists[-1]
+                    if len(clicks) % 2 == 0:
+                        for a in artists.pop():
+                            a.remove()
+                    else:
+                        last[-1].remove()
+                        last.pop()
+                _update()
+            elif phase[0] == 'marks' and (mark_clicks or mark_dict):
+                if mark_clicks:
+                    mark_clicks.pop()
+                    if artists:
+                        for a in artists.pop():
+                            a.remove()
+                elif mark_dict and marks_for_root[0] > 0:
+                    marks_for_root[0] -= 1
+                    mi = marks_for_root[0]
+                    restored = mark_dict.pop(mi)
+                    mark_clicks.extend(restored)
+                    mark_clicks.pop()
+                    # remove last mark artist
+                    if artists:
+                        for a in artists.pop():
+                            a.remove()
+                _update()
+        elif event.key == 'enter':
+            if phase[0] == 'tops' and current_root[0] >= len(root_labels):
+                if num_marks > 0:
+                    phase[0] = 'marks'
+                    marks_for_root[0] = 0
+                    _update()
                 else:
-                    # removed bottom click only — remove last marker from group
-                    last[-1].remove()
-                    last.pop()
-            _update()
-        elif event.key == 'enter' and current_root[0] >= len(root_labels):
-            plt.close(fig)
+                    plt.close(fig)
+            elif phase[0] == 'marks' and marks_for_root[0] >= len(root_labels):
+                plt.close(fig)
 
     fig.canvas.mpl_connect('button_press_event', _on_click)
     fig.canvas.mpl_connect('key_press_event', _on_key)
@@ -557,4 +627,4 @@ def show_manual_reclick(image, plates, root_labels, retry_indices=None,
     pairs = []
     for j in range(0, len(clicks) - 1, 2):
         pairs.append((clicks[j], clicks[j + 1]))
-    return pairs
+    return pairs, mark_dict

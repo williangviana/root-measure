@@ -217,11 +217,12 @@ def process_image(image_path, csv_path, plate_offset=0, root_offset=0,
         retry_labels = [_root_labels[i] for i in retry_indices]
         print(f"\n  Re-clicking {len(retry_indices)} root(s): {', '.join(retry_labels)}")
 
-        pairs = show_manual_reclick(image, plates, retry_labels,
+        pairs, mark_dict = show_manual_reclick(image, plates, retry_labels,
                                     retry_indices=retry_indices,
                                     results=results,
                                     point_plates=point_plates,
-                                    split_plate=split_plate)
+                                    split_plate=split_plate,
+                                    num_marks=num_marks)
 
         # re-trace with manual top/bottom
         for j, idx in enumerate(retry_indices):
@@ -230,11 +231,20 @@ def process_image(image_path, csv_path, plate_offset=0, root_offset=0,
             top_manual, bot_manual = pairs[j]
             print(f"  Re-tracing {retry_labels[j]}...", end=" ", flush=True)
             res = trace_root(binary, top_manual, bot_manual, scale)
-            res['segments'] = []
-            if res['warning']:
-                print(f"WARNING: {res['warning']}")
+
+            # recompute segments if marks were re-clicked
+            if j in mark_dict and mark_dict[j] and res['path'].size > 0:
+                segments = _compute_segments(res['path'], mark_dict[j], scale)
+                res['segments'] = segments
+                res['mark_coords'] = mark_dict[j]
+                seg_str = " + ".join(f"{s:.2f}" for s in segments)
+                print(f"{res['length_cm']:.2f} cm  (segments: {seg_str})")
             else:
-                print(f"{res['length_cm']:.2f} cm")
+                res['segments'] = []
+                if res['warning']:
+                    print(f"WARNING: {res['warning']}")
+                else:
+                    print(f"{res['length_cm']:.2f} cm")
             results[idx] = res
 
     # --- summary ---

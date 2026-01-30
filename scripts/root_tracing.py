@@ -7,6 +7,7 @@ from skimage.graph import route_through_array
 from config import (SCALE_PX_PER_CM, min_component_size,
                     roi_half_width_px, roi_vertical_px, roi_pad_px,
                     max_click_distance_px)
+from image_processing import remove_wide_regions
 
 
 def find_root_tip(binary_image, top_point, scale=SCALE_PX_PER_CM):
@@ -37,7 +38,8 @@ def find_root_tip(binary_image, top_point, scale=SCALE_PX_PER_CM):
     roi = binary_image[rmin:rmax, cmin:cmax]
     top_local = (top_point[0] - rmin, top_point[1] - cmin)
 
-    # skeletonize the ROI
+    # remove wide regions (ink marks) before skeletonizing
+    roi = remove_wide_regions(roi, scale=scale)
     skeleton = skeletonize(roi)
     if skeleton.sum() == 0:
         return None
@@ -227,7 +229,8 @@ def trace_root(binary_image, top_point, bottom_point, scale=SCALE_PX_PER_CM):
     top_local = (top_point[0] - rmin, top_point[1] - cmin)
     bot_local = (bottom_point[0] - rmin, bottom_point[1] - cmin)
 
-    # skeletonize the ROI
+    # remove wide regions (ink marks) before skeletonizing
+    roi = remove_wide_regions(roi, scale=scale)
     skeleton = skeletonize(roi)
 
     if skeleton.sum() == 0:

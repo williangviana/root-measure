@@ -92,12 +92,52 @@ def find_root_tip(binary_image, top_point, scale=SCALE_PX_PER_CM):
 
     # find all endpoints (degree 1 nodes) in the same component
     component = nx.node_connected_component(G, start_idx)
-    endpoints = [n for n in component if G.degree(n) == 1]
+    subG = G.subgraph(component).copy()
+
+    # prune short lateral branches: iteratively remove endpoints whose
+    # branch (path to nearest junction) is shorter than the threshold,
+    # but never remove the start node
+    prune_thresh = roi_half_width_px(scale) * 0.4
+    changed = True
+    while changed:
+        changed = False
+        endpoints = [n for n in subG.nodes() if subG.degree(n) == 1 and n != start_idx]
+        for ep in endpoints:
+            # walk from endpoint toward the nearest junction (degree > 2)
+            branch_len = 0.0
+            cur = ep
+            prev = None
+            while True:
+                neighbors = [nb for nb in subG.neighbors(cur) if nb != prev]
+                if len(neighbors) != 1:
+                    break  # junction or dead end
+                nxt = neighbors[0]
+                branch_len += subG[cur][nxt].get('weight', 1.0)
+                if branch_len > prune_thresh:
+                    break
+                prev = cur
+                cur = nxt
+            if branch_len <= prune_thresh:
+                # remove this short branch
+                cur = ep
+                prev = None
+                while True:
+                    neighbors = [nb for nb in subG.neighbors(cur) if nb != prev]
+                    nxt = neighbors[0] if len(neighbors) == 1 else None
+                    subG.remove_node(cur)
+                    if nxt is None or subG.degree(nxt) != 1 or nxt == start_idx:
+                        break
+                    prev = cur
+                    cur = nxt
+                changed = True
+
+    # find endpoints in pruned graph
+    endpoints = [n for n in subG.nodes() if subG.degree(n) == 1]
 
     if not endpoints:
         # no clear endpoints — use the furthest point from start
-        lengths = nx.single_source_dijkstra_path_length(G, start_idx, weight='weight')
-        furthest = max((n for n in component), key=lambda n: lengths.get(n, 0))
+        lengths = nx.single_source_dijkstra_path_length(subG, start_idx, weight='weight')
+        furthest = max(subG.nodes(), key=lambda n: lengths.get(n, 0))
         tip_local = skel_points[furthest]
     else:
         # find the endpoint furthest down (max row) that's reachable from start
@@ -106,8 +146,8 @@ def find_root_tip(binary_image, top_point, scale=SCALE_PX_PER_CM):
         below_endpoints = [n for n in endpoints if skel_points[n][0] > start_row]
 
         if below_endpoints:
-            # pick the one furthest down, but strongly penalize lateral drift
-            # to avoid following lateral roots instead of the primary root
+            # pick the one furthest down, penalize lateral drift
+            # to avoid jumping to neighboring roots
             start_col = skel_points[start_idx][1]
             def _tip_score(n):
                 r, c = skel_points[n]
@@ -115,7 +155,7 @@ def find_root_tip(binary_image, top_point, scale=SCALE_PX_PER_CM):
             tip_idx = max(below_endpoints, key=_tip_score)
         else:
             # fallback: furthest endpoint by path length
-            lengths = nx.single_source_dijkstra_path_length(G, start_idx, weight='weight')
+            lengths = nx.single_source_dijkstra_path_length(subG, start_idx, weight='weight')
             tip_idx = max(endpoints, key=lambda n: lengths.get(n, 0))
 
         tip_local = skel_points[tip_idx]

@@ -51,6 +51,7 @@ class RootClickCollector:
         self.mark_artists = []
         self.finished = False
         self.clicking_marks = False
+        self._pending_flag = None   # 'dead' or 'touching' awaiting next click
         self.plate_colors = ['red', 'blue']
 
         # In split-plate mode, each physical plate has 2 genotype groups.
@@ -167,7 +168,25 @@ class RootClickCollector:
             dcol, drow = event.xdata, event.ydata
             full_row, full_col = self._display_to_full(ax, dcol, drow)
 
-            if not self.clicking_marks:
+            if self._pending_flag is not None:
+                # --- placing dead/touching marker at clicked location ---
+                flag = self._pending_flag
+                self._pending_flag = None
+                label_text = 'DEAD' if flag == 'dead' else 'TOUCH'
+                self.points.append((full_row, full_col))
+                self.point_plates.append(self.current_group)
+                self.point_flags.append(flag)
+
+                group_count = self._count_tops_for_group(self.current_group)
+                color = self._group_color(self.current_group)
+                marker = ax.plot(dcol, drow, 'x', color=color,
+                                 markersize=10, markeredgewidth=2)[0]
+                text = ax.text(dcol + 8, drow - 8,
+                               f"{group_count} {label_text}",
+                               color=color, fontsize=9, fontweight='bold',
+                               bbox=dict(facecolor='yellow', alpha=0.7))
+                self.artists.append([marker, text])
+            elif not self.clicking_marks:
                 # --- clicking tops ---
                 self.points.append((full_row, full_col))
                 self.point_plates.append(self.current_group)
@@ -255,26 +274,12 @@ class RootClickCollector:
             self.fig.canvas.draw_idle()
             return
         if event.key in ('d', 't') and not self.clicking_marks:
-            # D = dead seedling, T = touching roots — add placeholder entry
-            flag = 'dead' if event.key == 'd' else 'touching'
-            label_text = 'DEAD' if flag == 'dead' else 'TOUCH'
-            self.points.append((0, 0))  # dummy coords
-            self.point_plates.append(self.current_group)
-            self.point_flags.append(flag)
-
-            group_count = self._count_tops_for_group(self.current_group)
-            color = self._group_color(self.current_group)
-            ax = self._current_ax()
-            # place text marker at center of current view
-            xlim = ax.get_xlim()
-            ylim = ax.get_ylim()
-            cx = (xlim[0] + xlim[1]) / 2
-            cy = (ylim[0] + ylim[1]) / 2
-            text = ax.text(cx, cy - 20 * group_count, f"{group_count} {label_text}",
-                           color=color, fontsize=9, fontweight='bold',
-                           ha='center', bbox=dict(facecolor='yellow', alpha=0.7))
-            self.artists.append([text])
-            self._update_title()
+            # D = dead seedling, T = touching roots — next click places the marker
+            self._pending_flag = 'dead' if event.key == 'd' else 'touching'
+            label_text = 'DEAD' if self._pending_flag == 'dead' else 'TOUCH'
+            self.fig.suptitle(
+                f"Click on the {label_text} seedling to mark it.",
+                fontsize=11)
             self.fig.canvas.draw_idle()
             return
         if event.key == 'enter':
@@ -477,7 +482,7 @@ def show_manual_reclick(image, plates, root_labels, retry_indices=None,
             dp_row = (path[:, 0] - r1) / downsample
             dp_col = (path[:, 1] - c1) / downsample
             axes[plate_idx].plot(dp_col, dp_row, '-',
-                                 color=(1.0, 0.85, 0.0), linewidth=1.5, alpha=0.35)
+                                 color=(1.0, 0.85, 0.0), linewidth=1.5, alpha=0.55)
 
     clicks = []         # list of (row, col) in full-image coords
     artists = []

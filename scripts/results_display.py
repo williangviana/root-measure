@@ -162,9 +162,16 @@ def show_results(image, results, plates, point_plates,
 
     fig.canvas.mpl_connect('button_press_event', _on_click)
     fig.canvas.mpl_connect('key_press_event', _on_key)
+
+    controls = (
+        "$\\bf{Click}$ Toggle retry  |  "
+        "$\\bf{Enter}$ Accept / retry selected"
+    )
+    fig.text(0.5, 0.01, controls, fontsize=10,
+             horizontalalignment='center', verticalalignment='bottom')
+
     _update_title()
-    plt.tight_layout()
-    plt.subplots_adjust(top=0.92)
+    plt.tight_layout(rect=[0, 0.03, 1, 0.92])
     plt.show()
 
     return sorted(selected)

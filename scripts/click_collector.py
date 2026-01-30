@@ -650,9 +650,17 @@ def show_manual_reclick(image, plates, root_labels, retry_indices=None,
 
     fig.canvas.mpl_connect('button_press_event', _on_click)
     fig.canvas.mpl_connect('key_press_event', _on_key)
+
+    reclick_controls = (
+        "$\\bf{Click}$ Top then bottom  |  "
+        "$\\bf{Cmd+Z}$ Undo  |  "
+        "$\\bf{Enter}$ Finish"
+    )
+    fig.text(0.5, 0.01, reclick_controls, fontsize=10,
+             horizontalalignment='center', verticalalignment='bottom')
+
     _update()
-    plt.tight_layout()
-    plt.subplots_adjust(top=0.92)
+    plt.tight_layout(rect=[0, 0.03, 1, 0.92])
     plt.show()
 
     # pair up clicks into (top, bottom) tuples

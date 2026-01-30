@@ -94,42 +94,8 @@ def find_root_tip(binary_image, top_point, scale=SCALE_PX_PER_CM):
     component = nx.node_connected_component(G, start_idx)
     subG = G.subgraph(component).copy()
 
-    # prune short lateral branches: iteratively remove endpoints whose
-    # branch (path to nearest junction) is shorter than the threshold,
-    # but never remove the start node
-    prune_thresh = roi_half_width_px(scale) * 0.4
-    changed = True
-    while changed:
-        changed = False
-        endpoints = [n for n in subG.nodes() if subG.degree(n) == 1 and n != start_idx]
-        for ep in endpoints:
-            # walk from endpoint toward the nearest junction (degree > 2)
-            branch_len = 0.0
-            cur = ep
-            prev = None
-            while True:
-                neighbors = [nb for nb in subG.neighbors(cur) if nb != prev]
-                if len(neighbors) != 1:
-                    break  # junction or dead end
-                nxt = neighbors[0]
-                branch_len += subG[cur][nxt].get('weight', 1.0)
-                if branch_len > prune_thresh:
-                    break
-                prev = cur
-                cur = nxt
-            if branch_len <= prune_thresh:
-                # remove this short branch
-                cur = ep
-                prev = None
-                while True:
-                    neighbors = [nb for nb in subG.neighbors(cur) if nb != prev]
-                    nxt = neighbors[0] if len(neighbors) == 1 else None
-                    subG.remove_node(cur)
-                    if nxt is None or subG.degree(nxt) != 1 or nxt == start_idx:
-                        break
-                    prev = cur
-                    cur = nxt
-                changed = True
+    # prune short lateral branches before tip selection
+    _prune_lateral_branches(subG, {start_idx}, scale)
 
     # find endpoints in pruned graph
     endpoints = [n for n in subG.nodes() if subG.degree(n) == 1]
@@ -163,6 +129,49 @@ def find_root_tip(binary_image, top_point, scale=SCALE_PX_PER_CM):
     # convert back to full image coordinates
     tip_full = (tip_local[0] + rmin, tip_local[1] + cmin)
     return tip_full
+
+
+def _prune_lateral_branches(G, protected_nodes, scale):
+    """Remove short lateral branches from skeleton graph.
+
+    Iteratively removes endpoints whose branch (path to nearest junction)
+    is shorter than the prune threshold. Never removes protected nodes.
+    Modifies G in place.
+    """
+    prune_thresh = roi_half_width_px(scale) * 0.4
+    changed = True
+    while changed:
+        changed = False
+        endpoints = [n for n in G.nodes() if G.degree(n) == 1
+                     and n not in protected_nodes]
+        for ep in endpoints:
+            if ep not in G:
+                continue
+            branch_len = 0.0
+            cur = ep
+            prev = None
+            while True:
+                neighbors = [nb for nb in G.neighbors(cur) if nb != prev]
+                if len(neighbors) != 1:
+                    break
+                nxt = neighbors[0]
+                branch_len += G[cur][nxt].get('weight', 1.0)
+                if branch_len > prune_thresh:
+                    break
+                prev = cur
+                cur = nxt
+            if branch_len <= prune_thresh:
+                cur = ep
+                prev = None
+                while True:
+                    neighbors = [nb for nb in G.neighbors(cur) if nb != prev]
+                    nxt = neighbors[0] if len(neighbors) == 1 else None
+                    G.remove_node(cur)
+                    if nxt is None or G.degree(nxt) != 1 or nxt in protected_nodes:
+                        break
+                    prev = cur
+                    cur = nxt
+                changed = True
 
 
 def _snap_to_large_component(tree, point, node_comp_size, min_size,
@@ -225,6 +234,12 @@ def _try_skeleton_graph(skeleton, start, end, scale=SCALE_PX_PER_CM):
 
     if idx_start is None or idx_end is None:
         return None
+    if not nx.has_path(G, idx_start, idx_end):
+        return None
+
+    # prune lateral branches so the path stays on the primary root
+    _prune_lateral_branches(G, {idx_start, idx_end}, scale)
+
     if not nx.has_path(G, idx_start, idx_end):
         return None
 

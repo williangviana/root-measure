@@ -38,6 +38,8 @@ def show_results(image, results, plates, point_plates,
 
     for i, (ax, img) in enumerate(zip(axes, crops_8)):
         ax.imshow(img, cmap='gray', aspect='equal')
+        ax.set_xticks([])
+        ax.set_yticks([])
         local_plate = i + 1
         ax.set_title(f"Plate {local_plate}", fontsize=10)
 

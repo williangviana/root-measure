@@ -439,11 +439,13 @@ def show_image_for_clicking(image, plates, plate_labels=None, plate_offset=0,
         "$\\bf{Z}$ Zoom  |  "
         "$\\bf{H}$ Reset view"
     )
-    fig.text(0.5, 0.01, controls, fontsize=9,
+    fig.text(0.5, 0.01, controls, fontsize=10,
              horizontalalignment='center', verticalalignment='bottom')
 
     for i, (ax, img) in enumerate(zip(axes, crops_8)):
         ax.imshow(img, cmap='gray', aspect='equal')
+        ax.set_xticks([])
+        ax.set_yticks([])
         local_plate = i + 1
         if split_plate and plate_labels:
             # show both genotype labels for this plate
@@ -494,6 +496,8 @@ def show_manual_reclick(image, plates, root_labels, retry_indices=None,
 
     for i, (ax, img) in enumerate(zip(axes, crops_8)):
         ax.imshow(img, cmap='gray', aspect='equal')
+        ax.set_xticks([])
+        ax.set_yticks([])
         ax.set_title(f"Plate {i + 1}", fontsize=10)
 
     # draw old bad traces in yellow so user can see which roots to re-click

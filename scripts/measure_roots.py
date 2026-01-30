@@ -270,7 +270,6 @@ def prompt_for_dpi(image_path=None):
         print("  SCAN DPI")
         print("  Could not detect DPI from image metadata")
         print("  Common values: 600, 800, 1200, 2400")
-        print("=" * 60)
         while True:
             response = input("\n  DPI: ").strip()
             if response == "":
@@ -300,7 +299,6 @@ def prompt_for_split_plate():
     print("\n" + "=" * 60)
     print("  SPLIT-PLATE MODE")
     print("  Enable if each plate has 2 genotypes side by side")
-    print("=" * 60)
 
     while True:
         response = input("\n  Two genotypes per plate? (y/n, default: n): ").strip().lower()
@@ -323,7 +321,6 @@ def prompt_for_sensitivity():
     print("  1 = Thick  (e.g. Setaria, Brassica)")
     print("  2 = Normal (e.g. Parvula, default)")
     print("  3 = Thin   (e.g. Arabidopsis)")
-    print("=" * 60)
 
     while True:
         response = input("\n  Root thickness (1/2/3, default: 2): ").strip()
@@ -349,7 +346,6 @@ def prompt_for_multi_measurement():
     print("  MULTI-MEASUREMENT MODE")
     print("  Enable if tracking root growth over time")
     print("  to measure segments between marks")
-    print("=" * 60)
 
     while True:
         response = input("\n  Multiple measurements per root? (y/n, default: n): ").strip().lower()
@@ -381,7 +377,6 @@ def prompt_for_experiment():
     print("  EXPERIMENT NAME")
     print("  Used in the output filename")
     print("  Example: Rewatering WT vs crd-1")
-    print("=" * 60)
 
     while True:
         desc = input("\n  Experiment: ").strip()
@@ -449,7 +444,6 @@ def main():
     else:
         print("\n" + "=" * 60)
         print("  IMAGE FOLDER")
-        print("=" * 60)
         folder = _select_folder()
         if folder is None:
             print("No folder selected. Exiting.")

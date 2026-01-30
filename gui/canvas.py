@@ -331,9 +331,11 @@ class ImageCanvas(ctk.CTkFrame):
             w = 4 if is_selected else 2
 
             if is_selected:
-                # selected for retry: bright in review, dim in reclick
-                sel_color = "#805600" if self._mode == self.MODE_RECLICK else "#ff8c00"
-                self._draw_path_segment(path, sel_color, w)
+                # selected for retry: semi-transparent orange in reclick, bright in review
+                if self._mode == self.MODE_RECLICK:
+                    self._draw_path_segment(path, "#ff8c00", w, stipple="gray25")
+                else:
+                    self._draw_path_segment(path, "#ff8c00", w)
             elif mark_indices:
                 # draw each segment in alternating shades
                 boundaries = [0] + list(mark_indices) + [len(path) - 1]
@@ -373,7 +375,7 @@ class ImageCanvas(ctk.CTkFrame):
                     font=("Helvetica", 8, "bold"))
                 self._reclick_marker_ids.extend([rid, tid])
 
-    def _draw_path_segment(self, path, color, width):
+    def _draw_path_segment(self, path, color, width, stipple=""):
         """Draw a subsection of a path on the canvas."""
         if len(path) < 2:
             return
@@ -384,7 +386,8 @@ class ImageCanvas(ctk.CTkFrame):
             coords.extend([cx, cy])
         if len(coords) >= 4:
             self.canvas.create_line(
-                *coords, fill=color, width=width, smooth=True)
+                *coords, fill=color, width=width, smooth=True,
+                stipple=stipple)
 
     # --- Coordinate conversion ---
 

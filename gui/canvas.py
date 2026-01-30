@@ -121,10 +121,20 @@ class ImageCanvas(ctk.CTkFrame):
         self._trace_original_colors.clear()
         self._selected_for_retry.clear()
 
-    def add_trace(self, path, color="#00ff88"):
-        """Add a traced path (N,2 array of row,col) to draw on canvas."""
-        self._traces.append((path, color))
-        self._trace_original_colors.append(color)
+    def add_trace(self, path, shades=None, mark_indices=None):
+        """Add a traced path with optional segment coloring.
+
+        Args:
+            path: (N,2) array of (row, col) image coords
+            shades: list of hex color strings to alternate between segments
+            mark_indices: sorted list of path indices where marks divide segments
+        """
+        if shades is None:
+            shades = ["#00ff88"]
+        if mark_indices is None:
+            mark_indices = []
+        self._traces.append((path, shades, mark_indices))
+        self._trace_original_colors.append(shades)
 
     def get_selected_for_retry(self):
         return sorted(self._selected_for_retry)
@@ -232,40 +242,39 @@ class ImageCanvas(ctk.CTkFrame):
                 fill="#4a9eff", anchor="nw",
                 font=("Helvetica", 12, "bold"))
 
-        # redraw root markers
+        # redraw root markers (hide in review mode — only show traces)
         self._root_marker_ids.clear()
-        for i, ((row, col), flag) in enumerate(
-                zip(self._root_points, self._root_flags)):
-            cx, cy = self.image_to_canvas(col, row)
-            if flag is not None:
-                # dead/touching: X marker
-                color = "#ff6b6b" if flag == 'dead' else "#ffa500"
-                label = "DEAD" if flag == 'dead' else "TOUCH"
-                s = 6
-                id1 = self.canvas.create_line(
-                    cx - s, cy - s, cx + s, cy + s,
-                    fill=color, width=2)
-                id2 = self.canvas.create_line(
-                    cx - s, cy + s, cx + s, cy - s,
-                    fill=color, width=2)
-                id3 = self.canvas.create_text(
-                    cx + 10, cy - 10, text=f"{i + 1} {label}",
-                    fill=color, anchor="w",
-                    font=("Helvetica", 9, "bold"))
-                self._root_marker_ids.extend([id1, id2, id3])
-            else:
-                # normal: circle
-                r = 5
-                rid = self.canvas.create_oval(
-                    cx - r, cy - r, cx + r, cy + r,
-                    outline="white", fill="#ff3b3b", width=1)
-                tid = self.canvas.create_text(
-                    cx + 10, cy - 10, text=str(i + 1),
-                    fill="#ff3b3b", anchor="w",
-                    font=("Helvetica", 9, "bold"))
-                self._root_marker_ids.extend([rid, tid])
+        if self._mode not in (self.MODE_REVIEW,):
+            for i, ((row, col), flag) in enumerate(
+                    zip(self._root_points, self._root_flags)):
+                cx, cy = self.image_to_canvas(col, row)
+                if flag is not None:
+                    color = "#ff6b6b" if flag == 'dead' else "#ffa500"
+                    label = "DEAD" if flag == 'dead' else "TOUCH"
+                    s = 6
+                    id1 = self.canvas.create_line(
+                        cx - s, cy - s, cx + s, cy + s,
+                        fill=color, width=2)
+                    id2 = self.canvas.create_line(
+                        cx - s, cy + s, cx + s, cy - s,
+                        fill=color, width=2)
+                    id3 = self.canvas.create_text(
+                        cx + 10, cy - 10, text=f"{i + 1} {label}",
+                        fill=color, anchor="w",
+                        font=("Helvetica", 9, "bold"))
+                    self._root_marker_ids.extend([id1, id2, id3])
+                else:
+                    r = 5
+                    rid = self.canvas.create_oval(
+                        cx - r, cy - r, cx + r, cy + r,
+                        outline="white", fill="#ff3b3b", width=1)
+                    tid = self.canvas.create_text(
+                        cx + 10, cy - 10, text=str(i + 1),
+                        fill="#ff3b3b", anchor="w",
+                        font=("Helvetica", 9, "bold"))
+                    self._root_marker_ids.extend([rid, tid])
 
-        # redraw mark diamonds (current plate's marks during clicking)
+        # redraw mark diamonds (hide in review mode)
         self._mark_marker_ids.clear()
         if self._mode == self.MODE_CLICK_MARKS:
             for i, (row, col) in enumerate(self._mark_points):
@@ -279,8 +288,7 @@ class ImageCanvas(ctk.CTkFrame):
                     fill="#ff9500", anchor="w",
                     font=("Helvetica", 8, "bold"))
                 self._mark_marker_ids.extend([rid, tid])
-        elif self._all_marks:
-            # draw all persisted marks (after clicking is done)
+        elif self._mode not in (self.MODE_REVIEW,) and self._all_marks:
             for ri, marks in self._all_marks.items():
                 for row, col in marks:
                     cx, cy = self.image_to_canvas(col, row)
@@ -289,29 +297,50 @@ class ImageCanvas(ctk.CTkFrame):
                         cx, cy - s, cx + s, cy, cx, cy + s, cx - s, cy,
                         outline="white", fill="#ff9500", width=1)
 
-        # redraw traced paths
-        for ti, (path, color) in enumerate(self._traces):
+        # redraw traced paths with segment coloring
+        for ti, (path, shades, mark_indices) in enumerate(self._traces):
             if len(path) < 2:
                 continue
-            # subsample for performance (draw every Nth point)
-            step = max(1, len(path) // 500)
-            coords = []
-            for row, col in path[::step]:
-                cx, cy = self.image_to_canvas(col, row)
-                coords.extend([cx, cy])
-            if len(coords) >= 4:
-                w = 4 if ti in self._selected_for_retry else 2
-                self.canvas.create_line(
-                    *coords, fill=color, width=w, smooth=True)
+            is_selected = ti in self._selected_for_retry
+            w = 4 if is_selected else 2
+
+            if is_selected:
+                # selected for retry: draw entire path in yellow
+                self._draw_path_segment(path, "#ffdd00", w)
+            elif mark_indices:
+                # draw each segment in alternating shades
+                boundaries = [0] + list(mark_indices) + [len(path) - 1]
+                for j in range(len(boundaries) - 1):
+                    start = boundaries[j]
+                    end = boundaries[j + 1] + 1
+                    color = shades[j % len(shades)]
+                    self._draw_path_segment(path[start:end], color, w)
+            else:
+                # single color
+                self._draw_path_segment(path, shades[0], w)
+
             # draw root number label at top of trace
             if self._mode == self.MODE_REVIEW and len(path) > 0:
                 top_row, top_col = path[0]
                 lx, ly = self.image_to_canvas(top_col, top_row)
-                lbl_color = color if ti not in self._selected_for_retry else "#ffdd00"
+                lbl_color = "#ffdd00" if is_selected else shades[0]
                 self.canvas.create_text(
                     lx, ly - 10, text=str(ti + 1),
                     fill=lbl_color, anchor="s",
                     font=("Helvetica", 10, "bold"))
+
+    def _draw_path_segment(self, path, color, width):
+        """Draw a subsection of a path on the canvas."""
+        if len(path) < 2:
+            return
+        step = max(1, len(path) // 500)
+        coords = []
+        for row, col in path[::step]:
+            cx, cy = self.image_to_canvas(col, row)
+            coords.extend([cx, cy])
+        if len(coords) >= 4:
+            self.canvas.create_line(
+                *coords, fill=color, width=width, smooth=True)
 
     # --- Coordinate conversion ---
 
@@ -362,7 +391,7 @@ class ImageCanvas(ctk.CTkFrame):
         best_dist = threshold
         best_idx = None
         pt = np.array([img_row, img_col], dtype=float)
-        for i, (path, _) in enumerate(self._traces):
+        for i, (path, _shades, _marks) in enumerate(self._traces):
             if len(path) < 2:
                 continue
             step = max(1, len(path) // 200)
@@ -410,17 +439,13 @@ class ImageCanvas(ctk.CTkFrame):
                 self._on_click_callback()
         elif self._mode == self.MODE_REVIEW:
             col, row = self.canvas_to_image(event.x, event.y)
-            # threshold in image pixels (scale-independent)
             threshold = 30 / self._scale if self._scale > 0 else 30
             idx = self._find_nearest_trace(col, row, threshold=max(20, threshold))
             if idx is not None:
                 if idx in self._selected_for_retry:
                     self._selected_for_retry.discard(idx)
-                    self._traces[idx] = (self._traces[idx][0],
-                                         self._trace_original_colors[idx])
                 else:
                     self._selected_for_retry.add(idx)
-                    self._traces[idx] = (self._traces[idx][0], "#ffdd00")
                 self._redraw()
                 if self._on_click_callback:
                     self._on_click_callback()

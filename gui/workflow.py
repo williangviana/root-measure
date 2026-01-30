@@ -4,10 +4,16 @@ import numpy as np
 
 from image_processing import preprocess
 from root_tracing import find_root_tip, trace_root
-from utils import _compute_segments
+from utils import _compute_segments, _find_nearest_path_index
 from csv_output import append_results_to_csv
 
 from canvas import ImageCanvas
+
+# genotype color shades: [dark, light] for alternating segments
+GROUP_COLORS = [
+    ["#e63333", "#ff8080"],  # group 0: dark red, light red
+    ["#3333e6", "#8080ff"],  # group 1: dark blue, light blue
+]
 
 
 class MeasurementMixin:
@@ -19,6 +25,37 @@ class MeasurementMixin:
         self.lbl_bottom, self.update_idletasks()
         self._get_scale(), self._get_num_marks()
     """
+
+    def _get_root_shades(self, root_idx):
+        """Return color shades for a root based on its genotype group."""
+        plates = self.canvas.get_plates()
+        points = self.canvas.get_root_points()
+        row, col = points[root_idx]
+        group_idx = 0
+        split = self.sidebar.var_split.get()
+        for pi, (r1, r2, c1, c2) in enumerate(plates):
+            if r1 <= row <= r2 and c1 <= col <= c2:
+                group_idx = pi
+                break
+        if split:
+            color_idx = group_idx % 2
+        else:
+            color_idx = group_idx % len(GROUP_COLORS)
+        return GROUP_COLORS[color_idx]
+
+    def _add_root_trace(self, root_idx, res):
+        """Add a traced root to the canvas with genotype coloring."""
+        path = res['path']
+        if path.size == 0:
+            return
+        shades = self._get_root_shades(root_idx)
+        mark_indices = []
+        mark_coords = res.get('mark_coords', [])
+        if mark_coords and len(res.get('segments', [])) > 1:
+            for mc in mark_coords:
+                mark_indices.append(_find_nearest_path_index(path, mc))
+            mark_indices.sort()
+        self.canvas.add_trace(path, shades=shades, mark_indices=mark_indices)
 
     def measure(self):
         """Run preprocessing, tracing, and show results for review."""
@@ -90,8 +127,7 @@ class MeasurementMixin:
             self._results.append(res)
 
             if res['path'].size > 0:
-                color = "#00ff88" if res['warning'] is None else "#ffaa00"
-                self.canvas.add_trace(res['path'], color)
+                self._add_root_trace(i, res)
                 self._trace_to_result.append(i)
 
         # enter review mode
@@ -215,8 +251,7 @@ class MeasurementMixin:
         self._trace_to_result.clear()
         for i, res in enumerate(self._results):
             if res['path'].size > 0 and res['method'] not in ('skip', 'error'):
-                color = "#00ff88" if res['warning'] is None else "#ffaa00"
-                self.canvas.add_trace(res['path'], color)
+                self._add_root_trace(i, res)
                 self._trace_to_result.append(i)
 
         # back to review

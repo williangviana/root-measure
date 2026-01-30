@@ -195,61 +195,27 @@ def process_image(image_path, csv_path, plate_offset=0, root_offset=0,
         results.append(res)
 
     # --- show results + retry loop ---
+    # build per-root display labels
+    _root_labels = []
+    for i in range(len(results)):
+        group_idx = point_plates[i]
+        group_root_num = sum(1 for j in range(i + 1) if point_plates[j] == group_idx)
+        _root_labels.append(f"P{group_idx + 1}R{group_root_num}")
+
     while True:
-        show_results(image, results, plates, point_plates, num_marks=num_marks,
-                     split_plate=split_plate)
-
-        # build per-root display labels
-        _root_labels = []
-        for i in range(len(results)):
-            group_idx = point_plates[i]
-            group_root_num = sum(1 for j in range(i + 1) if point_plates[j] == group_idx)
-            _root_labels.append(f"P{group_idx + 1}R{group_root_num}")
-
-        # summary
-        print(f"\n{'=' * 55}")
-        print(f"  SUMMARY — {len(results)} root(s) measured")
-        print(f"{'=' * 55}")
-        for i, r in enumerate(results):
-            group_idx = point_plates[i]
-            group_root_num = sum(1 for j in range(i + 1) if point_plates[j] == group_idx)
-            if r['length_cm'] is None:
-                status = f"NA — {r['warning']}"
-            elif r['warning']:
-                status = r['warning']
-            elif r.get('segments'):
-                seg_str = " + ".join(f"{s:.2f}" for s in r['segments'])
-                status = f"{r['length_cm']:.2f} cm  (segments: {seg_str})"
-            else:
-                status = f"{r['length_cm']:.2f} cm"
-            if split_plate:
-                phys_plate = group_idx // 2 + 1
-                geno_label = _format_plate_label(plate_labels[group_idx])
-                print(f"  {i + 1}. Plate {phys_plate} ({geno_label}), Root {group_root_num}: {status}")
-            else:
-                print(f"  {i + 1}. Plate {group_idx + 1}, Root {group_root_num}: {status}")
-        print(f"{'=' * 55}")
-
-        # ask to retry bad roots
-        response = input("\n  Retry roots manually? (root numbers e.g. 1,3 or Enter to accept): ").strip()
-        if not response:
-            break
-
-        # parse root numbers
-        try:
-            retry_indices = [int(x.strip()) - 1 for x in response.split(',')]
-            retry_indices = [i for i in retry_indices if 0 <= i < len(results)
-                             and point_flags[i] is None]
-        except ValueError:
-            print("  Invalid input. Continuing.")
-            break
+        retry_indices = show_results(image, results, plates, point_plates,
+                                     num_marks=num_marks, split_plate=split_plate)
 
         if not retry_indices:
-            print("  No valid roots to retry.")
+            break
+
+        # filter to only normal (non-flagged) roots
+        retry_indices = [i for i in retry_indices if point_flags[i] is None]
+        if not retry_indices:
             break
 
         retry_labels = [_root_labels[i] for i in retry_indices]
-        print(f"  Re-clicking {len(retry_indices)} root(s): {', '.join(retry_labels)}")
+        print(f"\n  Re-clicking {len(retry_indices)} root(s): {', '.join(retry_labels)}")
 
         pairs = show_manual_reclick(image, plates, retry_labels)
 
@@ -266,6 +232,30 @@ def process_image(image_path, csv_path, plate_offset=0, root_offset=0,
             else:
                 print(f"{res['length_cm']:.2f} cm")
             results[idx] = res
+
+    # --- summary ---
+    print(f"\n{'=' * 55}")
+    print(f"  FINAL — {len(results)} root(s)")
+    print(f"{'=' * 55}")
+    for i, r in enumerate(results):
+        group_idx = point_plates[i]
+        group_root_num = sum(1 for j in range(i + 1) if point_plates[j] == group_idx)
+        if r['length_cm'] is None:
+            status = f"NA — {r['warning']}"
+        elif r['warning']:
+            status = r['warning']
+        elif r.get('segments'):
+            seg_str = " + ".join(f"{s:.2f}" for s in r['segments'])
+            status = f"{r['length_cm']:.2f} cm  (segments: {seg_str})"
+        else:
+            status = f"{r['length_cm']:.2f} cm"
+        if split_plate:
+            phys_plate = group_idx // 2 + 1
+            geno_label = _format_plate_label(plate_labels[group_idx])
+            print(f"  Plate {phys_plate} ({geno_label}), Root {group_root_num}: {status}")
+        else:
+            print(f"  Plate {group_idx + 1}, Root {group_root_num}: {status}")
+    print(f"{'=' * 55}")
 
     # --- save CSV ---
     new_plate_offset, new_root_offset = append_results_to_csv(

@@ -201,7 +201,7 @@ def _try_skeleton_graph(skeleton, start, end, scale=SCALE_PX_PER_CM):
     for i, (r, c) in enumerate(skel_points):
         coord_to_idx[(int(r), int(c))] = i
 
-    edges = []
+    undirected_edges = []
     for i, (r, c) in enumerate(skel_points):
         r, c = int(r), int(c)
         for dr in (-1, 0, 1):
@@ -211,11 +211,12 @@ def _try_skeleton_graph(skeleton, start, end, scale=SCALE_PX_PER_CM):
                 j = coord_to_idx.get((r + dr, c + dc))
                 if j is not None and j > i:
                     dist = np.sqrt(2) if (dr != 0 and dc != 0) else 1.0
-                    edges.append((i, j, dist))
+                    undirected_edges.append((i, j, dist))
 
+    # undirected graph for component detection and pruning
     G = nx.Graph()
     G.add_nodes_from(range(len(skel_points)))
-    G.add_weighted_edges_from(edges)
+    G.add_weighted_edges_from(undirected_edges)
 
     # component sizes
     node_comp_size = {}
@@ -243,7 +244,26 @@ def _try_skeleton_graph(skeleton, start, end, scale=SCALE_PX_PER_CM):
     if not nx.has_path(G, idx_start, idx_end):
         return None
 
-    path_idx = nx.dijkstra_path(G, idx_start, idx_end, weight='weight')
+    # build directed graph with upward penalty for path finding
+    # edges going upward (to lower row) get a heavy cost penalty
+    DG = nx.DiGraph()
+    upward_penalty = 50.0
+    for i, j, dist in undirected_edges:
+        if i not in G or j not in G:
+            continue  # skip pruned nodes
+        ri, rj = skel_points[i][0], skel_points[j][0]
+        # i -> j: if rj < ri, going upward
+        w_ij = dist + (upward_penalty if rj < ri else 0)
+        w_ji = dist + (upward_penalty if ri < rj else 0)
+        DG.add_edge(i, j, weight=w_ij)
+        DG.add_edge(j, i, weight=w_ji)
+
+    if not DG.has_node(idx_start) or not DG.has_node(idx_end):
+        return None
+    if not nx.has_path(DG, idx_start, idx_end):
+        return None
+
+    path_idx = nx.dijkstra_path(DG, idx_start, idx_end, weight='weight')
     return skel_points[path_idx]
 
 

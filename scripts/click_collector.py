@@ -427,7 +427,7 @@ def show_image_for_clicking(image, plates, plate_labels=None, plate_offset=0,
     collector = RootClickCollector(fig, axes, plates, downsample,
                                    plate_labels, plate_offset, num_marks,
                                    split_plate)
-    plt.tight_layout()
+    plt.tight_layout(rect=[0, 0, 1, 0.95])
     plt.show()
 
     return (collector.get_top_points(), collector.get_point_plates(),

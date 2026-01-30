@@ -332,7 +332,7 @@ class ImageCanvas(ctk.CTkFrame):
 
             if is_selected:
                 # selected for retry: bright in review, dim in reclick
-                sel_color = "#66580a" if self._mode == self.MODE_RECLICK else "#ffdd00"
+                sel_color = "#805600" if self._mode == self.MODE_RECLICK else "#ff8c00"
                 self._draw_path_segment(path, sel_color, w)
             elif mark_indices:
                 # draw each segment in alternating shades
@@ -350,7 +350,7 @@ class ImageCanvas(ctk.CTkFrame):
             if self._mode == self.MODE_REVIEW and len(path) > 0:
                 top_row, top_col = path[0]
                 lx, ly = self.image_to_canvas(top_col, top_row)
-                lbl_color = "#ffdd00" if is_selected else shades[0]
+                lbl_color = "#ff8c00" if is_selected else shades[0]
                 self.canvas.create_text(
                     lx, ly - 10, text=str(ti + 1),
                     fill=lbl_color, anchor="s",

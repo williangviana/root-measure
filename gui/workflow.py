@@ -147,7 +147,7 @@ class MeasurementMixin:
         msg += "\nEnter = accept / retry selected."
         self.sidebar.set_status(msg)
         self.lbl_bottom.configure(
-            text="Click trace=select for retry (yellow)  |  Enter=accept / retry selected  |  Scroll=zoom")
+            text="Click trace=select for retry (orange)  |  Enter=accept / retry selected  |  Scroll=zoom")
 
     def _review_done(self):
         """Called when user presses Enter in review mode."""

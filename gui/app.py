@@ -24,6 +24,30 @@ ctk.set_appearance_mode("dark")
 ctk.set_default_color_theme("blue")
 
 
+def _detect_dpi(image_path):
+    """Try to read DPI from image metadata. Returns int DPI or None."""
+    ext = Path(image_path).suffix.lower()
+    try:
+        if ext in ('.tif', '.tiff'):
+            with tifffile.TiffFile(str(image_path)) as tif:
+                page = tif.pages[0]
+                if 282 in page.tags and 283 in page.tags:
+                    x_res = page.tags[282].value
+                    if isinstance(x_res, tuple):
+                        dpi = x_res[0] / x_res[1]
+                    else:
+                        dpi = float(x_res)
+                    unit = page.tags.get(296)
+                    if unit and unit.value == 3:
+                        dpi = dpi * 2.54
+                    dpi = int(round(dpi))
+                    if dpi > 0:
+                        return dpi
+    except Exception:
+        pass
+    return None
+
+
 class ImageCanvas(ctk.CTkFrame):
     """Zoomable, pannable image canvas with overlay drawing."""
 
@@ -607,8 +631,17 @@ class RootMeasureApp(ctk.CTk):
 
             self.sidebar.lbl_image_name.configure(text=path.name)
             self.sidebar.btn_select_plates.configure(state="normal")
+
+            # auto-detect DPI and fill the field
+            detected = _detect_dpi(path)
+            dpi = detected or 1200
+            self.sidebar.entry_dpi.delete(0, "end")
+            self.sidebar.entry_dpi.insert(0, str(dpi))
+            dpi_src = "detected" if detected else "default"
+
             self.sidebar.set_status(
-                f"Loaded: {img.shape[1]}x{img.shape[0]}, {img.dtype}")
+                f"Loaded: {img.shape[1]}x{img.shape[0]}, {img.dtype}\n"
+                f"DPI: {dpi} ({dpi_src})")
         except Exception as e:
             self.sidebar.set_status(f"Error: {e}")
 
@@ -624,7 +657,6 @@ class RootMeasureApp(ctk.CTk):
                 pass
         # try auto-detect from image metadata
         if self.image_path:
-            from measure_roots import _detect_dpi
             detected = _detect_dpi(self.image_path)
             if detected:
                 self.sidebar.entry_dpi.delete(0, "end")

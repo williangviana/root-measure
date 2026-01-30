@@ -31,4 +31,7 @@ def remove_wide_regions(binary_roi, scale=SCALE_PX_PER_CM):
     dist = cv2.distanceTransform(roi_uint8, cv2.DIST_L2, 5)
     cleaned = binary_roi.copy()
     cleaned[dist > max_hw] = False
-    return cleaned
+    # small dilation to reconnect root fragments broken by mark removal
+    kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (3, 3))
+    reconnected = cv2.dilate(cleaned.astype(np.uint8) * 255, kernel, iterations=1)
+    return reconnected > 0

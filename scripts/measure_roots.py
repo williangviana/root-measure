@@ -70,18 +70,18 @@ def process_image(image_path, csv_path, plate_offset=0, root_offset=0,
 
     # handle non-2D images (RGB, RGBA, etc.)
     if image.ndim == 3:
-        print(f"Image has {image.shape[2]} channels — converting to grayscale.")
+        print(f"  Color image ({image.shape[2]} channels), converting to grayscale...")
         image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
     if image.ndim != 2:
         print(f"Unexpected image shape: {image.shape}")
         return False, plate_offset, root_offset
 
-    print(f"Image: {image.shape[1]}x{image.shape[0]}, {image.dtype}")
+    print(f"  Image: {image.shape[1]}x{image.shape[0]}, {image.dtype}")
 
     # --- per-image DPI and sensitivity ---
     scale = prompt_for_dpi(image_path)
     sensitivity = prompt_for_sensitivity()
-    print(f"Scale: {scale:.1f} px/cm, sensitivity: {sensitivity}")
+    print(f"  Scale: {scale:.1f} px/cm | Sensitivity: {sensitivity}")
 
     # --- select plates interactively ---
     print("Select plates on the image...")
@@ -94,22 +94,23 @@ def process_image(image_path, csv_path, plate_offset=0, root_offset=0,
     plate_labels = prompt_plate_labels(len(plates), plate_offset, split_plate)
 
     # --- preprocess ---
-    print(f"Preprocessing (sensitivity={sensitivity})...")
+    print(f"\n  Preprocessing ({sensitivity})...")
     binary = preprocess(image, scale=scale, sensitivity=sensitivity)
     print(f"Root pixels: {binary.sum():,} / {binary.size:,} "
           f"({100 * binary.sum() / binary.size:.1f}%)")
 
     # --- interactive clicking ---
-    print("\n--- Instructions ---")
-    print("  Left-click:   mark TOP of each root (tip auto-detected)")
-    print("  D:            dead seedling (records NA)")
-    print("  T:            roots touching (records NA)")
+    print("\n" + "-" * 40)
+    print("  CONTROLS")
+    print("  Click      Mark top of root")
+    print("  D          Dead seedling (NA)")
+    print("  T          Touching roots (NA)")
     if num_marks > 0:
-        print(f"  Multi-measurement: {num_marks} mark(s) per root")
-        print("  Workflow: click all tops → Enter → click marks (same order) → Enter")
-    print("  Cmd+Z:        undo last click")
-    print("  Enter:        move to next stage / finish")
-    print("  Z/H:          zoom mode / reset view\n")
+        print(f"  Marks      {num_marks} per root (click after tops)")
+    print("  Cmd+Z      Undo last click")
+    print("  Enter      Next stage / finish")
+    print("  Z / H      Zoom / reset view")
+    print("-" * 40)
 
     top_points, point_plates, point_flags, mark_points, mark_plates = \
         show_image_for_clicking(image, plates, plate_labels, plate_offset,
@@ -203,7 +204,7 @@ def process_image(image_path, csv_path, plate_offset=0, root_offset=0,
 
     # --- summary ---
     print(f"\n{'=' * 55}")
-    print(f"  Summary: {len(results)} root(s) measured")
+    print(f"  SUMMARY — {len(results)} root(s) measured")
     print(f"{'=' * 55}")
     for i, r in enumerate(results):
         group_idx = point_plates[i]
@@ -260,33 +261,33 @@ def prompt_for_dpi(image_path=None):
     Auto-detects DPI from image metadata if available.
     """
     detected = _detect_dpi(image_path) if image_path else None
-    default_dpi = detected or 1200
 
-    print("\n" + "=" * 60)
     if detected:
-        print(f"  Detected DPI from image: {detected}")
-    print("  Enter scan DPI (dots per inch)")
-    print("  Common values: 600, 1200, 2400")
-    print(f"  Press Enter for default ({default_dpi} DPI)")
-    print("=" * 60)
-
-    while True:
-        response = input("\nDPI: ").strip()
-        if response == "":
-            dpi = default_dpi
-            break
-        try:
-            dpi = int(response)
-            if dpi > 0:
+        print(f"  DPI detected from image: {detected}")
+        dpi = detected
+    else:
+        print("\n" + "=" * 60)
+        print("  SCAN DPI")
+        print("  Could not detect DPI from image metadata")
+        print("  Common values: 600, 800, 1200, 2400")
+        print("=" * 60)
+        while True:
+            response = input("\n  DPI: ").strip()
+            if response == "":
+                dpi = 1200
                 break
-            else:
-                print("  Please enter a positive number.")
-        except ValueError:
-            print("  Invalid input. Enter a number like 1200.")
+            try:
+                dpi = int(response)
+                if dpi > 0:
+                    break
+                else:
+                    print("  Please enter a positive number.")
+            except ValueError:
+                print("  Invalid input. Enter a number like 1200.")
 
     # convert DPI to pixels per cm (1 inch = 2.54 cm)
     scale = dpi / 2.54
-    print(f"  Using {dpi} DPI = {scale:.1f} pixels/cm")
+    print(f"  Using {dpi} DPI ({scale:.1f} px/cm)")
     return scale
 
 
@@ -297,8 +298,8 @@ def prompt_for_split_plate():
         split_plate: bool
     """
     print("\n" + "=" * 60)
-    print("  Split-plate mode")
-    print("  Use this if each plate has 2 genotypes side by side")
+    print("  SPLIT-PLATE MODE")
+    print("  Enable if each plate has 2 genotypes side by side")
     print("=" * 60)
 
     while True:
@@ -318,10 +319,10 @@ def prompt_for_sensitivity():
         sensitivity: str ('thick', 'normal', or 'thin')
     """
     print("\n" + "=" * 60)
-    print("  Root thickness")
-    print("  1 = thick  (e.g. Setaria viridis, Brassica napus)")
-    print("  2 = normal (e.g. Schrenkiella parvula, default)")
-    print("  3 = thin   (e.g. Arabidopsis thaliana)")
+    print("  ROOT THICKNESS")
+    print("  1 = Thick  (e.g. Setaria, Brassica)")
+    print("  2 = Normal (e.g. Parvula, default)")
+    print("  3 = Thin   (e.g. Arabidopsis)")
     print("=" * 60)
 
     while True:
@@ -345,9 +346,9 @@ def prompt_for_multi_measurement():
         num_marks: int, 0 = normal mode, >0 = number of marks per root
     """
     print("\n" + "=" * 60)
-    print("  Multi-measurement mode")
-    print("  Use this if roots have horizontal marks (e.g. transfer points)")
-    print("  to measure segments between marks.")
+    print("  MULTI-MEASUREMENT MODE")
+    print("  Enable if tracking root growth over time")
+    print("  to measure segments between marks")
     print("=" * 60)
 
     while True:
@@ -360,29 +361,30 @@ def prompt_for_multi_measurement():
             print("  Please enter y or n.")
 
     while True:
-        response = input("  How many marks per root? (e.g. 1, 2, 3): ").strip()
+        response = input("  How many segments per root? (e.g. 2, 3): ").strip()
         try:
             num_marks = int(response)
-            if num_marks > 0:
-                print(f"  Multi-measurement mode: {num_marks} mark(s) per root")
-                print(f"  Workflow: click all root tops → Enter → click marks → Enter → next plate")
-                return num_marks
+            if num_marks >= 2:
+                marks = num_marks - 1
+                print(f"  {num_marks} segments per root ({marks} mark(s) to click)")
+                print(f"  Workflow: click all root tops -> Enter -> click marks -> Enter")
+                return marks
             else:
-                print("  Please enter a positive number.")
+                print("  Please enter 2 or more (1 segment = full root, no marks needed).")
         except ValueError:
-            print("  Invalid input. Enter a number like 1 or 2.")
+            print("  Invalid input. Enter a number like 2 or 3.")
 
 
 def prompt_for_experiment():
     """Prompt user for experiment description, used in CSV filename."""
     print("\n" + "=" * 60)
-    print("  Enter a short experiment description")
-    print("  This will be used in the output filename")
+    print("  EXPERIMENT NAME")
+    print("  Used in the output filename")
     print("  Example: Salt Stress Col-0 vs crd-2")
     print("=" * 60)
 
     while True:
-        desc = input("\nExperiment: ").strip()
+        desc = input("\n  Experiment: ").strip()
         if desc:
             return desc
         print("  Please enter a description.")
@@ -417,6 +419,14 @@ def _select_folder():
 
 
 def main():
+    print("\n" + "=" * 60)
+    print("  ROOT MEASURE")
+    print("  Interactive root length measurement tool")
+    print("")
+    print("  Developed by Willian Viana")
+    print("  Contact: williangviana@outlook.com")
+    print("=" * 60)
+
     # --- gather experiment info first ---
     experiment_desc = prompt_for_experiment()
     split_plate = prompt_for_split_plate()
@@ -438,7 +448,7 @@ def main():
             sys.exit(1)
     else:
         print("\n" + "=" * 60)
-        print("  Select the folder with your scanned images")
+        print("  IMAGE FOLDER")
         print("=" * 60)
         folder = _select_folder()
         if folder is None:
@@ -467,15 +477,14 @@ def main():
         # check if all images are done
         if len(processed) == len(images):
             print("\n" + "=" * 50)
-            print("  All images have been processed!")
-            print("=" * 50)
-            print("  Enter number to re-process an image, or 'q' to quit")
+            print("  ALL IMAGES PROCESSED")
+            print("  Enter number to re-process, or 'q' to quit")
             print("=" * 50)
 
         selected = select_image_from_list(images, processed)
         if selected is None:
-            print(f"\nData saved to: {csv_path}")
-            print("Goodbye!")
+            print(f"\n  Data saved to: {csv_path}")
+            print("  Done!")
             break
 
         success, plate_offset, root_offset = process_image(

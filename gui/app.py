@@ -117,8 +117,7 @@ class ImageCanvas(ctk.CTkFrame):
         self.canvas.bind("<ButtonPress-3>", self._on_right_click)
         self.canvas.bind("<B3-Motion>", self._on_pan_drag)
         self.canvas.bind("<MouseWheel>", self._on_scroll)
-        # keyboard (canvas needs focus)
-        self.canvas.bind("<Key>", self._on_key)
+        # keyboard — bound at window level via bind_all in RootMeasureApp
         self.canvas.focus_set()
 
     # --- Mode management ---
@@ -553,24 +552,26 @@ class ImageCanvas(ctk.CTkFrame):
         else:
             self._on_pan_start(event)
 
-    def _on_key(self, event):
+    def handle_key(self, event):
+        """Handle keyboard events (called from app-level binding)."""
         if self._mode == self.MODE_CLICK_ROOTS:
             if event.keysym.lower() == 'd':
                 self._pending_flag = 'dead'
-                return
+                return True
             elif event.keysym.lower() == 't':
                 self._pending_flag = 'touching'
-                return
+                return True
         if event.keysym == 'Return':
             if self._mode == self.MODE_SELECT_PLATES:
                 # Enter confirms drawn plate; second Enter with no new plate finishes
                 if len(self._plates) > self._plates_count_at_enter:
-                    # new plate(s) since last Enter — confirm and keep going
                     self._plates_count_at_enter = len(self._plates)
-                    return
+                    return True
                 # no new plate — finish selection
             if self._on_done_callback:
                 self._on_done_callback()
+                return True
+        return False
 
 
 class Sidebar(ctk.CTkScrollableFrame):
@@ -761,6 +762,17 @@ class RootMeasureApp(ctk.CTk):
             font=ctk.CTkFont(size=10), text_color="gray50")
         self.lbl_bottom.pack(side="left", padx=10)
 
+        # global keyboard handler — works regardless of which widget has focus
+        self.bind_all("<Key>", self._on_global_key)
+
+    def _on_global_key(self, event):
+        """Route keyboard events to canvas, skip if typing in an Entry."""
+        # don't intercept keys when typing in entry fields
+        widget_class = event.widget.winfo_class()
+        if widget_class in ('Entry', 'TEntry', 'Text'):
+            return
+        self.canvas.handle_key(event)
+
     # --- Actions ---
 
     def load_folder(self):
@@ -864,7 +876,7 @@ class RootMeasureApp(ctk.CTk):
             "Draw rectangle around plate, then Enter.\n"
             "Draw another + Enter, or Enter again to finish.")
         self.lbl_bottom.configure(
-            text="PLATE SELECTION — drag to draw, Enter=confirm, Enter again=done")
+            text="Drag=draw plate  |  Right-click=undo  |  Enter=confirm  |  Enter again=done  |  Scroll=zoom")
         # disable downstream buttons while selecting
         self.sidebar.btn_click_roots.configure(state="disabled")
         self.sidebar.btn_measure.configure(state="disabled")
@@ -899,10 +911,9 @@ class RootMeasureApp(ctk.CTk):
         self.canvas.zoom_to_region(r1, r2, c1, c2)
         self.sidebar.set_status(
             f"Plate 1/{len(plates)} — Click root tops.\n"
-            "D+Click=dead, T+Click=touching. Enter=next plate.")
+            "D+Click=dead, T+Click=touching. Enter=next.")
         self.lbl_bottom.configure(
-            text="ROOT CLICKING — Click=root top, D+Click=dead, "
-                 "T+Click=touching, Right-click=undo, Enter=next")
+            text="Click=root top  |  D+Click=dead  |  T+Click=touching  |  Right-click=undo  |  Enter=next  |  Scroll=zoom")
         self.sidebar.btn_measure.configure(state="disabled")
 
     def _plate_roots_done(self):
@@ -930,8 +941,7 @@ class RootMeasureApp(ctk.CTk):
                 f"Plate {pi}/{len(plates)} — Click root tops.\n"
                 "D+Click=dead, T+Click=touching. Enter=next.")
             self.lbl_bottom.configure(
-                text="ROOT CLICKING — Click=root top, D+Click=dead, "
-                     "T+Click=touching, Right-click=undo, Enter=next")
+                text="Click=root top  |  D+Click=dead  |  T+Click=touching  |  Right-click=undo  |  Enter=next  |  Scroll=zoom")
             return
         # all plates done
         points = self.canvas.get_root_points()
@@ -978,7 +988,7 @@ class RootMeasureApp(ctk.CTk):
         self.canvas.zoom_to_region(r1, r2, c1, c2)
         self._update_marks_status()
         self.lbl_bottom.configure(
-            text="MARKS — Click marks on roots, Right-click=undo, Enter=done")
+            text="Click=place mark  |  Right-click=undo  |  Enter=done  |  Scroll=zoom")
 
     def _update_marks_status(self):
         """Update status bar with marks progress."""
@@ -1114,7 +1124,7 @@ class RootMeasureApp(ctk.CTk):
         msg += "\nEnter = accept / retry selected."
         self.sidebar.set_status(msg)
         self.lbl_bottom.configure(
-            text="REVIEW — Click trace=toggle retry (yellow), Enter=done")
+            text="Click trace=select for retry (yellow)  |  Enter=accept / retry selected  |  Scroll=zoom")
 
     def _review_done(self):
         """Called when user presses Enter in review mode."""
@@ -1156,7 +1166,7 @@ class RootMeasureApp(ctk.CTk):
             f"Re-click root 1/{n}: click TOP then BOTTOM.\n"
             "Right-click=undo. Enter=confirm pair.")
         self.lbl_bottom.configure(
-            text="RECLICK — Click TOP then BOTTOM, Right-click=undo, Enter=next")
+            text="Click TOP then BOTTOM  |  Right-click=undo  |  Enter=confirm pair  |  Scroll=zoom")
 
     def _reclick_enter(self):
         """Called when user presses Enter during reclick."""

@@ -86,11 +86,12 @@ class MeasurementMixin:
 
         total = len(points)
         self.sidebar.show_progress(total)
+        self.update()
 
         for i, (top, flag) in enumerate(zip(points, flags)):
             self.sidebar.set_status(f"Tracing root {i + 1}/{total}...")
             self.sidebar.update_progress(i + 1)
-            self.update_idletasks()
+            self.update()
 
             if flag is not None:
                 warning = 'dead seedling' if flag == 'dead' else 'roots touching'

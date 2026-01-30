@@ -200,7 +200,7 @@ class Sidebar(ctk.CTkScrollableFrame):
             text_color="gray", wraplength=250)
         self.lbl_status.pack(pady=10, padx=15, anchor="w")
 
-        # --- Progress bar (hidden until needed) ---
+        # --- Progress bar (packed then hidden so re-pack works reliably) ---
         self._progress_frame = ctk.CTkFrame(self, fg_color="transparent")
         self.progress_bar = ctk.CTkProgressBar(self._progress_frame, width=250)
         self.progress_bar.set(0)
@@ -209,6 +209,8 @@ class Sidebar(ctk.CTkScrollableFrame):
             self._progress_frame, text="",
             font=ctk.CTkFont(size=10), text_color="gray50")
         self.lbl_progress.pack(padx=15, anchor="w")
+        self._progress_frame.pack(fill="x", padx=15)
+        self._progress_frame.pack_forget()
 
     # --- helpers ---
 
@@ -229,7 +231,7 @@ class Sidebar(ctk.CTkScrollableFrame):
         self._progress_total = total
         self.progress_bar.set(0)
         self.lbl_progress.configure(text=f"0 / {total}")
-        self._progress_frame.pack(after=self.lbl_status, fill="x")
+        self._progress_frame.pack(fill="x", padx=15)
 
     def update_progress(self, current):
         frac = current / self._progress_total

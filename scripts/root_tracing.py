@@ -106,12 +106,12 @@ def find_root_tip(binary_image, top_point, scale=SCALE_PX_PER_CM):
         below_endpoints = [n for n in endpoints if skel_points[n][0] > start_row]
 
         if below_endpoints:
-            # pick the one furthest down, but penalize lateral drift
-            # from the start column to avoid jumping to neighboring roots
+            # pick the one furthest down, but strongly penalize lateral drift
+            # to avoid following lateral roots instead of the primary root
             start_col = skel_points[start_idx][1]
             def _tip_score(n):
                 r, c = skel_points[n]
-                return r - 2.0 * abs(c - start_col)
+                return r - 5.0 * abs(c - start_col)
             tip_idx = max(below_endpoints, key=_tip_score)
         else:
             # fallback: furthest endpoint by path length

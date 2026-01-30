@@ -422,32 +422,25 @@ def show_image_for_clicking(image, plates, plate_labels=None, plate_offset=0,
         small = crop[::downsample, ::downsample]
         crops_8.append(_to_uint8(small))
 
-    fig_w = 9 * num_plates + 2.5
+    fig_w = 9 * num_plates
     fig, axes = plt.subplots(1, num_plates, figsize=(fig_w, 10))
     if num_plates == 1:
         axes = [axes]
     else:
         axes = axes.tolist()
 
-    # reserve right margin for controls legend
-    fig.subplots_adjust(right=1 - 2.5 / fig_w)
+    # controls bar at the bottom
     controls = (
-        "CONTROLS\n"
-        "\n"
-        "Click        Mark root top\n"
-        "Right-click  Undo\n"
-        "Cmd+Z        Undo\n"
-        "D            Dead seedling\n"
-        "T            Touching roots\n"
-        "Enter        Next / finish\n"
-        "Z            Zoom mode\n"
-        "H            Reset view"
+        "$\\bf{Click}$ Mark top  |  "
+        "$\\bf{Right\\text{-}click/Cmd+Z}$ Undo  |  "
+        "$\\bf{D}$ Dead  |  "
+        "$\\bf{T}$ Touching  |  "
+        "$\\bf{Enter}$ Next/finish  |  "
+        "$\\bf{Z}$ Zoom  |  "
+        "$\\bf{H}$ Reset view"
     )
-    fig.text(1 - 2.2 / fig_w, 0.5, controls,
-             fontsize=9, fontfamily='monospace',
-             verticalalignment='center',
-             bbox=dict(boxstyle='round,pad=0.6', facecolor='#f0f0f0',
-                       edgecolor='#cccccc', alpha=0.9))
+    fig.text(0.5, 0.01, controls, fontsize=9,
+             horizontalalignment='center', verticalalignment='bottom')
 
     for i, (ax, img) in enumerate(zip(axes, crops_8)):
         ax.imshow(img, cmap='gray', aspect='equal')
@@ -467,8 +460,7 @@ def show_image_for_clicking(image, plates, plate_labels=None, plate_offset=0,
     collector = RootClickCollector(fig, axes, plates, downsample,
                                    plate_labels, plate_offset, num_marks,
                                    split_plate)
-    right_margin = 1 - 2.5 / fig_w
-    plt.tight_layout(rect=[0, 0, right_margin, 0.92])
+    plt.tight_layout(rect=[0, 0.03, 1, 0.92])
     plt.show()
 
     return (collector.get_top_points(), collector.get_point_plates(),

@@ -43,6 +43,7 @@ class ImageCanvas(ctk.CTkFrame):
         # root clicking state
         self._root_points = []     # list of (row, col) in image coords
         self._root_flags = []      # None, 'dead', 'touching'
+        self._root_groups = []     # group index per root (for split plate)
         self._root_marker_ids = [] # canvas ids of markers
         self._pending_flag = None  # 'dead' or 'touching'
 
@@ -93,6 +94,9 @@ class ImageCanvas(ctk.CTkFrame):
     def get_root_flags(self):
         return list(self._root_flags)
 
+    def get_root_groups(self):
+        return list(self._root_groups)
+
     def clear_plates(self):
         for rid in self._plate_rect_ids:
             self.canvas.delete(rid)
@@ -104,6 +108,7 @@ class ImageCanvas(ctk.CTkFrame):
             self.canvas.delete(rid)
         self._root_points.clear()
         self._root_flags.clear()
+        self._root_groups.clear()
         self._root_marker_ids.clear()
         self._pending_flag = None
 
@@ -414,6 +419,7 @@ class ImageCanvas(ctk.CTkFrame):
             self._pending_flag = None
             self._root_points.append((row, col))
             self._root_flags.append(flag)
+            self._root_groups.append(getattr(self, '_current_root_group', 0))
             self._redraw()
             if self._on_click_callback:
                 self._on_click_callback()
@@ -512,6 +518,7 @@ class ImageCanvas(ctk.CTkFrame):
         elif self._mode == self.MODE_CLICK_ROOTS and self._root_points:
             self._root_points.pop()
             self._root_flags.pop()
+            self._root_groups.pop()
             self._redraw()
             if self._on_click_callback:
                 self._on_click_callback()

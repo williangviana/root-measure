@@ -28,17 +28,10 @@ class MeasurementMixin:
 
     def _get_root_shades(self, root_idx):
         """Return color shades for a root based on its genotype group."""
-        plates = self.canvas.get_plates()
-        points = self.canvas.get_root_points()
-        row, col = points[root_idx]
-        group_idx = 0
+        groups = self.canvas.get_root_groups()
         split = self.sidebar.var_split.get()
-        for pi, (r1, r2, c1, c2) in enumerate(plates):
-            if r1 <= row <= r2 and c1 <= col <= c2:
-                group_idx = pi
-                break
-        if split:
-            color_idx = group_idx % 2
+        if split and root_idx < len(groups):
+            color_idx = groups[root_idx] % 2
         else:
             color_idx = 0
         return GROUP_COLORS[color_idx]
@@ -292,18 +285,16 @@ class MeasurementMixin:
 
         experiment = self.sidebar.entry_experiment.get().strip() or "experiment"
 
-        # assign roots to plates based on position
-        point_plates = []
-        for row, col in self.canvas.get_root_points():
-            assigned = 0
-            for pi, (r1, r2, c1, c2) in enumerate(plates):
-                if r1 <= row <= r2 and c1 <= col <= c2:
-                    assigned = pi
-                    break
-            point_plates.append(assigned)
+        # use stored group indices for each root
+        split = self.sidebar.var_split.get()
+        point_plates = self.canvas.get_root_groups()
 
-        # simple labels: experiment name for each plate
-        plate_labels = [(experiment, None)] * len(plates)
+        # plate_labels: one entry per group
+        if split:
+            # 2 groups per plate: (experiment, None) for each group
+            plate_labels = [(experiment, None)] * (len(plates) * 2)
+        else:
+            plate_labels = [(experiment, None)] * len(plates)
 
         try:
             append_results_to_csv(

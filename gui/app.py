@@ -221,17 +221,37 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
         self.canvas.clear_traces()
         self.canvas._all_marks = {}
         self._current_plate_idx = 0
+        self._split = self.sidebar.var_split.get()
+        # In split mode, each plate has 2 genotype groups (A=red, B=blue).
+        # _current_group tracks the global group index across all plates.
+        self._current_group = 0
+        # _split_stage: 0 = first genotype, 1 = second genotype (split only)
+        self._split_stage = 0
+        self.canvas._current_root_group = 0
+        self._enter_root_click_stage()
+        self.sidebar.btn_measure.configure(state="disabled")
+
+    def _enter_root_click_stage(self):
+        """Set up the canvas for the current root clicking stage."""
+        plates = self.canvas.get_plates()
+        pi = self._current_plate_idx
+        r1, r2, c1, c2 = plates[pi]
+        self.canvas.zoom_to_region(r1, r2, c1, c2)
+        self.canvas._current_root_group = self._current_group
         self.canvas.set_mode(
             ImageCanvas.MODE_CLICK_ROOTS,
             on_done=self._plate_roots_done)
-        r1, r2, c1, c2 = plates[0]
-        self.canvas.zoom_to_region(r1, r2, c1, c2)
-        self.sidebar.set_status(
-            f"Plate 1/{len(plates)} — Click root tops.\n"
-            "D+Click=dead, T+Click=touching. Enter=next.")
+        if self._split:
+            geno_label = "genotype A (red)" if self._split_stage == 0 else "genotype B (blue)"
+            self.sidebar.set_status(
+                f"Plate {pi + 1}/{len(plates)} — {geno_label}\n"
+                "Click root tops. Enter=next.")
+        else:
+            self.sidebar.set_status(
+                f"Plate {pi + 1}/{len(plates)} — Click root tops.\n"
+                "D+Click=dead, T+Click=touching. Enter=next.")
         self.lbl_bottom.configure(
             text="Click=root top  |  D+Click=dead  |  T+Click=touching  |  Right-click=undo  |  Enter=next  |  Scroll=zoom")
-        self.sidebar.btn_measure.configure(state="disabled")
 
     def _plate_roots_done(self):
         """Called when user presses Enter after clicking roots on a plate."""
@@ -239,24 +259,23 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
         if num_marks > 0:
             self._start_marks_phase()
             return
-        self._advance_to_next_plate()
+        self._advance_to_next_stage()
 
-    def _advance_to_next_plate(self):
-        """Advance to next plate for root clicking, or finish."""
+    def _advance_to_next_stage(self):
+        """Advance to next genotype group or next plate."""
         plates = self.canvas.get_plates()
+        if self._split and self._split_stage == 0:
+            # stay on same plate, switch to genotype B
+            self._split_stage = 1
+            self._current_group += 1
+            self._enter_root_click_stage()
+            return
+        # advance to next plate
+        self._split_stage = 0
+        self._current_group += 1
         self._current_plate_idx += 1
         if self._current_plate_idx < len(plates):
-            r1, r2, c1, c2 = plates[self._current_plate_idx]
-            self.canvas.zoom_to_region(r1, r2, c1, c2)
-            pi = self._current_plate_idx + 1
-            self.canvas.set_mode(
-                ImageCanvas.MODE_CLICK_ROOTS,
-                on_done=self._plate_roots_done)
-            self.sidebar.set_status(
-                f"Plate {pi}/{len(plates)} — Click root tops.\n"
-                "D+Click=dead, T+Click=touching. Enter=next.")
-            self.lbl_bottom.configure(
-                text="Click=root top  |  D+Click=dead  |  T+Click=touching  |  Right-click=undo  |  Enter=next  |  Scroll=zoom")
+            self._enter_root_click_stage()
             return
         # all plates done
         points = self.canvas.get_root_points()
@@ -280,18 +299,26 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
     # --- Marks phase ---
 
     def _start_marks_phase(self):
-        """Enter mark clicking mode for normal roots on the current plate."""
+        """Enter mark clicking mode for normal roots on the current plate/group."""
         plates = self.canvas.get_plates()
         pi = self._current_plate_idx
         r1, r2, c1, c2 = plates[pi]
         points = self.canvas.get_root_points()
         flags = self.canvas.get_root_flags()
+        groups = self.canvas.get_root_groups()
+        current_group = self._current_group
         self._marks_plate_roots = []
         for i, ((row, col), flag) in enumerate(zip(points, flags)):
-            if flag is None and r1 <= row <= r2 and c1 <= col <= c2:
-                self._marks_plate_roots.append(i)
+            if flag is not None:
+                continue
+            if not (r1 <= row <= r2 and c1 <= col <= c2):
+                continue
+            # in split mode, only include roots from current group
+            if self._split and i < len(groups) and groups[i] != current_group:
+                continue
+            self._marks_plate_roots.append(i)
         if not self._marks_plate_roots:
-            self._advance_to_next_plate()
+            self._advance_to_next_stage()
             return
         num_marks = self._get_num_marks()
         self.canvas._marks_expected = len(self._marks_plate_roots) * num_marks
@@ -337,7 +364,7 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
         for j, ri in enumerate(self._marks_plate_roots):
             start = j * num_marks
             self.canvas._all_marks[ri] = all_marks[start:start + num_marks]
-        self._advance_to_next_plate()
+        self._advance_to_next_stage()
 
 
 def main():

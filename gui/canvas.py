@@ -283,33 +283,27 @@ class ImageCanvas(ctk.CTkFrame):
                     self._root_marker_ids.extend([rid, tid])
 
         # redraw mark circles (hide in review mode)
-        # group colors for marks match genotype shading
-        _GROUP_MARK_COLORS = [
-            ["#e63333", "#ff8080"],  # group 0: dark red, light red
-            ["#3333e6", "#8080ff"],  # group 1: dark blue, light blue
-        ]
+        # marks use the light genotype shade to distinguish from root dots
+        _GROUP_MARK_COLOR = ["#ff8080", "#8080ff"]  # light red, light blue
         self._mark_marker_ids.clear()
         if self._mode not in (self.MODE_REVIEW,):
             # draw saved marks from _all_marks (persisted across groups)
             for ri, marks in self._all_marks.items():
                 group = self._root_groups[ri] if ri < len(self._root_groups) else 0
-                shades = _GROUP_MARK_COLORS[group % len(_GROUP_MARK_COLORS)]
+                color = _GROUP_MARK_COLOR[group % len(_GROUP_MARK_COLOR)]
                 for mi, (row, col) in enumerate(marks):
                     cx, cy = self.image_to_canvas(col, row)
                     r = 4
-                    color = shades[mi % len(shades)]
                     self.canvas.create_oval(
                         cx - r, cy - r, cx + r, cy + r,
                         outline="white", fill=color, width=1)
             # draw current batch marks (not yet saved to _all_marks)
             if self._mode == self.MODE_CLICK_MARKS:
-                # determine group from the roots being marked
                 current_group = getattr(self, '_current_root_group', 0)
-                shades = _GROUP_MARK_COLORS[current_group % len(_GROUP_MARK_COLORS)]
+                color = _GROUP_MARK_COLOR[current_group % len(_GROUP_MARK_COLOR)]
                 for i, (row, col) in enumerate(self._mark_points):
                     cx, cy = self.image_to_canvas(col, row)
                     r = 5
-                    color = shades[i % len(shades)]
                     rid = self.canvas.create_oval(
                         cx - r, cy - r, cx + r, cy + r,
                         outline="white", fill=color, width=1)
@@ -447,16 +441,12 @@ class ImageCanvas(ctk.CTkFrame):
                 return
             col, row = self.canvas_to_image(event.x, event.y)
             self._mark_points.append((row, col))
-            # draw mark as genotype-colored circle
+            # draw mark as genotype-colored circle (light shade)
             cx, cy = event.x, event.y
-            _GROUP_MARK_COLORS = [
-                ["#e63333", "#ff8080"],
-                ["#3333e6", "#8080ff"],
-            ]
+            _GROUP_MARK_COLOR = ["#ff8080", "#8080ff"]
             current_group = getattr(self, '_current_root_group', 0)
-            shades = _GROUP_MARK_COLORS[current_group % len(_GROUP_MARK_COLORS)]
+            color = _GROUP_MARK_COLOR[current_group % len(_GROUP_MARK_COLOR)]
             n = len(self._mark_points)
-            color = shades[(n - 1) % len(shades)]
             r = 5
             rid = self.canvas.create_oval(
                 cx - r, cy - r, cx + r, cy + r,

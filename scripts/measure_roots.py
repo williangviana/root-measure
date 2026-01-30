@@ -314,19 +314,19 @@ def prompt_for_sensitivity():
     """Prompt user for root thickness / sensitivity preset.
 
     Returns:
-        sensitivity: str ('thick', 'normal', or 'thin')
+        sensitivity: str ('thick', 'medium', or 'thin')
     """
     print("\n" + "=" * 60)
     print("  ROOT THICKNESS")
     print("  1 = Thick  (e.g. S. viridis, B. napus)")
-    print("  2 = Normal (e.g. S. parvula)")
+    print("  2 = Medium (e.g. S. parvula)")
     print("  3 = Thin   (e.g. A. thaliana)")
 
     while True:
         response = input("\n  Root thickness (1/2/3, default: 2): ").strip()
         if response in ('', '2'):
-            print("  Using normal sensitivity.")
-            return 'normal'
+            print("  Using medium sensitivity.")
+            return 'medium'
         elif response == '1':
             print("  Using thick-root settings.")
             return 'thick'

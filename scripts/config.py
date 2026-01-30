@@ -17,7 +17,7 @@ _BASE_MIN_COMP = 100          # Min skeleton component size at reference scale
 # Lower sigma keeps thin roots; lower threshold keeps faint signal
 SENSITIVITY_PRESETS = {
     'thick':  (1.0, 1.0),     # Setaria viridis, Brassica napus
-    'normal': (0.7, 0.7),     # Schrenkiella parvula
+    'medium': (0.7, 0.7),     # Schrenkiella parvula
     'thin':   (0.45, 0.45),   # Arabidopsis thaliana
 }
 

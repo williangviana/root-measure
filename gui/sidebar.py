@@ -160,6 +160,13 @@ class Sidebar(ctk.CTkScrollableFrame):
                      font=ctk.CTkFont(size=9),
                      text_color="gray50").pack(padx=15, anchor="w")
 
+        self.var_plot = ctk.BooleanVar(value=True)
+        self.chk_plot = ctk.CTkCheckBox(
+            b, text="Plot with statistics when done",
+            variable=self.var_plot,
+            font=ctk.CTkFont(size=11))
+        self.chk_plot.pack(pady=(8, 2), padx=15, anchor="w")
+
         self.btn_start_workflow = ctk.CTkButton(
             b, text="Start Workflow \u00bb", fg_color="#217346",
             command=lambda: app._on_start_workflow())

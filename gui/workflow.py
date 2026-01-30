@@ -7,6 +7,7 @@ from image_processing import preprocess
 from root_tracing import find_root_tip, trace_root
 from utils import _compute_segments, _find_nearest_path_index
 from csv_output import append_results_to_csv
+from plotting import plot_results
 
 from canvas import ImageCanvas
 
@@ -337,6 +338,10 @@ class MeasurementMixin:
 
         self._save_results(self._results, plates, self._scale_val)
         self._save_trace_screenshot()
+
+        if self.sidebar.var_plot.get():
+            self._run_plot()
+
         self.sidebar.btn_measure.configure(state="normal")
         self.sidebar.btn_select_plates.configure(state="normal")
         self.sidebar.btn_click_roots.configure(state="normal")
@@ -400,3 +405,30 @@ class MeasurementMixin:
             self.sidebar.set_status(
                 self.sidebar.lbl_status.cget("text") +
                 f"\nCSV save error: {e}")
+
+    def _run_plot(self):
+        """Generate plot with statistics from the saved CSV."""
+        folder = self.folder
+        if not folder and self.image_path:
+            folder = self.image_path.parent
+        if not folder:
+            return
+        csv_path = folder / 'output' / 'data.csv'
+        if not csv_path.exists():
+            return
+        try:
+            self.sidebar.set_status(
+                self.sidebar.lbl_status.cget("text") +
+                "\nGenerating plot...")
+            self.update_idletasks()
+            plot_results(csv_path,
+                         value_col='Length_cm',
+                         ylabel='Primary root length (cm)')
+            png_path = csv_path.with_suffix('.png')
+            self.sidebar.set_status(
+                self.sidebar.lbl_status.cget("text") +
+                f"\nPlot saved to {png_path.name}")
+        except Exception as e:
+            self.sidebar.set_status(
+                self.sidebar.lbl_status.cget("text") +
+                f"\nPlot error: {e}")

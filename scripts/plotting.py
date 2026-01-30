@@ -207,8 +207,14 @@ def _place_cld_letters(ax, is_factorial, df, value_col, genotypes, conditions,
                     fontsize=10, fontweight='normal')
 
 
-def plot_results(csv_path):
-    """Read CSV, run statistics, generate and save publication box plot."""
+def plot_results(csv_path, value_col=None, ylabel=None):
+    """Read CSV, run statistics, generate and save publication box plot.
+
+    Args:
+        csv_path: Path to the CSV file.
+        value_col: Column to plot (default: prompt user or 'Length_cm').
+        ylabel: Y-axis label (default: prompt user or auto-generate).
+    """
     df = pd.read_csv(csv_path)
 
     # drop rows with warnings
@@ -229,32 +235,34 @@ def plot_results(csv_path):
             numeric_cols.append(col)
     numeric_cols = [c for c in numeric_cols if c in df.columns]
 
-    # prompt user for column
-    if len(numeric_cols) == 1:
-        value_col = numeric_cols[0]
-    else:
-        print("\n  Available columns to plot:")
-        for i, col in enumerate(numeric_cols, 1):
-            print(f"    {i}. {col}")
-        while True:
-            choice = input(f"\n  Column to plot (1-{len(numeric_cols)}, default: 1): ").strip()
-            if choice == '':
-                value_col = numeric_cols[0]
-                break
-            try:
-                idx = int(choice) - 1
-                if 0 <= idx < len(numeric_cols):
-                    value_col = numeric_cols[idx]
+    # resolve column to plot
+    if value_col is None:
+        if len(numeric_cols) == 1:
+            value_col = numeric_cols[0]
+        else:
+            print("\n  Available columns to plot:")
+            for i, col in enumerate(numeric_cols, 1):
+                print(f"    {i}. {col}")
+            while True:
+                choice = input(f"\n  Column to plot (1-{len(numeric_cols)}, default: 1): ").strip()
+                if choice == '':
+                    value_col = numeric_cols[0]
                     break
-            except ValueError:
-                pass
-            print("  Invalid choice.")
+                try:
+                    idx = int(choice) - 1
+                    if 0 <= idx < len(numeric_cols):
+                        value_col = numeric_cols[idx]
+                        break
+                except ValueError:
+                    pass
+                print("  Invalid choice.")
 
-    # prompt for y-axis label
-    default_label = 'Primary root length (cm)' if value_col == 'Length_cm' else f'{value_col} (cm)'
-    ylabel = input(f"\n  Y-axis label (default: {default_label}): ").strip()
-    if not ylabel:
-        ylabel = default_label
+    # resolve y-axis label
+    if ylabel is None:
+        default_label = 'Primary root length (cm)' if value_col == 'Length_cm' else f'{value_col} (cm)'
+        ylabel = input(f"\n  Y-axis label (default: {default_label}): ").strip()
+        if not ylabel:
+            ylabel = default_label
 
     print(f"\n  Plotting: {value_col}")
     print(f"  Design: {'factorial' if is_factorial else 'simple'}")

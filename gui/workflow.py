@@ -40,7 +40,7 @@ class MeasurementMixin:
         if split:
             color_idx = group_idx % 2
         else:
-            color_idx = group_idx % len(GROUP_COLORS)
+            color_idx = 0
         return GROUP_COLORS[color_idx]
 
     def _add_root_trace(self, root_idx, res):

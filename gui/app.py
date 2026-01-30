@@ -291,24 +291,15 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
         if self._current_plate_idx < len(plates):
             self._enter_root_click_stage()
             return
-        # all plates done
+        # all plates done — auto-measure
         points = self.canvas.get_root_points()
         if not points:
             self.sidebar.set_status("No roots clicked. Click at least one root top.")
             self._current_plate_idx = 0
             return
         self.canvas.set_mode(ImageCanvas.MODE_VIEW)
-        self.canvas._fit_image()
-        self.canvas._redraw()
-        n_normal = sum(1 for f in self.canvas.get_root_flags() if f is None)
-        n_flagged = len(points) - n_normal
-        msg = f"{len(points)} root(s) marked ({n_normal} to trace"
-        if n_flagged:
-            msg += f", {n_flagged} flagged"
-        msg += ")."
-        self.sidebar.set_status(msg)
-        self.lbl_bottom.configure(text="Root Measure — Dinneny Lab")
         self.sidebar.btn_measure.configure(state="normal")
+        self.measure()
 
     # --- Marks phase ---
 

@@ -351,6 +351,7 @@ class MeasurementMixin:
         if self.sidebar.var_plot.get():
             self._run_plot()
 
+        self.sidebar.set_step(6)  # marks all 5 steps as done (green)
         self.sidebar.btn_select_plates.configure(state="normal")
         self.sidebar.btn_click_roots.configure(state="normal")
         self.sidebar.btn_measure.configure(state="normal")

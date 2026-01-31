@@ -185,6 +185,7 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
     def _on_start_workflow(self):
         """Called when user clicks Start Workflow."""
         self.sidebar.advance_to_workflow()
+        self.select_plates()
 
     # --- Plate & root clicking flow ---
 

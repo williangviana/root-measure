@@ -168,7 +168,7 @@ class Sidebar(ctk.CTkScrollableFrame):
         self.chk_plot.pack(pady=(8, 2), padx=15, anchor="w")
 
         self.btn_start_workflow = ctk.CTkButton(
-            b, text="Start Workflow \u00bb", fg_color="#217346",
+            b, text="Start Workflow \u00bb", fg_color="#2b5797",
             command=lambda: app._on_start_workflow())
         self.btn_start_workflow.pack(pady=(10, 5), padx=15, fill="x")
 

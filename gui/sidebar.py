@@ -168,6 +168,15 @@ class Sidebar(ctk.CTkScrollableFrame):
                      font=ctk.CTkFont(size=9),
                      text_color="gray50").pack(padx=15, anchor="w")
 
+        ctk.CTkLabel(b, text="CSV format:",
+                     font=ctk.CTkFont(size=11)).pack(
+            padx=15, pady=(8, 0), anchor="w")
+        self.var_csv_format = ctk.StringVar(value="R")
+        self.menu_csv_format = ctk.CTkSegmentedButton(
+            b, values=["R", "Prism"],
+            variable=self.var_csv_format)
+        self.menu_csv_format.pack(pady=(2, 8), padx=15, fill="x")
+
         self.var_plot = ctk.BooleanVar(value=True)
         self.chk_plot = ctk.CTkCheckBox(
             b, text="Plot with statistics when done",

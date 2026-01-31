@@ -398,6 +398,7 @@ class MeasurementMixin:
                     conditions[0] if conditions else None)
                 plate_labels.append((genotypes[0], cond))
 
+        csv_format = self.sidebar.var_csv_format.get()
         try:
             new_plate_offset, new_root_offset = append_results_to_csv(
                 results, csv_path, plates, plate_labels,
@@ -405,7 +406,8 @@ class MeasurementMixin:
                 root_offset=self._root_offset,
                 point_plates=point_plates,
                 num_marks=self._get_num_marks(),
-                split_plate=self.sidebar.var_split.get())
+                split_plate=self.sidebar.var_split.get(),
+                csv_format=csv_format)
             self._plate_offset = new_plate_offset
             self._root_offset = new_root_offset
             self.sidebar.set_status(
@@ -431,9 +433,11 @@ class MeasurementMixin:
                 self.sidebar.lbl_status.cget("text") +
                 "\nGenerating plot...")
             self.update_idletasks()
+            csv_format = self.sidebar.var_csv_format.get()
             plot_results(csv_path,
                          value_col='Length_cm',
-                         ylabel='Primary root length (cm)')
+                         ylabel='Primary root length (cm)',
+                         csv_format=csv_format)
             png_path = csv_path.with_suffix('.png')
             self.sidebar.set_status(
                 self.sidebar.lbl_status.cget("text") +

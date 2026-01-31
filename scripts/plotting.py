@@ -207,15 +207,72 @@ def _place_cld_letters(ax, is_factorial, df, value_col, genotypes, conditions,
                     fontsize=10, fontweight='normal')
 
 
-def plot_results(csv_path, value_col=None, ylabel=None):
+def _read_prism_simple(csv_path):
+    """Read Prism simple format (genotypes as columns) into long format."""
+    df = pd.read_csv(csv_path)
+    rows = []
+    for col in df.columns:
+        for val in df[col].dropna():
+            rows.append({'Genotype': col, 'Length_cm': float(val)})
+    return pd.DataFrame(rows)
+
+
+def _read_prism_factorial(csv_path):
+    """Read Prism factorial format into long format."""
+    df = pd.read_csv(csv_path, header=0)
+    headers = list(df.columns)
+    # detect genotype blocks: non-empty headers after first column
+    geno_blocks = []
+    current_geno = None
+    start = None
+    for ci in range(1, len(headers)):
+        h = str(headers[ci]).strip()
+        if h and h != '' and not h.startswith('Unnamed'):
+            if current_geno is not None:
+                geno_blocks.append((current_geno, start, ci))
+            current_geno = h
+            start = ci
+    if current_geno is not None:
+        geno_blocks.append((current_geno, start, len(headers)))
+
+    rows = []
+    for _, row in df.iterrows():
+        cond = row.iloc[0]
+        for geno_name, col_start, col_end in geno_blocks:
+            for ci in range(col_start, col_end):
+                val = row.iloc[ci]
+                if pd.notna(val) and str(val).strip() != '':
+                    rows.append({
+                        'Genotype': geno_name,
+                        'Condition': str(cond),
+                        'Length_cm': float(val),
+                    })
+    return pd.DataFrame(rows)
+
+
+def plot_results(csv_path, value_col=None, ylabel=None, csv_format='R'):
     """Read CSV, run statistics, generate and save publication box plot.
 
     Args:
         csv_path: Path to the CSV file.
         value_col: Column to plot (default: prompt user or 'Length_cm').
         ylabel: Y-axis label (default: prompt user or auto-generate).
+        csv_format: 'R' or 'Prism'.
     """
-    df = pd.read_csv(csv_path)
+    if csv_format == 'Prism':
+        # try factorial first (has condition column = first col non-numeric)
+        df_test = pd.read_csv(csv_path, header=0, nrows=1)
+        first_col = str(df_test.columns[0]).strip()
+        first_val = str(df_test.iloc[0, 0]).strip() if len(df_test) > 0 else ''
+        # factorial has a non-empty first column header (usually '') and
+        # condition labels in first column
+        if first_col == '' or first_col.startswith('Unnamed'):
+            df = _read_prism_factorial(csv_path)
+        else:
+            df = _read_prism_simple(csv_path)
+        value_col = value_col or 'Length_cm'
+    else:
+        df = pd.read_csv(csv_path)
 
     # drop rows with warnings
     if 'Warning' in df.columns:

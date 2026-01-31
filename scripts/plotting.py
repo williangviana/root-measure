@@ -367,4 +367,4 @@ def plot_results(csv_path, value_col=None, ylabel=None):
     fig.savefig(png_path, dpi=300, bbox_inches='tight', facecolor='white')
     print(f"\n  Plot saved to: {png_path}")
 
-    plt.show()
+    plt.close(fig)

@@ -246,6 +246,8 @@ class Sidebar(ctk.CTkScrollableFrame):
 
     def set_status(self, text):
         self.lbl_status.configure(text=text)
+        self._status_frame.pack_forget()
+        self._status_frame.pack(fill="x", pady=(15, 5))
 
     def set_step(self, step):
         """Highlight the current workflow step (1-5). Previous steps turn green."""

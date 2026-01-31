@@ -44,6 +44,7 @@ class ImageCanvas(ctk.CTkFrame):
         self._root_points = []     # list of (row, col) in image coords
         self._root_flags = []      # None, 'dead', 'touching'
         self._root_groups = []     # group index per root (for split plate)
+        self._root_plates = []     # plate index per root
         self._root_marker_ids = [] # canvas ids of markers
         self._pending_flag = None  # 'dead' or 'touching'
 
@@ -110,6 +111,7 @@ class ImageCanvas(ctk.CTkFrame):
         self._root_points.clear()
         self._root_flags.clear()
         self._root_groups.clear()
+        self._root_plates.clear()
         self._root_marker_ids.clear()
         self._pending_flag = None
 
@@ -279,16 +281,17 @@ class ImageCanvas(ctk.CTkFrame):
             is_view = self._mode == self.MODE_VIEW
             clicking_roots = self._mode in (self.MODE_CLICK_ROOTS,
                                              self.MODE_CLICK_MARKS)
-            active_group = getattr(self, '_current_root_group', None)
+            active_plate = getattr(self, '_current_plate_idx', None)
             dot_r = 3 if is_view else 5
             cross_s = 4 if is_view else 6
             for i, ((row, col), flag) in enumerate(
                     zip(self._root_points, self._root_flags)):
                 group = self._root_groups[i] if i < len(self._root_groups) else 0
                 group_counters[group] = group_counters.get(group, 0) + 1
-                # hide markers from other groups while clicking roots
-                if clicking_roots and active_group is not None \
-                        and group != active_group:
+                # hide markers from other plates while clicking roots
+                plate = self._root_plates[i] if i < len(self._root_plates) else 0
+                if clicking_roots and active_plate is not None \
+                        and plate != active_plate:
                     continue
                 cx, cy = self.image_to_canvas(col, row)
                 display_num = group_counters[group]
@@ -490,6 +493,7 @@ class ImageCanvas(ctk.CTkFrame):
             self._root_points.append((row, col))
             self._root_flags.append(flag)
             self._root_groups.append(getattr(self, '_current_root_group', 0))
+            self._root_plates.append(getattr(self, '_current_plate_idx', 0))
             self._redraw()
             if self._on_click_callback:
                 self._on_click_callback()
@@ -595,6 +599,7 @@ class ImageCanvas(ctk.CTkFrame):
             self._root_points.pop()
             self._root_flags.pop()
             self._root_groups.pop()
+            self._root_plates.pop()
             self._redraw()
             if self._on_click_callback:
                 self._on_click_callback()

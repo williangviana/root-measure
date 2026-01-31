@@ -92,7 +92,7 @@ class Sidebar(ctk.CTkScrollableFrame):
         self._image_list_frame = None
         self.btn_finish_plot = ctk.CTkButton(
             self.sec_images.body, text="Finish & Plot",
-            fg_color="#217346",
+            fg_color="#2b5797",
             command=lambda: app.finish_and_plot())
         # hidden until at least one image is processed
 
@@ -229,7 +229,7 @@ class Sidebar(ctk.CTkScrollableFrame):
         # hidden until measurement finishes
 
         self.btn_stop = ctk.CTkButton(
-            b, text="Finish & Plot", fg_color="#217346",
+            b, text="Finish & Plot", fg_color="#2b5797",
             command=lambda: app.finish_and_plot())
         # hidden until measurement finishes
 

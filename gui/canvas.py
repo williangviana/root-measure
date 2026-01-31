@@ -38,6 +38,7 @@ class ImageCanvas(ctk.CTkFrame):
         self._rect_drag_id = None  # canvas id of live drag rect
         self._plates = []        # list of (r1, r2, c1, c2) in image coords
         self._plate_rect_ids = []  # canvas ids of confirmed rects
+        self._plates_count_at_enter = 0
 
         # root clicking state
         self._root_points = []     # list of (row, col) in image coords
@@ -603,6 +604,12 @@ class ImageCanvas(ctk.CTkFrame):
                 self._pending_flag = 'touching'
                 return True
         if event.keysym == 'Return':
+            if self._mode == self.MODE_SELECT_PLATES:
+                # first Enter confirms drawn plate; second Enter (no new plate) finishes
+                if len(self._plates) > self._plates_count_at_enter:
+                    self._plates_count_at_enter = len(self._plates)
+                    return True
+                # no new plate — finish selection
             if self._on_done_callback:
                 self._on_done_callback()
                 return True

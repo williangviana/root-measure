@@ -38,7 +38,6 @@ class ImageCanvas(ctk.CTkFrame):
         self._rect_drag_id = None  # canvas id of live drag rect
         self._plates = []        # list of (r1, r2, c1, c2) in image coords
         self._plate_rect_ids = []  # canvas ids of confirmed rects
-        self._plates_count_at_enter = 0  # tracks plate count at last Enter
 
         # root clicking state
         self._root_points = []     # list of (row, col) in image coords
@@ -245,12 +244,12 @@ class ImageCanvas(ctk.CTkFrame):
             cx2, cy2 = self.image_to_canvas(c2, r2)
             rid = self.canvas.create_rectangle(
                 cx1, cy1, cx2, cy2,
-                outline="#4a9eff", width=2, dash=(6, 3))
+                outline="#9b59b6", width=2, dash=(6, 3))
             self._plate_rect_ids.append(rid)
             self.canvas.create_text(
                 cx1 + 5, cy1 + 5, text=f"Plate {i + 1}",
-                fill="#4a9eff", anchor="nw",
-                font=("Helvetica", 12, "bold"))
+                fill="#9b59b6", anchor="nw",
+                font=("Helvetica", 18, "bold"))
 
         # redraw root markers (hide in review mode — only show traces)
         # group colors match CLI: red for group 0 (or non-split), blue for group 1
@@ -527,7 +526,7 @@ class ImageCanvas(ctk.CTkFrame):
             cx1, cy1 = self.image_to_canvas(c1, r1)
             self._rect_drag_id = self.canvas.create_rectangle(
                 cx1, cy1, event.x, event.y,
-                outline="#4a9eff", width=2, dash=(4, 2))
+                outline="#9b59b6", width=2, dash=(4, 2))
 
     def _on_left_release(self, event):
         if self._mode == self.MODE_SELECT_PLATES and self._rect_start is not None:
@@ -604,12 +603,6 @@ class ImageCanvas(ctk.CTkFrame):
                 self._pending_flag = 'touching'
                 return True
         if event.keysym == 'Return':
-            if self._mode == self.MODE_SELECT_PLATES:
-                # Enter confirms drawn plate; second Enter with no new plate finishes
-                if len(self._plates) > self._plates_count_at_enter:
-                    self._plates_count_at_enter = len(self._plates)
-                    return True
-                # no new plate — finish selection
             if self._on_done_callback:
                 self._on_done_callback()
                 return True

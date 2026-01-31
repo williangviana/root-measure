@@ -194,15 +194,14 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
         self.canvas.clear_plates()
         self.canvas.clear_roots()
         self.canvas.clear_traces()
-        self.canvas._plates_count_at_enter = 0
         self.canvas.set_mode(
             ImageCanvas.MODE_SELECT_PLATES,
             on_done=self._plates_done)
         self.sidebar.set_status(
-            "Draw rectangle around plate, then Enter.\n"
-            "Draw another + Enter, or Enter again to finish.")
+            "Draw rectangles around plates.\n"
+            "Press Enter when done.")
         self.lbl_bottom.configure(
-            text="Drag=draw plate  |  Right-click=undo  |  Enter=confirm  |  Enter again=done  |  Scroll=zoom")
+            text="Drag=draw plate  |  Right-click=undo  |  Enter=done  |  Scroll=zoom")
         self.sidebar.btn_click_roots.configure(state="disabled")
         self.sidebar.btn_measure.configure(state="disabled")
         self.sidebar.set_step(1)

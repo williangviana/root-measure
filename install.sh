@@ -58,10 +58,10 @@ echo "[4/7] Dependencies ✓"
 
 # --- 5. Build .app bundle ---
 echo "[5/7] Building app..."
-python setup.py build 2>&1 | tail -3
+python setup.py bdist_mac 2>&1 | tail -5
 
-BUILD_DIR=$(ls -d build/exe.* 2>/dev/null | head -1)
-if [ -z "$BUILD_DIR" ]; then
+BUILT_APP=$(ls -d build/*.app 2>/dev/null | head -1)
+if [ -z "$BUILT_APP" ]; then
     echo "ERROR: Build failed."
     exit 1
 fi
@@ -70,11 +70,10 @@ echo "[5/7] Build ✓"
 # --- 6. Install to /Applications ---
 INSTALL_PATH="/Applications/$APP_NAME.app"
 rm -rf "$INSTALL_PATH"
-mv "$BUILD_DIR" "$INSTALL_PATH"
+mv "$BUILT_APP" "$INSTALL_PATH"
 echo "[6/7] Installed to Applications ✓"
 
-# --- 7. Ad-hoc code sign and strip quarantine ---
-codesign --force --deep --sign - "$INSTALL_PATH"
+# --- 7. Strip quarantine ---
 xattr -cr "$INSTALL_PATH"
 echo "[7/7] Ready ✓"
 

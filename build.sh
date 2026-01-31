@@ -59,29 +59,23 @@ pip install cx_Freeze -q
 # --- 4. Build .app bundle ---
 echo "[4/6] Building $APP_NAME.app..."
 rm -rf build/
-python setup.py build 2>&1 | tail -5
+python setup.py bdist_mac 2>&1 | tail -5
 
-# Find the built app directory (name varies by platform)
-BUILD_DIR=$(ls -d build/exe.* 2>/dev/null | head -1)
-if [ -z "$BUILD_DIR" ]; then
-    echo "ERROR: Build failed — no output directory found."
+# Find the built .app bundle
+BUILT_APP=$(ls -d build/*.app 2>/dev/null | head -1)
+if [ -z "$BUILT_APP" ]; then
+    echo "ERROR: Build failed — no .app bundle found."
     exit 1
 fi
-
-# Rename to .app bundle
-APP_PATH="$SCRIPT_DIR/$APP_NAME.app"
-rm -rf "$APP_PATH"
-mv "$BUILD_DIR" "$APP_PATH"
 
 # --- 5. Install to /Applications ---
 echo "[5/6] Installing to /Applications..."
 INSTALL_PATH="/Applications/$APP_NAME.app"
 rm -rf "$INSTALL_PATH"
-cp -R "$APP_PATH" "$INSTALL_PATH"
+mv "$BUILT_APP" "$INSTALL_PATH"
 
-# --- 6. Ad-hoc code sign and strip quarantine ---
-echo "[6/6] Signing and stripping quarantine..."
-codesign --force --deep --sign - "$INSTALL_PATH"
+# --- 6. Strip quarantine ---
+echo "[6/6] Stripping quarantine..."
 xattr -cr "$INSTALL_PATH"
 
 echo ""
@@ -89,6 +83,6 @@ echo "============================================"
 echo "  Build complete!"
 echo "  Installed to: $INSTALL_PATH"
 echo ""
-echo "  You can now launch Root Measure from"
-echo "  your Applications folder or Launchpad."
+echo "  Launch Root Measure from your"
+echo "  Applications folder or Launchpad."
 echo "============================================"

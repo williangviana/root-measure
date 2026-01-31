@@ -32,12 +32,21 @@ build_options = {
     "path": sys.path + ["scripts", "gui"],
 }
 
+bdist_mac_options = {
+    "bundle_name": "Root Measure",
+    "codesign_identity": "-",
+    "codesign_deep": True,
+}
+
 setup(
     name="RootMeasure",
     version="1.0.0",
     description="Measure root lengths from scanned agar plate images",
     author="Willian Viana",
-    options={"build_exe": build_options},
+    options={
+        "build_exe": build_options,
+        "bdist_mac": bdist_mac_options,
+    },
     executables=[
         Executable(
             "gui/app.py",

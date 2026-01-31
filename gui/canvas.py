@@ -194,7 +194,7 @@ class ImageCanvas(ctk.CTkFrame):
         self._offset_x = (cw - iw * self._scale) / 2
         self._offset_y = (ch - ih * self._scale) / 2
 
-    def zoom_to_region(self, r1, r2, c1, c2, pad_frac=0.05):
+    def zoom_to_region(self, r1, r2, c1, c2, pad_frac=0.0):
         """Zoom canvas to show a specific image region with padding."""
         if self._image_np is None:
             return

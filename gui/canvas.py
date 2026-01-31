@@ -474,6 +474,10 @@ class ImageCanvas(ctk.CTkFrame):
     def _on_left_press(self, event):
         self.canvas.focus_set()
         if self._mode == self.MODE_SELECT_PLATES:
+            # clear previous pending plate when starting a new drag
+            if self._pending_plate is not None:
+                self._pending_plate = None
+                self._redraw()
             col, row = self.canvas_to_image(event.x, event.y)
             self._rect_start = (row, col)
         elif self._mode == self.MODE_CLICK_ROOTS:

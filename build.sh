@@ -19,6 +19,10 @@ pyinstaller --clean --noconfirm \
 rm -rf "$LOCAL_WORK"
 
 APP="$LOCAL_DIST/dist/RootMeasure.app"
+
+echo "=== Stripping macOS quarantine flags ==="
+xattr -cr "$APP"
+
 echo ""
 echo "Done!  →  $APP"
 echo "You can double-click it or run:  open \"$APP\""

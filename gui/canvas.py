@@ -251,10 +251,10 @@ class ImageCanvas(ctk.CTkFrame):
                     cx1, cy1, cx2, cy2,
                     outline="#9b59b6", width=2, dash=(6, 3))
                 self._plate_rect_ids.append(rid)
-            self.canvas.create_text(
-                cx1 + 5, cy1 + 5, text=f"Plate {i + 1}",
-                fill="#9b59b6", anchor="nw",
-                font=("Helvetica", 18, "bold"))
+                self.canvas.create_text(
+                    cx1 + 5, cy1 + 5, text=f"Plate {i + 1}",
+                    fill="#9b59b6", anchor="nw",
+                    font=("Helvetica", 18, "bold"))
         # draw pending plate (not yet confirmed)
         if self._pending_plate is not None:
             r1, r2, c1, c2 = self._pending_plate

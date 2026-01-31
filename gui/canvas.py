@@ -241,13 +241,16 @@ class ImageCanvas(ctk.CTkFrame):
 
         # redraw plate rectangles (confirmed)
         self._plate_rect_ids.clear()
+        show_plate_rect = self._mode in (self.MODE_SELECT_PLATES, self.MODE_VIEW,
+                                          self.MODE_REVIEW)
         for i, (r1, r2, c1, c2) in enumerate(self._plates):
             cx1, cy1 = self.image_to_canvas(c1, r1)
             cx2, cy2 = self.image_to_canvas(c2, r2)
-            rid = self.canvas.create_rectangle(
-                cx1, cy1, cx2, cy2,
-                outline="#9b59b6", width=2, dash=(6, 3))
-            self._plate_rect_ids.append(rid)
+            if show_plate_rect:
+                rid = self.canvas.create_rectangle(
+                    cx1, cy1, cx2, cy2,
+                    outline="#9b59b6", width=2, dash=(6, 3))
+                self._plate_rect_ids.append(rid)
             self.canvas.create_text(
                 cx1 + 5, cy1 + 5, text=f"Plate {i + 1}",
                 fill="#9b59b6", anchor="nw",

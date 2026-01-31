@@ -97,17 +97,31 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
         self.canvas.handle_key(event)
 
     def _preload_libs(self):
-        """Import heavy libraries after the UI is visible."""
-        import cv2          # noqa: F401 — image loading
-        import tifffile      # noqa: F401 — TIFF support
-        import numpy         # noqa: F401 — arrays (already loaded by canvas)
-        from plate_detection import _to_uint8  # noqa: F401
-        from config import SCALE_PX_PER_CM     # noqa: F401
-        from image_processing import preprocess  # noqa: F401 — chains to cv2
-        from root_tracing import find_root_tip, trace_root  # noqa: F401 — chains to skimage, networkx, scipy
-        from utils import _compute_segments  # noqa: F401
-        from csv_output import append_results_to_csv  # noqa: F401 — chains to pandas
-        from plotting import plot_results  # noqa: F401 — chains to matplotlib, scipy.stats
+        """Import heavy libraries one at a time, keeping the UI responsive."""
+        imports = [
+            "import cv2",
+            "import tifffile",
+            "from plate_detection import _to_uint8",
+            "from config import SCALE_PX_PER_CM",
+            "from image_processing import preprocess",
+            "from root_tracing import find_root_tip, trace_root",
+            "from utils import _compute_segments",
+            "from csv_output import append_results_to_csv",
+            "from plotting import plot_results",
+        ]
+        self._preload_queue = imports
+        self._preload_next()
+
+    def _preload_next(self):
+        """Import one module, then yield to the event loop before the next."""
+        if not self._preload_queue:
+            return
+        stmt = self._preload_queue.pop(0)
+        try:
+            exec(stmt)
+        except Exception:
+            pass
+        self.after(1, self._preload_next)
 
     # --- Image loading ---
 

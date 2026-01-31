@@ -307,7 +307,8 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
             return
         # advance to next plate
         self._split_stage = 0
-        self._current_group += 1
+        if self._split:
+            self._current_group += 1
         self._current_plate_idx += 1
         if self._current_plate_idx < len(plates):
             self._enter_root_click_stage()

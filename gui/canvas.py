@@ -27,6 +27,11 @@ class ImageCanvas(ctk.CTkFrame):
         self._offset_x = 0
         self._offset_y = 0
         self._drag_start = None
+        self._zoom_settle_id = None  # after() id for deferred hi-res redraw
+        self._space_held = False     # True while spacebar held (pan mode)
+        self._pil_base = None        # cached PIL Image from numpy
+        self._img_id = None          # canvas id of the main image item
+        self._rendered_scale = None  # scale at which _photo was last rendered
 
         # interaction mode
         self._mode = self.MODE_VIEW
@@ -75,6 +80,7 @@ class ImageCanvas(ctk.CTkFrame):
         self.canvas.bind("<ButtonPress-2>", self._on_right_click)
         self.canvas.bind("<ButtonPress-3>", self._on_right_click)
         self.canvas.bind("<MouseWheel>", self._on_scroll)
+        self.canvas.bind("<Shift-MouseWheel>", self._on_scroll_h)
         # keyboard — bound at window level via bind_all in RootMeasureApp
         self.canvas.focus_set()
 
@@ -177,6 +183,14 @@ class ImageCanvas(ctk.CTkFrame):
         self._scale = 1.0
         self._offset_x = 0
         self._offset_y = 0
+        # cache PIL base image (avoids repeated fromarray)
+        if img_np is not None:
+            if len(img_np.shape) == 2:
+                self._pil_base = Image.fromarray(img_np, mode='L')
+            else:
+                self._pil_base = Image.fromarray(img_np)
+        else:
+            self._pil_base = None
         self.clear_plates()
         self.clear_roots()
         self.clear_traces()
@@ -220,28 +234,31 @@ class ImageCanvas(ctk.CTkFrame):
         self._redraw()
 
     def _redraw(self):
-        """Redraw image and all overlays."""
+        """Redraw image and all overlays at full LANCZOS quality."""
         self.canvas.delete("all")
-        if self._image_np is None:
+        self._img_id = None
+        if self._pil_base is None:
             return
 
-        ih, iw = self._image_np.shape[:2]
+        iw, ih = self._pil_base.size
         new_w = max(1, int(iw * self._scale))
         new_h = max(1, int(ih * self._scale))
 
-        if len(self._image_np.shape) == 2:
-            pil_img = Image.fromarray(self._image_np, mode='L')
-        else:
-            pil_img = Image.fromarray(self._image_np)
-
-        pil_img = pil_img.resize((new_w, new_h), Image.LANCZOS)
+        pil_img = self._pil_base.resize((new_w, new_h), Image.LANCZOS)
         self._photo = ImageTk.PhotoImage(pil_img)
-        self.canvas.create_image(
+        self._img_id = self.canvas.create_image(
             int(self._offset_x), int(self._offset_y),
             image=self._photo, anchor="nw"
         )
+        self._rendered_scale = self._scale
 
-        # redraw plate rectangles (confirmed)
+        self._draw_overlays()
+
+    def _draw_overlays(self):
+        """Draw all overlays (plates, markers, traces, reclick)."""
+        is_view = self._mode == self.MODE_VIEW
+
+        # plate rectangles (confirmed)
         self._plate_rect_ids.clear()
         show_plate_rect = self._mode in (self.MODE_SELECT_PLATES, self.MODE_VIEW,
                                           self.MODE_REVIEW)
@@ -257,7 +274,7 @@ class ImageCanvas(ctk.CTkFrame):
                     cx1 + 5, cy1 + 5, text=f"Plate {i + 1}",
                     fill="#9b59b6", anchor="nw",
                     font=("Helvetica", 18, "bold"))
-        # draw pending plate (not yet confirmed)
+        # pending plate (not yet confirmed)
         if self._pending_plate is not None:
             r1, r2, c1, c2 = self._pending_plate
             cx1, cy1 = self.image_to_canvas(c1, r1)
@@ -271,14 +288,11 @@ class ImageCanvas(ctk.CTkFrame):
                 fill="#c39bd3", anchor="nw",
                 font=("Helvetica", 16, "bold"))
 
-        # redraw root markers (hide in review mode — only show traces)
-        # group colors match CLI: red for group 0 (or non-split), blue for group 1
+        # root markers (hide in review mode — only show traces)
         _GROUP_MARKER_COLORS = ["#e63333", "#3333e6"]
         self._root_marker_ids.clear()
         if self._mode not in (self.MODE_REVIEW,):
-            # per-group numbering (restarts at 1 for each group)
             group_counters = {}
-            is_view = self._mode == self.MODE_VIEW
             clicking_roots = self._mode in (self.MODE_CLICK_ROOTS,
                                              self.MODE_CLICK_MARKS)
             active_plate = getattr(self, '_current_plate_idx', None)
@@ -288,7 +302,6 @@ class ImageCanvas(ctk.CTkFrame):
                     zip(self._root_points, self._root_flags)):
                 group = self._root_groups[i] if i < len(self._root_groups) else 0
                 group_counters[group] = group_counters.get(group, 0) + 1
-                # hide markers from other plates while clicking roots
                 plate = self._root_plates[i] if i < len(self._root_plates) else 0
                 if clicking_roots and active_plate is not None \
                         and plate != active_plate:
@@ -319,12 +332,10 @@ class ImageCanvas(ctk.CTkFrame):
                         font=("Helvetica", 9, "bold"))
                     self._root_marker_ids.extend([rid, tid])
 
-        # redraw mark circles (hide in review mode)
-        # marks use the light genotype shade to distinguish from root dots
-        _GROUP_MARK_COLOR = ["#ff8080", "#8080ff"]  # light red, light blue
+        # mark circles (hide in review mode)
+        _GROUP_MARK_COLOR = ["#ff8080", "#8080ff"]
         self._mark_marker_ids.clear()
         if self._mode not in (self.MODE_REVIEW,):
-            # draw saved marks from _all_marks (persisted across groups)
             mark_r = 3 if is_view else 4
             for ri, marks in self._all_marks.items():
                 group = self._root_groups[ri] if ri < len(self._root_groups) else 0
@@ -334,7 +345,6 @@ class ImageCanvas(ctk.CTkFrame):
                     self.canvas.create_oval(
                         cx - mark_r, cy - mark_r, cx + mark_r, cy + mark_r,
                         outline="white", fill=color, width=1)
-            # draw current batch marks (not yet saved to _all_marks)
             if self._mode == self.MODE_CLICK_MARKS:
                 current_group = getattr(self, '_current_root_group', 0)
                 color = _GROUP_MARK_COLOR[current_group % len(_GROUP_MARK_COLOR)]
@@ -350,7 +360,7 @@ class ImageCanvas(ctk.CTkFrame):
                         font=("Helvetica", 8, "bold"))
                     self._mark_marker_ids.extend([rid, tid])
 
-        # redraw traced paths with segment coloring
+        # traced paths with segment coloring
         for ti, (path, shades, mark_indices) in enumerate(self._traces):
             if len(path) < 2:
                 continue
@@ -358,13 +368,11 @@ class ImageCanvas(ctk.CTkFrame):
             w = 4 if is_selected else 2
 
             if is_selected:
-                # selected for retry: dashed orange in reclick, bright in review
                 if self._mode == self.MODE_RECLICK:
                     self._draw_path_segment(path, "#ff8c00", w, dash=(1, 2))
                 else:
                     self._draw_path_segment(path, "#ff8c00", w)
             elif mark_indices:
-                # draw each segment in alternating shades
                 boundaries = [0] + list(mark_indices) + [len(path) - 1]
                 for j in range(len(boundaries) - 1):
                     start = boundaries[j]
@@ -372,10 +380,8 @@ class ImageCanvas(ctk.CTkFrame):
                     color = shades[j % len(shades)]
                     self._draw_path_segment(path[start:end], color, w)
             else:
-                # single color
                 self._draw_path_segment(path, shades[0], w)
 
-            # draw root number label at top of trace
             if self._mode == self.MODE_REVIEW and len(path) > 0:
                 top_row, top_col = path[0]
                 lx, ly = self.image_to_canvas(top_col, top_row)
@@ -385,7 +391,7 @@ class ImageCanvas(ctk.CTkFrame):
                     fill=lbl_color, anchor="s",
                     font=("Helvetica", 10, "bold"))
 
-        # redraw reclick markers (persist across redraws)
+        # reclick markers
         if self._mode == self.MODE_RECLICK and self._reclick_points:
             cpr = getattr(self, '_reclick_clicks_per_root', 2)
             self._reclick_marker_ids.clear()
@@ -439,13 +445,51 @@ class ImageCanvas(ctk.CTkFrame):
             self._redraw()
 
     def _on_scroll(self, event):
+        """Scroll/pinch = zoom centered on cursor."""
         if self._image_np is None:
             return
+        self._do_zoom(event)
+
+    def _on_scroll_h(self, event):
+        """Horizontal scroll (Shift+MouseWheel on macOS trackpad)."""
+        if self._image_np is None:
+            return
+        self._do_zoom(event)
+
+    def _do_zoom(self, event):
+        """Zoom centered on mouse position."""
         factor = 1.1 if event.delta > 0 else 0.9
         mx, my = event.x, event.y
         self._offset_x = mx - factor * (mx - self._offset_x)
         self._offset_y = my - factor * (my - self._offset_y)
         self._scale *= factor
+        self._fast_redraw()
+
+    def _fast_redraw(self):
+        """Move existing image on canvas (instant); full re-render on settle."""
+        if self._zoom_settle_id is not None:
+            self.after_cancel(self._zoom_settle_id)
+        if self._img_id is not None and self._rendered_scale == self._scale:
+            # Pure pan — just move the image, no resize needed
+            self.canvas.coords(self._img_id,
+                               int(self._offset_x), int(self._offset_y))
+        elif self._pil_base is not None:
+            # Zoom changed — quick NEAREST resize
+            self.canvas.delete("all")
+            iw, ih = self._pil_base.size
+            new_w = max(1, int(iw * self._scale))
+            new_h = max(1, int(ih * self._scale))
+            pil_img = self._pil_base.resize((new_w, new_h), Image.NEAREST)
+            self._photo = ImageTk.PhotoImage(pil_img)
+            self._img_id = self.canvas.create_image(
+                int(self._offset_x), int(self._offset_y),
+                image=self._photo, anchor="nw")
+            self._rendered_scale = self._scale
+        self._zoom_settle_id = self.after(150, self._settle_zoom)
+
+    def _settle_zoom(self):
+        """Redraw at full quality after gesture ends."""
+        self._zoom_settle_id = None
         self._redraw()
 
     def _on_pan_start(self, event):
@@ -459,7 +503,7 @@ class ImageCanvas(ctk.CTkFrame):
         self._offset_x += dx
         self._offset_y += dy
         self._drag_start = (event.x, event.y)
-        self._redraw()
+        self._fast_redraw()
 
     def _find_nearest_trace(self, img_col, img_row, threshold=30):
         """Find the trace index nearest to an image coordinate."""
@@ -479,6 +523,9 @@ class ImageCanvas(ctk.CTkFrame):
 
     def _on_left_press(self, event):
         self.canvas.focus_set()
+        if self._space_held:
+            self._drag_start = (event.x, event.y)
+            return
         if self._mode == self.MODE_SELECT_PLATES:
             # clear previous pending plate when starting a new drag
             if self._pending_plate is not None:
@@ -544,6 +591,14 @@ class ImageCanvas(ctk.CTkFrame):
                 self._on_click_callback()
 
     def _on_left_drag(self, event):
+        if self._space_held and self._drag_start is not None:
+            dx = event.x - self._drag_start[0]
+            dy = event.y - self._drag_start[1]
+            self._offset_x += dx
+            self._offset_y += dy
+            self._drag_start = (event.x, event.y)
+            self._fast_redraw()
+            return
         if self._mode == self.MODE_SELECT_PLATES and self._rect_start is not None:
             # draw live rubber-band rectangle
             if self._rect_drag_id is not None:
@@ -555,6 +610,9 @@ class ImageCanvas(ctk.CTkFrame):
                 outline="#9b59b6", width=2, dash=(4, 2))
 
     def _on_left_release(self, event):
+        if self._space_held:
+            self._drag_start = None
+            return
         if self._mode == self.MODE_SELECT_PLATES and self._rect_start is not None:
             if self._rect_drag_id is not None:
                 self.canvas.delete(self._rect_drag_id)
@@ -622,6 +680,11 @@ class ImageCanvas(ctk.CTkFrame):
 
     def handle_key(self, event):
         """Handle keyboard events (called from app-level binding)."""
+        # spacebar hold for pan mode
+        if event.keysym == 'space':
+            self._space_held = True
+            self.canvas.configure(cursor="fleur")
+            return True
         # Cmd+Z / Ctrl+Z = undo
         if event.keysym.lower() == 'z' and (event.state & 0x8 or event.state & 0x4):
             return self._undo()
@@ -650,3 +713,10 @@ class ImageCanvas(ctk.CTkFrame):
                 self._on_done_callback()
                 return True
         return False
+
+    def handle_key_release(self, event):
+        """Handle key release events."""
+        if event.keysym == 'space':
+            self._space_held = False
+            self._drag_start = None
+            self.canvas.configure(cursor="")

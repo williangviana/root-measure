@@ -85,13 +85,31 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
 
         # global keyboard handler — works regardless of which widget has focus
         self.bind_all("<Key>", self._on_global_key)
+        self.bind_all("<KeyRelease>", self._on_global_key_release)
+        # Prevent spacebar from activating focused buttons — override at
+        # class level so space is always routed to canvas for pan mode.
+        self.bind_class("TButton", "<space>", lambda e: "break")
+        self.bind_class("TButton", "<KeyRelease-space>", lambda e: "break")
+        self.bind_class("Button", "<space>", lambda e: "break")
+        self.bind_class("Button", "<KeyRelease-space>", lambda e: "break")
 
     def _on_global_key(self, event):
         """Route keyboard events to canvas, skip if typing in an Entry."""
         widget_class = event.widget.winfo_class()
         if widget_class in ('Entry', 'TEntry', 'Text'):
             return
+        # Spacebar: always capture for pan mode, prevent button activation
+        if event.keysym == 'space':
+            self.canvas.handle_key(event)
+            return "break"
         self.canvas.handle_key(event)
+
+    def _on_global_key_release(self, event):
+        """Route key release events to canvas."""
+        if event.keysym == 'space':
+            self.canvas.handle_key_release(event)
+            return "break"
+        self.canvas.handle_key_release(event)
 
     # --- Image loading ---
 

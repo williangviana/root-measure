@@ -37,8 +37,8 @@ class ImageCanvas(ctk.CTkFrame):
         self._rect_start = None  # image coords of rect drag start
         self._rect_drag_id = None  # canvas id of live drag rect
         self._plates = []        # list of (r1, r2, c1, c2) in image coords
+        self._pending_plate = None  # drawn but not yet confirmed
         self._plate_rect_ids = []  # canvas ids of confirmed rects
-        self._plates_count_at_enter = 0
 
         # root clicking state
         self._root_points = []     # list of (row, col) in image coords
@@ -101,6 +101,7 @@ class ImageCanvas(ctk.CTkFrame):
         for rid in self._plate_rect_ids:
             self.canvas.delete(rid)
         self._plates.clear()
+        self._pending_plate = None
         self._plate_rect_ids.clear()
 
     def clear_roots(self):
@@ -238,7 +239,7 @@ class ImageCanvas(ctk.CTkFrame):
             image=self._photo, anchor="nw"
         )
 
-        # redraw plate rectangles
+        # redraw plate rectangles (confirmed)
         self._plate_rect_ids.clear()
         for i, (r1, r2, c1, c2) in enumerate(self._plates):
             cx1, cy1 = self.image_to_canvas(c1, r1)
@@ -251,6 +252,19 @@ class ImageCanvas(ctk.CTkFrame):
                 cx1 + 5, cy1 + 5, text=f"Plate {i + 1}",
                 fill="#9b59b6", anchor="nw",
                 font=("Helvetica", 18, "bold"))
+        # draw pending plate (not yet confirmed)
+        if self._pending_plate is not None:
+            r1, r2, c1, c2 = self._pending_plate
+            cx1, cy1 = self.image_to_canvas(c1, r1)
+            cx2, cy2 = self.image_to_canvas(c2, r2)
+            n = len(self._plates) + 1
+            self.canvas.create_rectangle(
+                cx1, cy1, cx2, cy2,
+                outline="#c39bd3", width=2)
+            self.canvas.create_text(
+                cx1 + 5, cy1 + 5, text=f"Plate {n} (press Enter)",
+                fill="#c39bd3", anchor="nw",
+                font=("Helvetica", 16, "bold"))
 
         # redraw root markers (hide in review mode — only show traces)
         # group colors match CLI: red for group 0 (or non-split), blue for group 1
@@ -546,10 +560,9 @@ class ImageCanvas(ctk.CTkFrame):
             if (rmax - rmin) < 20 or (cmax - cmin) < 20:
                 return
 
-            self._plates.append((rmin, rmax, cmin, cmax))
+            # store as pending — user can redraw before pressing Enter
+            self._pending_plate = (rmin, rmax, cmin, cmax)
             self._redraw()
-            if self._on_click_callback:
-                self._on_click_callback()
 
     def _on_right_click(self, event):
         """Right-click / two-finger click: undo last action."""
@@ -557,12 +570,16 @@ class ImageCanvas(ctk.CTkFrame):
 
     def _undo(self):
         """Undo last action in current mode."""
-        if self._mode == self.MODE_SELECT_PLATES and self._plates:
-            self._plates.pop()
-            self._redraw()
-            if self._on_click_callback:
-                self._on_click_callback()
-            return True
+        if self._mode == self.MODE_SELECT_PLATES:
+            if self._pending_plate is not None:
+                self._pending_plate = None
+                self._redraw()
+                return True
+            if self._plates:
+                self._plates.pop()
+                self._redraw()
+                return True
+            return False
         elif self._mode == self.MODE_CLICK_ROOTS and self._root_points:
             # only undo clicks from current group (matches CLI behavior)
             current_group = getattr(self, '_current_root_group', 0)
@@ -605,17 +622,18 @@ class ImageCanvas(ctk.CTkFrame):
                 return True
         if event.keysym == 'Return':
             if self._mode == self.MODE_SELECT_PLATES:
-                # Enter confirms drawn plate; Enter with no new plate finishes
-                if len(self._plates) > self._plates_count_at_enter:
-                    self._plates_count_at_enter = len(self._plates)
-                    # update status to prompt for next plate
+                if self._pending_plate is not None:
+                    # confirm pending plate
+                    self._plates.append(self._pending_plate)
+                    self._pending_plate = None
+                    self._redraw()
                     n = len(self._plates)
                     if hasattr(self, '_app_status_callback'):
                         self._app_status_callback(
                             f"{n} plate(s) confirmed.\n"
                             f"Draw another plate, or Enter to finish.")
                     return True
-                # no new plate — finish selection
+                # no pending plate — finish selection
             if self._on_done_callback:
                 self._on_done_callback()
                 return True

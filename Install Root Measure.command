@@ -83,7 +83,8 @@ rm -rf "$INSTALL_PATH"
 mv "$BUILD_DIR" "$INSTALL_PATH"
 echo "  [6/7] Installed to Applications ✓"
 
-# --- 7. Strip quarantine ---
+# --- 7. Ad-hoc code sign and strip quarantine ---
+codesign --force --deep --sign - "$INSTALL_PATH"
 xattr -cr "$INSTALL_PATH"
 echo "  [7/7] Ready ✓"
 

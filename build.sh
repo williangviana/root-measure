@@ -79,8 +79,9 @@ INSTALL_PATH="/Applications/$APP_NAME.app"
 rm -rf "$INSTALL_PATH"
 cp -R "$APP_PATH" "$INSTALL_PATH"
 
-# --- 6. Strip quarantine ---
-echo "[6/6] Stripping quarantine flags..."
+# --- 6. Ad-hoc code sign and strip quarantine ---
+echo "[6/6] Signing and stripping quarantine..."
+codesign --force --deep --sign - "$INSTALL_PATH"
 xattr -cr "$INSTALL_PATH"
 
 echo ""

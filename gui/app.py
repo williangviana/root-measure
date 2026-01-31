@@ -263,11 +263,11 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
         plates = self.canvas.get_plates()
         pi = self._current_plate_idx
         r1, r2, c1, c2 = plates[pi]
-        self.canvas.zoom_to_region(r1, r2, c1, c2)
         self.canvas._current_root_group = self._current_group
         self.canvas.set_mode(
             ImageCanvas.MODE_CLICK_ROOTS,
             on_done=self._plate_roots_done)
+        self.canvas.zoom_to_region(r1, r2, c1, c2)
         if self._split:
             genotypes = [g.strip() for g in
                          self.sidebar.entry_genotypes.get().split(",")

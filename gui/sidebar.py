@@ -69,14 +69,11 @@ class Sidebar(ctk.CTkScrollableFrame):
         ctk.CTkLabel(self, text="Root Measuring Tool",
                      font=ctk.CTkFont(size=18, weight="bold")).pack(
             pady=(15, 0), padx=15, anchor="w")
-        ctk.CTkLabel(self, text="v1.0",
-                     font=ctk.CTkFont(size=10),
-                     text_color="gray50").pack(padx=15, anchor="w")
         ctk.CTkLabel(self, text="Willian Viana — Dinneny Lab",
                      font=ctk.CTkFont(size=11),
                      text_color="gray").pack(padx=15, pady=(2, 0), anchor="w")
         ctk.CTkLabel(self, text="williangviana@outlook.com",
-                     font=ctk.CTkFont(size=9),
+                     font=ctk.CTkFont(size=11),
                      text_color="gray50").pack(padx=15, anchor="w")
 
         self._add_separator()
@@ -217,7 +214,7 @@ class Sidebar(ctk.CTkScrollableFrame):
         self._status_frame.pack(fill="x", pady=(15, 5))
 
         self.lbl_status = ctk.CTkLabel(
-            self._status_frame, text="Open a folder to begin.",
+            self._status_frame, text="Open a folder containing the scanned plates.",
             font=ctk.CTkFont(size=11),
             text_color="gray", wraplength=250)
         self.lbl_status.pack(pady=(0, 5), padx=15, anchor="w")

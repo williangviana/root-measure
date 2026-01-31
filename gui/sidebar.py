@@ -70,9 +70,9 @@ class Sidebar(ctk.CTkScrollableFrame):
                      font=ctk.CTkFont(size=18, weight="bold")).pack(
             pady=(15, 0), padx=15, anchor="w")
         ctk.CTkLabel(self, text="Willian Viana — Dinneny Lab",
-                     font=ctk.CTkFont(size=11),
+                     font=ctk.CTkFont(size=11, weight="bold"),
                      text_color="gray").pack(padx=15, pady=(2, 0), anchor="w")
-        ctk.CTkLabel(self, text="williangviana@outlook.com",
+        ctk.CTkLabel(self, text="Contact: williangviana@outlook.com",
                      font=ctk.CTkFont(size=11),
                      text_color="gray50").pack(padx=15, anchor="w")
 

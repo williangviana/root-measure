@@ -218,6 +218,7 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
         self.lbl_bottom.configure(text="Root Measure — Dinneny Lab")
         self.sidebar.btn_click_roots.configure(state="normal")
         self.sidebar.set_step(2)
+        self.click_roots()
 
     def click_roots(self):
         """Enter root clicking mode on canvas."""

@@ -8,8 +8,12 @@ import customtkinter as ctk
 import cv2
 import tifffile
 
-# allow importing from scripts/
-sys.path.insert(0, str(Path(__file__).parent.parent / 'scripts'))
+# allow importing from scripts/ (handle PyInstaller bundle)
+if getattr(sys, '_MEIPASS', None):
+    _base = Path(sys._MEIPASS)
+else:
+    _base = Path(__file__).parent.parent
+sys.path.insert(0, str(_base / 'scripts'))
 
 from config import SCALE_PX_PER_CM
 from plate_detection import _to_uint8

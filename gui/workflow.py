@@ -1,5 +1,14 @@
 """Measurement workflow — tracing, review, retry, and CSV saving."""
 
+import cv2
+import numpy as np
+
+from image_processing import preprocess
+from root_tracing import find_root_tip, trace_root
+from utils import _compute_segments, _find_nearest_path_index
+from csv_output import append_results_to_csv
+from plotting import plot_results
+
 from canvas import ImageCanvas
 
 # genotype color shades: [dark, light] for alternating segments
@@ -31,7 +40,6 @@ class MeasurementMixin:
 
     def _add_root_trace(self, root_idx, res):
         """Add a traced root to the canvas with genotype coloring."""
-        from utils import _find_nearest_path_index
         path = res['path']
         if path.size == 0:
             return
@@ -46,10 +54,6 @@ class MeasurementMixin:
 
     def measure(self):
         """Run preprocessing, tracing, and show results for review."""
-        import numpy as np
-        from image_processing import preprocess
-        from root_tracing import find_root_tip, trace_root
-        from utils import _compute_segments
         points = self.canvas.get_root_points()
         flags = self.canvas.get_root_flags()
         plates = self.canvas.get_plates()
@@ -132,7 +136,6 @@ class MeasurementMixin:
 
     def _show_review(self):
         """Show traced results and let user click bad traces to retry."""
-        import numpy as np
         self.sidebar.hide_progress()
         self.sidebar.set_step(4)
         self.canvas.set_mode(
@@ -243,9 +246,6 @@ class MeasurementMixin:
 
     def _do_retrace(self):
         """Re-trace roots with manually clicked points."""
-        import numpy as np
-        from root_tracing import trace_root
-        from utils import _compute_segments
         cpr = self._reclick_clicks_per_root
         groups = self.canvas.get_reclick_groups(cpr)
         self.canvas.set_mode(ImageCanvas.MODE_VIEW)
@@ -291,8 +291,6 @@ class MeasurementMixin:
 
     def _save_trace_screenshot(self):
         """Save plate image with traced root overlays (no UI elements)."""
-        import cv2
-        import numpy as np
         folder = self.folder
         if not folder and self.image_path:
             folder = self.image_path.parent
@@ -334,7 +332,6 @@ class MeasurementMixin:
 
     def _finish_measurement(self):
         """Save results and show final summary."""
-        import numpy as np
         self.sidebar.set_step(5)
         plates = self.canvas.get_plates()
         traced = [r for r in self._results
@@ -362,7 +359,6 @@ class MeasurementMixin:
 
     def _save_results(self, results, plates, scale):
         """Save measurement results to CSV."""
-        from csv_output import append_results_to_csv
         folder = self.folder
         if not folder and self.image_path:
             folder = self.image_path.parent
@@ -425,7 +421,6 @@ class MeasurementMixin:
 
     def _run_plot(self):
         """Generate plot with statistics from the saved CSV."""
-        from plotting import plot_results
         folder = self.folder
         if not folder and self.image_path:
             folder = self.image_path.parent

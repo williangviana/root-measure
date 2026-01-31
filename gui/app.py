@@ -5,13 +5,14 @@ import sys
 from pathlib import Path
 
 import customtkinter as ctk
+import cv2
+import tifffile
 
-# allow importing from scripts/ (handle PyInstaller bundle)
-if getattr(sys, '_MEIPASS', None):
-    _base = Path(sys._MEIPASS)
-else:
-    _base = Path(__file__).parent.parent
-sys.path.insert(0, str(_base / 'scripts'))
+# allow importing from scripts/
+sys.path.insert(0, str(Path(__file__).parent.parent / 'scripts'))
+
+from config import SCALE_PX_PER_CM
+from plate_detection import _to_uint8
 
 from canvas import ImageCanvas
 from sidebar import Sidebar
@@ -23,7 +24,6 @@ ctk.set_default_color_theme("blue")
 
 def _detect_dpi(image_path):
     """Try to read DPI from image metadata. Returns int DPI or None."""
-    import tifffile
     ext = Path(image_path).suffix.lower()
     try:
         if ext in ('.tif', '.tiff'):
@@ -86,30 +86,12 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
         # global keyboard handler — works regardless of which widget has focus
         self.bind_all("<Key>", self._on_global_key)
 
-        # preload heavy libraries in background (UI appears first)
-        self.after(50, self._preload_libs)
-
     def _on_global_key(self, event):
         """Route keyboard events to canvas, skip if typing in an Entry."""
         widget_class = event.widget.winfo_class()
         if widget_class in ('Entry', 'TEntry', 'Text'):
             return
         self.canvas.handle_key(event)
-
-    def _preload_libs(self):
-        """Import heavy libraries in a background thread."""
-        import threading
-        def _load():
-            import cv2                           # noqa: F401
-            import tifffile                      # noqa: F401
-            from plate_detection import _to_uint8  # noqa: F401
-            from config import SCALE_PX_PER_CM   # noqa: F401
-            from image_processing import preprocess  # noqa: F401
-            from root_tracing import find_root_tip, trace_root  # noqa: F401
-            from utils import _compute_segments  # noqa: F401
-            from csv_output import append_results_to_csv  # noqa: F401
-            from plotting import plot_results    # noqa: F401
-        threading.Thread(target=_load, daemon=True).start()
 
     # --- Image loading ---
 
@@ -131,9 +113,6 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
 
     def load_image(self, path):
         """Load and display a single image."""
-        import cv2
-        import tifffile
-        from plate_detection import _to_uint8
         self.image_path = path
         try:
             ext = path.suffix.lower()
@@ -180,7 +159,6 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
 
     def _get_scale(self):
         """Get scale (px/cm) from DPI entry or auto-detect."""
-        from config import SCALE_PX_PER_CM
         dpi_text = self.sidebar.entry_dpi.get().strip()
         if dpi_text:
             try:

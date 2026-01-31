@@ -16,16 +16,29 @@ echo "  Root Measure — Build"
 echo "============================================"
 echo ""
 
-# --- 1. Check for Python 3 ---
+# --- 1. Ensure Python 3 is installed ---
 if ! command -v python3 &>/dev/null; then
-    echo "ERROR: python3 not found."
-    echo "Install Python 3 from https://www.python.org/downloads/"
-    echo "or via Homebrew:  brew install python"
-    exit 1
+    echo "[1/6] Python 3 not found — installing via Homebrew..."
+
+    # Install Homebrew if missing
+    if ! command -v brew &>/dev/null; then
+        echo "       Installing Homebrew first..."
+        /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+
+        # Add Homebrew to PATH for this session
+        if [ -f /opt/homebrew/bin/brew ]; then
+            eval "$(/opt/homebrew/bin/brew shellenv)"
+        elif [ -f /usr/local/bin/brew ]; then
+            eval "$(/usr/local/bin/brew shellenv)"
+        fi
+    fi
+
+    brew install python
+    hash -r  # refresh command cache
 fi
 
 PY_VERSION=$(python3 -c "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}')")
-echo "[1/6] Found Python $PY_VERSION"
+echo "[1/6] Using Python $PY_VERSION"
 
 # --- 2. Create virtual environment ---
 if [ ! -d "$VENV_DIR" ]; then

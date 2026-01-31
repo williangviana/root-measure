@@ -195,6 +195,7 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
         self.canvas.clear_roots()
         self.canvas.clear_traces()
         self.canvas._plates_count_at_enter = 0
+        self.canvas._app_status_callback = self.sidebar.set_status
         self.canvas.set_mode(
             ImageCanvas.MODE_SELECT_PLATES,
             on_done=self._plates_done)

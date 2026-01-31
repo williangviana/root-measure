@@ -605,9 +605,15 @@ class ImageCanvas(ctk.CTkFrame):
                 return True
         if event.keysym == 'Return':
             if self._mode == self.MODE_SELECT_PLATES:
-                # first Enter confirms drawn plate; second Enter (no new plate) finishes
+                # Enter confirms drawn plate; Enter with no new plate finishes
                 if len(self._plates) > self._plates_count_at_enter:
                     self._plates_count_at_enter = len(self._plates)
+                    # update status to prompt for next plate
+                    n = len(self._plates)
+                    if hasattr(self, '_app_status_callback'):
+                        self._app_status_callback(
+                            f"{n} plate(s) confirmed.\n"
+                            f"Draw another plate, or Enter to finish.")
                     return True
                 # no new plate — finish selection
             if self._on_done_callback:

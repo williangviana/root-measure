@@ -86,12 +86,28 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
         # global keyboard handler — works regardless of which widget has focus
         self.bind_all("<Key>", self._on_global_key)
 
+        # preload heavy libraries in background (UI appears first)
+        self.after(50, self._preload_libs)
+
     def _on_global_key(self, event):
         """Route keyboard events to canvas, skip if typing in an Entry."""
         widget_class = event.widget.winfo_class()
         if widget_class in ('Entry', 'TEntry', 'Text'):
             return
         self.canvas.handle_key(event)
+
+    def _preload_libs(self):
+        """Import heavy libraries after the UI is visible."""
+        import cv2          # noqa: F401 — image loading
+        import tifffile      # noqa: F401 — TIFF support
+        import numpy         # noqa: F401 — arrays (already loaded by canvas)
+        from plate_detection import _to_uint8  # noqa: F401
+        from config import SCALE_PX_PER_CM     # noqa: F401
+        from image_processing import preprocess  # noqa: F401 — chains to cv2
+        from root_tracing import find_root_tip, trace_root  # noqa: F401 — chains to skimage, networkx, scipy
+        from utils import _compute_segments  # noqa: F401
+        from csv_output import append_results_to_csv  # noqa: F401 — chains to pandas
+        from plotting import plot_results  # noqa: F401 — chains to matplotlib, scipy.stats
 
     # --- Image loading ---
 

@@ -25,26 +25,26 @@ if ! command -v python3 &>/dev/null; then
 fi
 
 PY_VERSION=$(python3 -c "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}')")
-echo "[1/5] Found Python $PY_VERSION"
+echo "[1/6] Found Python $PY_VERSION"
 
 # --- 2. Create virtual environment ---
 if [ ! -d "$VENV_DIR" ]; then
-    echo "[2/5] Creating virtual environment..."
+    echo "[2/6] Creating virtual environment..."
     python3 -m venv "$VENV_DIR"
 else
-    echo "[2/5] Virtual environment exists"
+    echo "[2/6] Virtual environment exists"
 fi
 
 source "$VENV_DIR/bin/activate"
 
 # --- 3. Install dependencies ---
-echo "[3/5] Installing dependencies..."
+echo "[3/6] Installing dependencies..."
 pip install --upgrade pip -q
 pip install -r requirements.txt -q
 pip install cx_Freeze -q
 
 # --- 4. Build .app bundle ---
-echo "[4/5] Building $APP_NAME.app..."
+echo "[4/6] Building $APP_NAME.app..."
 rm -rf build/
 python setup.py build 2>&1 | tail -5
 
@@ -60,16 +60,21 @@ APP_PATH="$SCRIPT_DIR/$APP_NAME.app"
 rm -rf "$APP_PATH"
 mv "$BUILD_DIR" "$APP_PATH"
 
-# --- 5. Strip quarantine ---
-echo "[5/5] Stripping quarantine flags..."
-xattr -cr "$APP_PATH"
+# --- 5. Install to /Applications ---
+echo "[5/6] Installing to /Applications..."
+INSTALL_PATH="/Applications/$APP_NAME.app"
+rm -rf "$INSTALL_PATH"
+cp -R "$APP_PATH" "$INSTALL_PATH"
+
+# --- 6. Strip quarantine ---
+echo "[6/6] Stripping quarantine flags..."
+xattr -cr "$INSTALL_PATH"
 
 echo ""
 echo "============================================"
 echo "  Build complete!"
-echo "  $APP_PATH"
+echo "  Installed to: $INSTALL_PATH"
 echo ""
-echo "  To distribute: copy '$APP_NAME.app' to"
-echo "  the target Mac, then run:"
-echo "    xattr -cr '$APP_NAME.app'"
+echo "  You can now launch Root Measure from"
+echo "  your Applications folder or Launchpad."
 echo "============================================"

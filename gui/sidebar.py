@@ -90,6 +90,11 @@ class Sidebar(ctk.CTkScrollableFrame):
         self.sec_images = _Section(self, "SCANNED PLATES")
         # hidden until folder loaded
         self._image_list_frame = None
+        self.btn_finish_plot = ctk.CTkButton(
+            self.sec_images.body, text="Finish & Plot",
+            fg_color="#217346",
+            command=lambda: app.finish_and_plot())
+        # hidden until at least one image is processed
 
         # ===== SECTION: IMAGE SETTINGS =====
         self.sec_settings = _Section(self, "SCAN SETTINGS")
@@ -209,6 +214,11 @@ class Sidebar(ctk.CTkScrollableFrame):
             state="disabled", fg_color=self._step_color_idle)
         self.btn_save.pack(pady=3, padx=15, fill="x")
 
+        self.btn_next_image = ctk.CTkButton(
+            b, text="Next Image \u00bb", fg_color="#2b5797",
+            command=app.next_image)
+        # hidden until measurement finishes
+
         # --- Status area (always visible, below workflow) ---
         self._status_frame = ctk.CTkFrame(self, fg_color="transparent")
         self._status_frame.pack(fill="x", pady=(15, 5))
@@ -281,8 +291,10 @@ class Sidebar(ctk.CTkScrollableFrame):
 
     # --- phase transitions ---
 
-    def advance_to_images(self, folder_name, images):
+    def advance_to_images(self, folder_name, images, processed=None):
         """Phase 1: folder loaded — show images, collapse folder."""
+        if processed is None:
+            processed = set()
         self.sec_folder.collapse(summary=folder_name)
         # populate image list
         if self._image_list_frame is not None:
@@ -291,24 +303,36 @@ class Sidebar(ctk.CTkScrollableFrame):
             self.sec_images.body, fg_color="transparent")
         self._image_list_frame.pack(fill="x", padx=10, pady=5)
         for img_path in images:
+            done = img_path in processed
+            label = f"\u2713  {img_path.name}" if done else img_path.name
+            text_color = "#217346" if done else "white"
             btn = ctk.CTkButton(
                 self._image_list_frame,
-                text=img_path.name,
+                text=label,
                 font=ctk.CTkFont(size=11),
                 height=28,
                 fg_color="transparent",
-                text_color="white",
+                text_color=text_color,
                 hover_color="gray30",
                 anchor="w",
                 command=lambda p=img_path: self.app.load_image(p))
             btn.pack(fill="x", pady=1)
+        self.btn_finish_plot.pack_forget()
+        if len(processed) > 0:
+            self.btn_finish_plot.pack(pady=(8, 5), padx=10, fill="x")
         self.sec_images.show()
         self.sec_images.expand()
         # hide later sections
         self.sec_settings.hide()
         self.sec_experiment.hide()
         self.sec_workflow.hide()
-        self.set_status(f"{len(images)} scan(s) found.")
+        self.btn_next_image.pack_forget()
+        n_done = len(processed)
+        n_total = len(images)
+        if n_done > 0:
+            self.set_status(f"{n_done}/{n_total} scan(s) done. Select next image.")
+        else:
+            self.set_status(f"{n_total} scan(s) found.")
 
     def advance_to_settings(self, image_name, dpi):
         """Phase 2: image selected — show settings, collapse images."""

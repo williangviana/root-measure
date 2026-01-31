@@ -62,6 +62,7 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
         self.images = []           # list of Path objects
         self._plate_offset = 0     # accumulated plate offset across images
         self._root_offset = 0      # accumulated root offset across images
+        self._processed_images = set()  # image paths already measured
 
         # layout: sidebar + canvas
         self.grid_columnconfigure(1, weight=1)
@@ -186,6 +187,21 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
         """Called when user clicks Start Workflow."""
         self.sidebar.advance_to_workflow()
         self.select_plates()
+
+    def next_image(self):
+        """Return to image selection after finishing measurement."""
+        if self.image_path:
+            self._processed_images.add(self.image_path)
+        self.sidebar.advance_to_images(
+            self.folder.name, self.images, self._processed_images)
+
+    def finish_and_plot(self):
+        """All images done — generate final plot."""
+        if self.sidebar.var_plot.get():
+            self._run_plot()
+        self.sidebar.set_status(
+            self.sidebar.lbl_status.cget("text") +
+            "\nAll done!")
 
     # --- Plate & root clicking flow ---
 

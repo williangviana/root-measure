@@ -342,19 +342,19 @@ class MeasurementMixin:
             msg += f"\nMean: {np.mean(lengths):.2f} cm, "
             msg += f"Range: {min(lengths):.2f}–{max(lengths):.2f} cm"
         self.sidebar.set_status(msg)
-        self.lbl_bottom.configure(
-            text=f"Traced {len(traced)}/{len(self._results)} roots")
+        self.lbl_bottom.configure(text="Willian Viana — Dinneny Lab")
 
         self._save_results(self._results, plates, self._scale_val)
         self._save_trace_screenshot()
-
-        if self.sidebar.var_plot.get():
-            self._run_plot()
 
         self.sidebar.set_step(6)  # marks all 5 steps as done (green)
         self.sidebar.btn_select_plates.configure(state="normal")
         self.sidebar.btn_click_roots.configure(state="normal")
         self.sidebar.btn_measure.configure(state="normal")
+
+        if self.image_path:
+            self._processed_images.add(self.image_path)
+        self.sidebar.btn_next_image.pack(pady=(10, 3), padx=15, fill="x")
 
     def _save_results(self, results, plates, scale):
         """Save measurement results to CSV."""

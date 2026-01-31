@@ -66,12 +66,18 @@ class Sidebar(ctk.CTkScrollableFrame):
         self.app = app
 
         # --- Header ---
-        ctk.CTkLabel(self, text="Root Measure",
-                     font=ctk.CTkFont(size=20, weight="bold")).pack(
-            pady=(15, 2), padx=15, anchor="w")
-        ctk.CTkLabel(self, text="Dinneny Lab",
-                     font=ctk.CTkFont(size=12),
-                     text_color="gray").pack(padx=15, anchor="w")
+        ctk.CTkLabel(self, text="Root Measuring Tool",
+                     font=ctk.CTkFont(size=18, weight="bold")).pack(
+            pady=(15, 0), padx=15, anchor="w")
+        ctk.CTkLabel(self, text="v1.0",
+                     font=ctk.CTkFont(size=10),
+                     text_color="gray50").pack(padx=15, anchor="w")
+        ctk.CTkLabel(self, text="Willian Viana — Dinneny Lab",
+                     font=ctk.CTkFont(size=11),
+                     text_color="gray").pack(padx=15, pady=(2, 0), anchor="w")
+        ctk.CTkLabel(self, text="williangviana@outlook.com",
+                     font=ctk.CTkFont(size=9),
+                     text_color="gray50").pack(padx=15, anchor="w")
 
         self._add_separator()
 
@@ -84,12 +90,12 @@ class Sidebar(ctk.CTkScrollableFrame):
         self.btn_load_folder.pack(pady=5, padx=15, fill="x")
 
         # ===== SECTION: IMAGES =====
-        self.sec_images = _Section(self, "IMAGES")
+        self.sec_images = _Section(self, "SCANNED PLATES")
         # hidden until folder loaded
         self._image_list_frame = None
 
         # ===== SECTION: IMAGE SETTINGS =====
-        self.sec_settings = _Section(self, "IMAGE SETTINGS")
+        self.sec_settings = _Section(self, "SCAN SETTINGS")
         b = self.sec_settings.body
         ctk.CTkLabel(b, text="DPI:",
                      font=ctk.CTkFont(size=11)).pack(padx=15, anchor="w")
@@ -206,17 +212,19 @@ class Sidebar(ctk.CTkScrollableFrame):
             state="disabled", fg_color=self._step_color_idle)
         self.btn_save.pack(pady=3, padx=15, fill="x")
 
-        self._add_separator()
+        # --- Status area (always visible, below workflow) ---
+        self._status_frame = ctk.CTkFrame(self, fg_color="transparent")
+        self._status_frame.pack(fill="x", pady=(15, 5))
 
-        # --- Status (always visible) ---
         self.lbl_status = ctk.CTkLabel(
-            self, text="Open a folder to begin.",
+            self._status_frame, text="Open a folder to begin.",
             font=ctk.CTkFont(size=11),
             text_color="gray", wraplength=250)
-        self.lbl_status.pack(pady=10, padx=15, anchor="w")
+        self.lbl_status.pack(pady=(0, 5), padx=15, anchor="w")
 
-        # --- Progress bar (packed then hidden so re-pack works reliably) ---
-        self._progress_frame = ctk.CTkFrame(self, fg_color="transparent")
+        # progress bar inside status area
+        self._progress_frame = ctk.CTkFrame(self._status_frame,
+                                             fg_color="transparent")
         self.progress_bar = ctk.CTkProgressBar(self._progress_frame, width=250)
         self.progress_bar.set(0)
         self.progress_bar.pack(padx=15, pady=(0, 2), fill="x")
@@ -224,7 +232,7 @@ class Sidebar(ctk.CTkScrollableFrame):
             self._progress_frame, text="",
             font=ctk.CTkFont(size=10), text_color="gray50")
         self.lbl_progress.pack(padx=15, anchor="w")
-        self._progress_frame.pack(fill="x", padx=15)
+        self._progress_frame.pack(fill="x")
         self._progress_frame.pack_forget()
 
     # --- helpers ---
@@ -261,7 +269,7 @@ class Sidebar(ctk.CTkScrollableFrame):
         self._progress_total = total
         self.progress_bar.set(0)
         self.lbl_progress.configure(text=f"0 / {total}")
-        self._progress_frame.pack(fill="x", padx=15)
+        self._progress_frame.pack(fill="x")
 
     def update_progress(self, current):
         frac = current / self._progress_total
@@ -301,7 +309,7 @@ class Sidebar(ctk.CTkScrollableFrame):
         self.sec_settings.hide()
         self.sec_experiment.hide()
         self.sec_workflow.hide()
-        self.set_status(f"{len(images)} image(s) found.")
+        self.set_status(f"{len(images)} scan(s) found.")
 
     def advance_to_settings(self, image_name, dpi):
         """Phase 2: image selected — show settings, collapse images."""

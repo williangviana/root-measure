@@ -51,7 +51,7 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
 
     def __init__(self):
         super().__init__()
-        self.title("Root Measure")
+        self.title("Root Measuring Tool v1.0")
         self.geometry("1400x900")
         self.minsize(900, 600)
 
@@ -78,7 +78,7 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
         self.status_bar.grid(row=1, column=0, columnspan=2, sticky="ew")
         self.status_bar.grid_propagate(False)
         self.lbl_bottom = ctk.CTkLabel(
-            self.status_bar, text="Root Measure — Dinneny Lab",
+            self.status_bar, text="Willian Viana — Dinneny Lab",
             font=ctk.CTkFont(size=12, weight="bold"), text_color="#cccccc")
         self.lbl_bottom.pack(side="left", padx=10)
 
@@ -105,7 +105,7 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
         self.images = list_images_in_folder(self.folder)
 
         if not self.images:
-            self.sidebar.set_status(f"No images found in {self.folder.name}")
+            self.sidebar.set_status(f"No scans found in {self.folder.name}")
             return
 
         self.sidebar.advance_to_images(self.folder.name, self.images)
@@ -215,7 +215,7 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
             return
         self.canvas.set_mode(ImageCanvas.MODE_VIEW)
         self.sidebar.set_status(f"{len(plates)} plate(s) selected.")
-        self.lbl_bottom.configure(text="Root Measure — Dinneny Lab")
+        self.lbl_bottom.configure(text="Willian Viana — Dinneny Lab")
         self.sidebar.btn_click_roots.configure(state="normal")
         self.sidebar.set_step(2)
         self.click_roots()

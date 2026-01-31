@@ -219,13 +219,18 @@ class Sidebar(ctk.CTkScrollableFrame):
         self.btn_review.pack(pady=3, padx=15, fill="x")
 
         self.btn_save = ctk.CTkButton(
-            b, text="5. Save & Plot", command=None,
+            b, text="5. Save to file", command=None,
             state="disabled", fg_color=self._step_color_idle)
         self.btn_save.pack(pady=3, padx=15, fill="x")
 
         self.btn_next_image = ctk.CTkButton(
             b, text="Next Image \u00bb", fg_color="#2b5797",
             command=app.next_image)
+        # hidden until measurement finishes
+
+        self.btn_stop = ctk.CTkButton(
+            b, text="Finish & Plot", fg_color="#217346",
+            command=lambda: app.finish_and_plot())
         # hidden until measurement finishes
 
         # --- Status area (always visible, below workflow) ---
@@ -336,6 +341,7 @@ class Sidebar(ctk.CTkScrollableFrame):
         self.sec_experiment.hide()
         self.sec_workflow.hide()
         self.btn_next_image.pack_forget()
+        self.btn_stop.pack_forget()
         n_done = len(processed)
         n_total = len(images)
         if n_done > 0:

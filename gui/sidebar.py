@@ -270,7 +270,8 @@ class Sidebar(ctk.CTkScrollableFrame):
 
     def set_status(self, text):
         self.lbl_status.configure(text=text)
-        if not self._status_frame.winfo_ismapped():
+        if not self._progress_frame.winfo_ismapped():
+            self._status_frame.pack_forget()
             self._status_frame.pack(fill="x", pady=(15, 5))
 
     def set_step(self, step):

@@ -1,12 +1,12 @@
 #!/bin/bash
 # Create a distributable DMG from RootMeasure.app
 set -e
-cd "$(dirname "$0")"
 
-APP="dist/RootMeasure.app"
-DMG="dist/RootMeasure.dmg"
+LOCAL_DIST="$HOME/RootMeasure-build/dist"
+APP="$LOCAL_DIST/RootMeasure.app"
+DMG="$LOCAL_DIST/RootMeasure.dmg"
 VOLUME="RootMeasure"
-STAGING="dist/dmg_staging"
+STAGING="$LOCAL_DIST/dmg_staging"
 
 if [ ! -d "$APP" ]; then
     echo "Error: $APP not found. Run build.sh first."

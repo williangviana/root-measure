@@ -97,31 +97,19 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
         self.canvas.handle_key(event)
 
     def _preload_libs(self):
-        """Import heavy libraries one at a time, keeping the UI responsive."""
-        imports = [
-            "import cv2",
-            "import tifffile",
-            "from plate_detection import _to_uint8",
-            "from config import SCALE_PX_PER_CM",
-            "from image_processing import preprocess",
-            "from root_tracing import find_root_tip, trace_root",
-            "from utils import _compute_segments",
-            "from csv_output import append_results_to_csv",
-            "from plotting import plot_results",
-        ]
-        self._preload_queue = imports
-        self._preload_next()
-
-    def _preload_next(self):
-        """Import one module, then yield to the event loop before the next."""
-        if not self._preload_queue:
-            return
-        stmt = self._preload_queue.pop(0)
-        try:
-            exec(stmt)
-        except Exception:
-            pass
-        self.after(1, self._preload_next)
+        """Import heavy libraries in a background thread."""
+        import threading
+        def _load():
+            import cv2                           # noqa: F401
+            import tifffile                      # noqa: F401
+            from plate_detection import _to_uint8  # noqa: F401
+            from config import SCALE_PX_PER_CM   # noqa: F401
+            from image_processing import preprocess  # noqa: F401
+            from root_tracing import find_root_tip, trace_root  # noqa: F401
+            from utils import _compute_segments  # noqa: F401
+            from csv_output import append_results_to_csv  # noqa: F401
+            from plotting import plot_results    # noqa: F401
+        threading.Thread(target=_load, daemon=True).start()
 
     # --- Image loading ---
 

@@ -135,7 +135,7 @@ class Sidebar(ctk.CTkScrollableFrame):
         self.chk_split.pack(pady=5, padx=15, anchor="w")
 
         self.btn_next_settings = ctk.CTkButton(
-            b, text="Next \u00bb", fg_color="#217346",
+            b, text="Next \u00bb", fg_color="#2b5797",
             command=lambda: app._on_next_settings())
         self.btn_next_settings.pack(pady=(10, 5), padx=15, fill="x")
 

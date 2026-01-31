@@ -1,14 +1,13 @@
 #!/bin/bash
 # Double-click this file to install Root Measure.
 # Everything is automatic — no Terminal knowledge needed.
+# Send ONLY this file to someone and it handles the rest.
 
 set -e
 
-SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-cd "$SCRIPT_DIR"
-
 APP_NAME="Root Measure"
-VENV_DIR="$SCRIPT_DIR/.venv"
+REPO="williangviana/root-measure"
+WORK_DIR="$HOME/.root-measure-install"
 
 clear
 echo ""
@@ -22,7 +21,7 @@ echo ""
 
 # --- 1. Ensure Python 3 is installed ---
 if ! command -v python3 &>/dev/null; then
-    echo "  [1/6] Installing Python (this may take a few minutes)..."
+    echo "  [1/7] Installing Python..."
 
     if ! command -v brew &>/dev/null; then
         echo "         Installing Homebrew first..."
@@ -40,25 +39,32 @@ if ! command -v python3 &>/dev/null; then
 fi
 
 PY_VERSION=$(python3 -c "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}')")
-echo "  [1/6] Python $PY_VERSION ✓"
+echo "  [1/7] Python $PY_VERSION ✓"
 
-# --- 2. Create virtual environment ---
-if [ ! -d "$VENV_DIR" ]; then
-    python3 -m venv "$VENV_DIR"
-fi
+# --- 2. Download project from GitHub ---
+echo "  [2/7] Downloading Root Measure..."
+rm -rf "$WORK_DIR"
+mkdir -p "$WORK_DIR"
+curl -sL "https://github.com/$REPO/archive/refs/heads/master.tar.gz" | tar xz -C "$WORK_DIR" --strip-components=1
+
+cd "$WORK_DIR"
+echo "  [2/7] Downloaded ✓"
+
+# --- 3. Create virtual environment ---
+VENV_DIR="$WORK_DIR/.venv"
+python3 -m venv "$VENV_DIR"
 source "$VENV_DIR/bin/activate"
-echo "  [2/6] Virtual environment ✓"
+echo "  [3/7] Virtual environment ✓"
 
-# --- 3. Install dependencies ---
-echo "  [3/6] Installing dependencies..."
+# --- 4. Install dependencies ---
+echo "  [4/7] Installing dependencies..."
 pip install --upgrade pip -q
 pip install -r requirements.txt -q
 pip install cx_Freeze -q
-echo "  [3/6] Dependencies ✓"
+echo "  [4/7] Dependencies ✓"
 
-# --- 4. Build .app bundle ---
-echo "  [4/6] Building app..."
-rm -rf build/
+# --- 5. Build .app bundle ---
+echo "  [5/7] Building app..."
 python setup.py build 2>&1 | tail -3
 
 BUILD_DIR=$(ls -d build/exe.* 2>/dev/null | head -1)
@@ -69,24 +75,20 @@ if [ -z "$BUILD_DIR" ]; then
     read -n 1
     exit 1
 fi
+echo "  [5/7] Build ✓"
 
-APP_PATH="$SCRIPT_DIR/$APP_NAME.app"
-rm -rf "$APP_PATH"
-mv "$BUILD_DIR" "$APP_PATH"
-echo "  [4/6] Build ✓"
-
-# --- 5. Install to /Applications ---
+# --- 6. Install to /Applications ---
 INSTALL_PATH="/Applications/$APP_NAME.app"
 rm -rf "$INSTALL_PATH"
-cp -R "$APP_PATH" "$INSTALL_PATH"
-echo "  [5/6] Installed to Applications ✓"
+mv "$BUILD_DIR" "$INSTALL_PATH"
+echo "  [6/7] Installed to Applications ✓"
 
-# --- 6. Strip quarantine ---
+# --- 7. Strip quarantine ---
 xattr -cr "$INSTALL_PATH"
-echo "  [6/6] Ready ✓"
+echo "  [7/7] Ready ✓"
 
-# Clean up local build
-rm -rf "$APP_PATH" build/
+# Clean up
+rm -rf "$WORK_DIR"
 
 echo ""
 echo "  ============================================"

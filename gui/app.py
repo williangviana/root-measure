@@ -5,8 +5,6 @@ import sys
 from pathlib import Path
 
 import customtkinter as ctk
-import cv2
-import tifffile
 
 # allow importing from scripts/ (handle PyInstaller bundle)
 if getattr(sys, '_MEIPASS', None):
@@ -14,9 +12,6 @@ if getattr(sys, '_MEIPASS', None):
 else:
     _base = Path(__file__).parent.parent
 sys.path.insert(0, str(_base / 'scripts'))
-
-from config import SCALE_PX_PER_CM
-from plate_detection import _to_uint8
 
 from canvas import ImageCanvas
 from sidebar import Sidebar
@@ -28,6 +23,7 @@ ctk.set_default_color_theme("blue")
 
 def _detect_dpi(image_path):
     """Try to read DPI from image metadata. Returns int DPI or None."""
+    import tifffile
     ext = Path(image_path).suffix.lower()
     try:
         if ext in ('.tif', '.tiff'):
@@ -117,6 +113,9 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
 
     def load_image(self, path):
         """Load and display a single image."""
+        import cv2
+        import tifffile
+        from plate_detection import _to_uint8
         self.image_path = path
         try:
             ext = path.suffix.lower()
@@ -163,6 +162,7 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
 
     def _get_scale(self):
         """Get scale (px/cm) from DPI entry or auto-detect."""
+        from config import SCALE_PX_PER_CM
         dpi_text = self.sidebar.entry_dpi.get().strip()
         if dpi_text:
             try:

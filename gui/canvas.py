@@ -260,13 +260,20 @@ class ImageCanvas(ctk.CTkFrame):
             # per-group numbering (restarts at 1 for each group)
             group_counters = {}
             is_view = self._mode == self.MODE_VIEW
+            clicking_roots = self._mode in (self.MODE_CLICK_ROOTS,
+                                             self.MODE_CLICK_MARKS)
+            active_group = getattr(self, '_current_root_group', None)
             dot_r = 3 if is_view else 5
             cross_s = 4 if is_view else 6
             for i, ((row, col), flag) in enumerate(
                     zip(self._root_points, self._root_flags)):
-                cx, cy = self.image_to_canvas(col, row)
                 group = self._root_groups[i] if i < len(self._root_groups) else 0
                 group_counters[group] = group_counters.get(group, 0) + 1
+                # hide markers from other groups while clicking roots
+                if clicking_roots and active_group is not None \
+                        and group != active_group:
+                    continue
+                cx, cy = self.image_to_canvas(col, row)
                 display_num = group_counters[group]
                 marker_color = _GROUP_MARKER_COLORS[group % len(_GROUP_MARKER_COLORS)]
                 if flag is not None:

@@ -36,18 +36,16 @@ root_measure/
 │   ├── sidebar.py                 # Sidebar: collapsible sections, settings, progress bar
 │   ├── canvas.py                  # ImageCanvas: plate selection, root clicking, review, zoom
 │   └── workflow.py                # MeasurementMixin: tracing, retry, CSV saving, plotting
-├── scripts/                       # Shared backend + legacy CLI
+├── scripts/                       # Shared backend (tracing, CSV, plotting)
 │   ├── config.py                  # Constants and ROI helper functions
 │   ├── image_processing.py        # preprocess() — binary root mask generation
-│   ├── plate_detection.py         # Plate detection, interior cropping, label prompting
+│   ├── plate_detection.py         # Plate detection, interior cropping
 │   ├── root_tracing.py            # Root tip detection, skeleton graph, path tracing
 │   ├── csv_output.py              # CSV append logic
 │   ├── plotting.py                # Box plots with statistics (ANOVA, t-test, Tukey, CLD)
-│   ├── utils.py                   # Image listing, path helpers, segment computation
-│   ├── measure_roots.py           # Legacy CLI entry point (not primary)
-│   ├── click_collector.py         # Legacy CLI matplotlib click handler
-│   └── results_display.py         # Legacy CLI traced root overlay
+│   └── utils.py                   # Image listing, path helpers, segment computation
 ├── output/                        # CSV results (gitignored)
+├── setup.py                       # cx_Freeze build config (standalone .app)
 ├── RootMeasure.command            # macOS launcher
 ├── requirements.txt
 ├── .gitignore
@@ -61,4 +59,4 @@ root_measure/
 - **canvas.py**: CustomTkinter canvas with modes: VIEW, SELECT_PLATES, CLICK_ROOTS, CLICK_MARKS, REVIEW, RECLICK. Handles zoom, pan, drawing.
 - **workflow.py**: MeasurementMixin added to RootMeasureApp. Runs preprocessing, tracing loop, review/retry, CSV save, and plotting.
 
-All new features should target the **gui/** folder. The `scripts/` folder contains shared backend logic (tracing, CSV, plotting) imported by both GUI and legacy CLI.
+All new features should target the **gui/** folder. The `scripts/` folder contains shared backend logic (tracing, CSV, plotting) imported by the GUI.

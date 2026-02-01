@@ -198,7 +198,7 @@ def save_session(session_path, app):
         },
     }
 
-    session_path.parent.mkdir(exist_ok=True)
+    session_path.parent.mkdir(parents=True, exist_ok=True)
     tmp = session_path.with_suffix('.tmp')
     tmp.write_text(json.dumps(data, indent=2))
     tmp.replace(session_path)

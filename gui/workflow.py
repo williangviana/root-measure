@@ -202,6 +202,7 @@ class MeasurementMixin:
                 self.canvas.zoom_to_region(r1, r2, c1, c2)
                 break
         self._show_reclick_status()
+        self.sidebar.btn_continue_later_mid.pack(pady=3, padx=15, fill="x")
 
     def _show_reclick_status(self):
         """Show status for current reclick root."""
@@ -251,6 +252,7 @@ class MeasurementMixin:
 
     def _do_retrace(self):
         """Re-trace roots with manually clicked points."""
+        self.sidebar.btn_continue_later_mid.pack_forget()
         # ensure binary mask exists (may be missing after session restore)
         if not hasattr(self, '_binary') or self._binary is None:
             self.sidebar.set_status("Preprocessing...")

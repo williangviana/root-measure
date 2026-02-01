@@ -108,6 +108,12 @@ def save_session(session_path, app):
         'settings': _collect_settings(app.sidebar),
         'canvas': _collect_canvas(app.canvas),
         'workflow_step': _get_workflow_step(app.sidebar),
+        'click_state': {
+            'plate_idx': getattr(app, '_current_plate_idx', 0),
+            'split': getattr(app, '_split', False),
+            'current_group': getattr(app, '_current_group', 0),
+            'split_stage': getattr(app, '_split_stage', 0),
+        },
     }
 
     session_path.parent.mkdir(exist_ok=True)
@@ -166,6 +172,7 @@ def _collect_canvas(canvas):
         'root_groups': list(canvas._root_groups),
         'root_plates': list(canvas._root_plates),
         'all_marks': all_marks,
+        'mark_points': [list(p) for p in canvas._mark_points],
         'traces': traces,
     }
 

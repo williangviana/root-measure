@@ -236,24 +236,25 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
             self.sidebar.sec_folder.collapse(summary=self.folder.name)
             plates = self.canvas.get_plates()
             points = self.canvas.get_root_points()
-            # resume into root clicking if saved mid-click
+            # resume into root/marks clicking if saved mid-click
             if step == 2 and plates and points:
-                root_plates = self.canvas._root_plates
-                last_plate = max(root_plates) if root_plates else 0
-                self._current_plate_idx = last_plate
-                self._split = self.sidebar.var_split.get()
-                self._current_group = 0
-                self._split_stage = 0
-                if self._split and root_plates:
-                    groups = self.canvas._root_groups
-                    self._current_group = max(groups) if groups else 0
-                    self._split_stage = self._current_group % 2
+                cs = data.get('click_state', {})
+                self._current_plate_idx = cs.get('plate_idx', 0)
+                self._split = cs.get('split', False)
+                self._current_group = cs.get('current_group', 0)
+                self._split_stage = cs.get('split_stage', 0)
                 self.canvas._current_root_group = self._current_group
-                self.click_roots(resume=True)
+                # restore in-progress mark points
+                mark_pts = canvas_data.get('mark_points', [])
+                if mark_pts:
+                    self.canvas._mark_points = [tuple(p) for p in mark_pts]
+                    self._resume_marks_phase()
+                else:
+                    self.click_roots(resume=True)
                 self.sidebar.set_status(
                     f"Session restored: {len(points)} root(s) on "
                     f"{len(plates)} plate(s).\n"
-                    f"Continue clicking roots.")
+                    f"Continue where you left off.")
             elif step >= 6:
                 # measurement complete — show action buttons
                 self.sidebar.btn_select_plates.configure(state="normal")
@@ -578,6 +579,37 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
         self.measure()
 
     # --- Marks phase ---
+
+    def _resume_marks_phase(self):
+        """Resume mark clicking with saved mark points."""
+        plates = self.canvas.get_plates()
+        pi = self._current_plate_idx
+        r1, r2, c1, c2 = plates[pi]
+        points = self.canvas.get_root_points()
+        flags = self.canvas.get_root_flags()
+        groups = self.canvas.get_root_groups()
+        current_group = self._current_group
+        self._marks_plate_roots = []
+        for i, ((row, col), flag) in enumerate(zip(points, flags)):
+            if flag is not None:
+                continue
+            if not (r1 <= row <= r2 and c1 <= col <= c2):
+                continue
+            if self._split and i < len(groups) and groups[i] != current_group:
+                continue
+            self._marks_plate_roots.append(i)
+        num_marks = self._get_num_marks()
+        self.canvas._marks_expected = len(self._marks_plate_roots) * num_marks
+        self.canvas._on_click_callback = self._update_marks_status
+        self.canvas.set_mode(
+            ImageCanvas.MODE_CLICK_MARKS,
+            on_done=self._plate_marks_done)
+        self.canvas.zoom_to_region(r1, r2, c1, c2)
+        self.sidebar.btn_continue_later_mid.pack(pady=(10, 5), padx=15, fill="x")
+        self.sidebar.set_step(2)
+        self._update_marks_status()
+        self.lbl_bottom.configure(
+            text="Click=place mark  |  Right-click=undo  |  Enter=done  |  Scroll=zoom")
 
     def _start_marks_phase(self):
         """Enter mark clicking mode for normal roots on the current plate/group."""

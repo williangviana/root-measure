@@ -383,6 +383,7 @@ class MeasurementMixin:
         self._save_metadata()
 
         self.sidebar.set_step(6)  # marks all 5 steps as done (green)
+        self.canvas._measurement_done = True
         self.sidebar.btn_select_plates.configure(state="normal")
         self.sidebar.btn_click_roots.configure(state="normal")
         self.sidebar.btn_measure.configure(state="normal")

@@ -73,6 +73,8 @@ class ImageCanvas(ctk.CTkFrame):
 
         # help overlay
         self._help_visible = False
+        # set True after measurement is complete to hide dot markers
+        self._measurement_done = False
 
         # bindings
         self.canvas.bind("<Configure>", self._on_resize)
@@ -318,11 +320,13 @@ class ImageCanvas(ctk.CTkFrame):
                 fill="#c39bd3", anchor="nw",
                 font=("Helvetica", 16, "bold"))
 
-        # root markers (hide when traces exist or in review mode)
+        # root markers (hide when measurement done or in review mode)
         _GROUP_MARKER_COLORS = ["#e63333", "#3333e6"]
         self._root_marker_ids.clear()
-        has_traces = len(self._traces) > 0
-        if self._mode not in (self.MODE_REVIEW,) and not has_traces:
+        hide_markers = (self._mode == self.MODE_REVIEW
+                        or self._measurement_done
+                        or len(self._traces) > 0)
+        if not hide_markers:
             plate_counters = {}
             clicking_roots = self._mode in (self.MODE_CLICK_ROOTS,
                                              self.MODE_CLICK_MARKS)

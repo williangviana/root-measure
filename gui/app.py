@@ -206,9 +206,11 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
                 self.canvas.set_marks(canvas_data['all_marks'])
             if canvas_data.get('traces'):
                 self.canvas.set_traces(canvas_data['traces'])
+            step = data.get('workflow_step', 1)
+            if step >= 6:
+                self.canvas._measurement_done = True
             self.canvas.set_mode(ImageCanvas.MODE_VIEW)
             self.canvas._redraw()
-            step = data.get('workflow_step', 1)
             self.sidebar.set_step(step)
             # populate image list in folder body and collapse
             self.sidebar.btn_load_folder.pack_forget()
@@ -370,6 +372,7 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
 
     def select_plates(self):
         """Enter plate selection mode on canvas."""
+        self.canvas._measurement_done = False
         self.canvas.clear_plates()
         self.canvas.clear_roots()
         self.canvas.clear_traces()

@@ -318,10 +318,11 @@ class ImageCanvas(ctk.CTkFrame):
                 fill="#c39bd3", anchor="nw",
                 font=("Helvetica", 16, "bold"))
 
-        # root markers (hide in review mode — only show traces)
+        # root markers (hide when traces exist or in review mode)
         _GROUP_MARKER_COLORS = ["#e63333", "#3333e6"]
         self._root_marker_ids.clear()
-        if self._mode not in (self.MODE_REVIEW,):
+        has_traces = len(self._traces) > 0
+        if self._mode not in (self.MODE_REVIEW,) and not has_traces:
             plate_counters = {}
             clicking_roots = self._mode in (self.MODE_CLICK_ROOTS,
                                              self.MODE_CLICK_MARKS)

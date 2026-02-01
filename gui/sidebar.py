@@ -135,7 +135,7 @@ class Sidebar(ctk.CTkScrollableFrame):
         self.chk_split.pack(pady=5, padx=15, anchor="w")
 
         self.btn_next_settings = ctk.CTkButton(
-            b, text="Next \u00bb", fg_color="#2b5797",
+            b, text="Next", fg_color="#2b5797",
             command=lambda: app._on_next_settings())
         self.btn_next_settings.pack(pady=(10, 5), padx=15, fill="x")
 
@@ -185,7 +185,7 @@ class Sidebar(ctk.CTkScrollableFrame):
         self.var_plot = ctk.BooleanVar(value=True)
 
         self.btn_start_workflow = ctk.CTkButton(
-            b, text="Start Workflow \u00bb", fg_color="#2b5797",
+            b, text="Start Workflow", fg_color="#2b5797",
             command=lambda: app._on_start_workflow())
         self.btn_start_workflow.pack(pady=(10, 5), padx=15, fill="x")
 
@@ -224,7 +224,7 @@ class Sidebar(ctk.CTkScrollableFrame):
         self.btn_save.pack(pady=3, padx=15, fill="x")
 
         self.btn_next_image = ctk.CTkButton(
-            b, text="Next Image \u00bb", fg_color="#2b5797",
+            b, text="Next Image", fg_color="#2b5797",
             command=app.next_image)
         # hidden until measurement finishes
 
@@ -243,7 +243,7 @@ class Sidebar(ctk.CTkScrollableFrame):
         self._status_frame.pack(fill="x", pady=(15, 5))
 
         self.btn_continue_later_mid = ctk.CTkButton(
-            self._status_frame, text="Continue Later", fg_color="#2b5797",
+            self, text="Continue Later", fg_color="#2b5797",
             command=lambda: app.continue_later())
 
         self.lbl_status = ctk.CTkLabel(

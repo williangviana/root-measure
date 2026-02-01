@@ -175,7 +175,10 @@ class Sidebar(ctk.CTkScrollableFrame):
         self.menu_csv_format = ctk.CTkSegmentedButton(
             b, values=["R", "Prism"],
             variable=self.var_csv_format)
-        self.menu_csv_format.pack(pady=(2, 8), padx=15, fill="x")
+        self.menu_csv_format.pack(pady=(2, 2), padx=15, fill="x")
+        self.lbl_csv_locked = ctk.CTkLabel(
+            b, text="Locked — data.csv already started",
+            font=ctk.CTkFont(size=10), text_color="gray")
 
         self.var_plot = ctk.BooleanVar(value=True)
 

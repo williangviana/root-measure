@@ -19,7 +19,8 @@ from sidebar import Sidebar
 from workflow import MeasurementMixin
 from session import save_session, load_session, restore_settings, \
     save_last_folder, get_last_folder, save_experiment_name, \
-    get_experiment_name, save_csv_format, get_csv_format
+    get_experiment_name, save_csv_format, get_csv_format, \
+    save_persistent_settings, get_persistent_settings
 
 ctk.set_appearance_mode("dark")
 ctk.set_default_color_theme("blue")
@@ -199,6 +200,7 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
             # lock CSV format if data already written
             if (self.folder / 'output' / 'data.csv').exists():
                 self.sidebar.menu_csv_format.configure(state="disabled")
+                self.sidebar.lbl_csv_locked.pack(pady=(0, 8), padx=15, anchor="w")
             self.sidebar.advance_to_workflow()
             # restore canvas state (set_image cleared plates/roots, re-add)
             if canvas_data.get('plates'):
@@ -300,6 +302,19 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
             dpi = detected or 1200
             self.sidebar.advance_to_settings(path.name, dpi)
 
+            # restore multi-measurement / segments from previous scan
+            if self.folder:
+                ps = get_persistent_settings(self.folder)
+                if ps.get('multi_measurement'):
+                    self.sidebar.var_multi.set(True)
+                    self.sidebar._toggle_segments()
+                    segs = ps.get('segments', '')
+                    if segs:
+                        self.sidebar.entry_segments.delete(0, 'end')
+                        self.sidebar.entry_segments.insert(0, segs)
+                if ps.get('split_plate'):
+                    self.sidebar.var_split.set(True)
+
             dpi_src = "detected" if detected else "default"
             self.sidebar.set_status(
                 f"Loaded: {img.shape[1]}x{img.shape[0]}, {img.dtype}\n"
@@ -360,8 +375,10 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
                 if saved_fmt:
                     self.sidebar.var_csv_format.set(saved_fmt)
                 self.sidebar.menu_csv_format.configure(state="disabled")
+                self.sidebar.lbl_csv_locked.pack(pady=(0, 8), padx=15, anchor="w")
             else:
                 self.sidebar.menu_csv_format.configure(state="normal")
+                self.sidebar.lbl_csv_locked.pack_forget()
 
     def _on_start_workflow(self):
         """Called when user clicks Start Workflow."""
@@ -370,6 +387,11 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
                 self.folder, self.sidebar.entry_experiment.get().strip())
             save_csv_format(
                 self.folder, self.sidebar.var_csv_format.get())
+            save_persistent_settings(self.folder, {
+                'multi_measurement': self.sidebar.var_multi.get(),
+                'segments': self.sidebar.entry_segments.get().strip(),
+                'split_plate': self.sidebar.var_split.get(),
+            })
         self.sidebar.advance_to_workflow()
         self.select_plates()
 

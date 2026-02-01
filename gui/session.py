@@ -49,6 +49,27 @@ def get_experiment_name(folder):
     return ''
 
 
+def save_persistent_settings(folder, settings):
+    """Persist settings that carry across scans."""
+    try:
+        p = folder / 'output' / 'persistent_settings.json'
+        p.parent.mkdir(exist_ok=True)
+        p.write_text(json.dumps(settings))
+    except Exception:
+        pass
+
+
+def get_persistent_settings(folder):
+    """Load persistent settings dict, or empty dict."""
+    try:
+        p = folder / 'output' / 'persistent_settings.json'
+        if p.exists():
+            return json.loads(p.read_text())
+    except Exception:
+        pass
+    return {}
+
+
 def save_csv_format(folder, fmt):
     """Persist CSV format choice in output folder."""
     try:

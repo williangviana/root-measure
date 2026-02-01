@@ -441,11 +441,6 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
     def _on_next_settings(self):
         """Called when user clicks Next on image settings."""
         self.sidebar.advance_to_experiment()
-        # pre-fill experiment name from previous session
-        if not self.sidebar.entry_experiment.get().strip() and self.folder:
-            saved = get_experiment_name(self.folder, self._experiment_name)
-            if saved:
-                self.sidebar.entry_experiment.insert(0, saved)
         # CSV format lock is deferred to _on_start_workflow when experiment is known
         self.sidebar.menu_csv_format.configure(state="normal")
         self.sidebar.lbl_csv_locked.pack_forget()

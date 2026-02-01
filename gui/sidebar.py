@@ -228,6 +228,11 @@ class Sidebar(ctk.CTkScrollableFrame):
             command=app.next_image)
         # hidden until measurement finishes
 
+        self.btn_continue_later = ctk.CTkButton(
+            b, text="Continue Later", fg_color="#3a3a3a",
+            command=lambda: app.continue_later())
+        # hidden until measurement finishes
+
         self.btn_stop = ctk.CTkButton(
             b, text="Finish & Plot", fg_color="#2b5797",
             command=lambda: app.finish_and_plot())
@@ -342,6 +347,7 @@ class Sidebar(ctk.CTkScrollableFrame):
         self.sec_experiment.hide()
         self.sec_workflow.hide()
         self.btn_next_image.pack_forget()
+        self.btn_continue_later.pack_forget()
         self.btn_stop.pack_forget()
         n_done = len(processed)
         n_total = len(images)

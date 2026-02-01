@@ -17,7 +17,8 @@ from plate_detection import _to_uint8
 from canvas import ImageCanvas
 from sidebar import Sidebar
 from workflow import MeasurementMixin
-from session import save_session, load_session, restore_settings
+from session import save_session, load_session, restore_settings, \
+    save_last_folder, get_last_folder
 
 ctk.set_appearance_mode("dark")
 ctk.set_default_color_theme("blue")
@@ -94,6 +95,9 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
         self.bind_class("Button", "<space>", lambda e: "break")
         self.bind_class("Button", "<KeyRelease-space>", lambda e: "break")
 
+        # try to auto-resume last session after window is drawn
+        self.after(200, self._try_auto_resume)
+
     def _on_global_key(self, event):
         """Route keyboard events to canvas, skip if typing in an Entry."""
         widget_class = event.widget.winfo_class()
@@ -113,6 +117,25 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
         self.canvas.handle_key_release(event)
 
     # --- Image loading ---
+
+    def _try_auto_resume(self):
+        """On startup, check if the last folder has a session to resume."""
+        from utils import list_images_in_folder
+        last = get_last_folder()
+        if not last:
+            return
+        sp = last / 'output' / 'session.json'
+        data = load_session(sp)
+        if not data:
+            return
+        self.folder = last
+        self.images = list_images_in_folder(self.folder)
+        if not self.images:
+            return
+        if self._try_resume():
+            return
+        # session existed but user declined resume — show image list
+        self.sidebar.advance_to_images(self.folder.name, self.images)
 
     def _session_path(self):
         if self.folder:
@@ -207,6 +230,7 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
         if not folder:
             return
         self.folder = Path(folder)
+        save_last_folder(self.folder)
         self.images = list_images_in_folder(self.folder)
 
         if not self.images:
@@ -303,6 +327,13 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
         self.sidebar.advance_to_images(
             self.folder.name, self.images, self._processed_images)
 
+    def continue_later(self):
+        """Save session and quit the app."""
+        if self.image_path:
+            self._processed_images.add(self.image_path)
+        self._auto_save()
+        self.destroy()
+
     def finish_and_plot(self):
         """All images done — generate final plot."""
         if self.sidebar.var_plot.get():
@@ -314,6 +345,7 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
         self.sidebar.set_status(
             self.sidebar.lbl_status.cget("text") +
             "\nAll done!")
+        self.destroy()
 
     # --- Plate & root clicking flow ---
 

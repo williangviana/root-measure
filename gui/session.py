@@ -4,6 +4,28 @@ import json
 from pathlib import Path
 
 SESSION_VERSION = 1
+_LAST_FOLDER_FILE = Path.home() / '.root_measure_last_folder'
+
+
+def save_last_folder(folder):
+    """Remember the last opened folder path."""
+    try:
+        _LAST_FOLDER_FILE.write_text(str(folder))
+    except Exception:
+        pass
+
+
+def get_last_folder():
+    """Return the last opened folder Path, or None."""
+    try:
+        if _LAST_FOLDER_FILE.exists():
+            text = _LAST_FOLDER_FILE.read_text().strip()
+            p = Path(text)
+            if p.is_dir():
+                return p
+    except Exception:
+        pass
+    return None
 
 
 def save_session(session_path, app):

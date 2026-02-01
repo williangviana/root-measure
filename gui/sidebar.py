@@ -63,6 +63,10 @@ class _Section:
             return
         # Find the correct 'before' widget to maintain section order
         my_idx = next((i for i, s in enumerate(order) if s is self), -1)
+        if my_idx == -1:
+            # Not in ordered list (e.g. sessions) — pack at the very end
+            self.frame.pack(fill="x")
+            return
         before = sidebar._status_frame
         for s in order[my_idx + 1:]:
             if s.frame.winfo_manager():
@@ -257,8 +261,9 @@ class Sidebar(ctk.CTkScrollableFrame):
             command=lambda: app.continue_later())
 
         # --- Ordered section list (for pack-order preservation) ---
+        # sec_sessions is excluded — it always packs after _status_frame
         self._section_order = [
-            self.sec_folder, self.sec_sessions, self.sec_images,
+            self.sec_folder, self.sec_images,
             self.sec_settings, self.sec_experiment, self.sec_workflow,
         ]
 

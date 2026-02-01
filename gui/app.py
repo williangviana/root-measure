@@ -18,7 +18,8 @@ from canvas import ImageCanvas
 from sidebar import Sidebar
 from workflow import MeasurementMixin
 from session import save_session, load_session, restore_settings, \
-    save_last_folder, get_last_folder, save_experiment_name, get_experiment_name
+    save_last_folder, get_last_folder, save_experiment_name, \
+    get_experiment_name, save_csv_format, get_csv_format
 
 ctk.set_appearance_mode("dark")
 ctk.set_default_color_theme("blue")
@@ -348,12 +349,23 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
             saved = get_experiment_name(self.folder)
             if saved:
                 self.sidebar.entry_experiment.insert(0, saved)
+        # lock CSV format if data.csv already exists
+        if self.folder:
+            csv_exists = (self.folder / 'output' / 'data.csv').exists()
+            saved_fmt = get_csv_format(self.folder)
+            if csv_exists and saved_fmt:
+                self.sidebar.var_csv_format.set(saved_fmt)
+                self.sidebar.menu_csv_format.configure(state="disabled")
+            else:
+                self.sidebar.menu_csv_format.configure(state="normal")
 
     def _on_start_workflow(self):
         """Called when user clicks Start Workflow."""
         if self.folder:
             save_experiment_name(
                 self.folder, self.sidebar.entry_experiment.get().strip())
+            save_csv_format(
+                self.folder, self.sidebar.var_csv_format.get())
         self.sidebar.advance_to_workflow()
         self.select_plates()
 

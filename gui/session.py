@@ -49,6 +49,27 @@ def get_experiment_name(folder):
     return ''
 
 
+def save_csv_format(folder, fmt):
+    """Persist CSV format choice in output folder."""
+    try:
+        p = folder / 'output' / 'csv_format.txt'
+        p.parent.mkdir(exist_ok=True)
+        p.write_text(fmt)
+    except Exception:
+        pass
+
+
+def get_csv_format(folder):
+    """Load saved CSV format, or empty string."""
+    try:
+        p = folder / 'output' / 'csv_format.txt'
+        if p.exists():
+            return p.read_text().strip()
+    except Exception:
+        pass
+    return ''
+
+
 def save_session(session_path, app):
     """Collect app/sidebar/canvas state and write to JSON."""
     folder = app.folder

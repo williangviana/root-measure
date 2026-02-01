@@ -177,8 +177,10 @@ class Sidebar(ctk.CTkScrollableFrame):
             variable=self.var_csv_format)
         self.menu_csv_format.pack(pady=(2, 2), padx=15, fill="x")
         self.lbl_csv_locked = ctk.CTkLabel(
-            b, text="Locked — data.csv already started",
-            font=ctk.CTkFont(size=10), text_color="gray")
+            b, text="Format locked to match existing data file",
+            font=ctk.CTkFont(size=10, italic=True), text_color="gray")
+        # label is packed/forgotten dynamically — reserve its slot before button
+        self._csv_locked_frame = b  # parent for re-packing
 
         self.var_plot = ctk.BooleanVar(value=True)
 

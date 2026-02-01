@@ -195,6 +195,13 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
             # override DPI that load_image set
             self.sidebar.entry_dpi.delete(0, 'end')
             self.sidebar.entry_dpi.insert(0, settings.get('dpi', ''))
+            # seed persistent settings from session if not yet saved
+            if not get_persistent_settings(self.folder):
+                save_persistent_settings(self.folder, {
+                    'multi_measurement': settings.get('multi_measurement', False),
+                    'segments': settings.get('segments', ''),
+                    'split_plate': settings.get('split_plate', False),
+                })
             # advance sidebar to workflow
             self.sidebar.advance_to_experiment()
             # lock CSV format if data already written
@@ -375,7 +382,10 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
                 if saved_fmt:
                     self.sidebar.var_csv_format.set(saved_fmt)
                 self.sidebar.menu_csv_format.configure(state="disabled")
-                self.sidebar.lbl_csv_locked.pack(pady=(0, 8), padx=15, anchor="w")
+                self.sidebar.lbl_csv_locked.pack_forget()
+                self.sidebar.lbl_csv_locked.pack(
+                    pady=(2, 0), padx=15, anchor="w",
+                    before=self.sidebar.btn_start_workflow)
             else:
                 self.sidebar.menu_csv_format.configure(state="normal")
                 self.sidebar.lbl_csv_locked.pack_forget()

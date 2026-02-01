@@ -18,7 +18,7 @@ from canvas import ImageCanvas
 from sidebar import Sidebar
 from workflow import MeasurementMixin
 from session import save_session, load_session, restore_settings, \
-    save_last_folder, get_last_folder
+    save_last_folder, get_last_folder, save_experiment_name, get_experiment_name
 
 ctk.set_appearance_mode("dark")
 ctk.set_default_color_theme("blue")
@@ -343,9 +343,17 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
     def _on_next_settings(self):
         """Called when user clicks Next on image settings."""
         self.sidebar.advance_to_experiment()
+        # pre-fill experiment name from previous session
+        if not self.sidebar.entry_experiment.get().strip() and self.folder:
+            saved = get_experiment_name(self.folder)
+            if saved:
+                self.sidebar.entry_experiment.insert(0, saved)
 
     def _on_start_workflow(self):
         """Called when user clicks Start Workflow."""
+        if self.folder:
+            save_experiment_name(
+                self.folder, self.sidebar.entry_experiment.get().strip())
         self.sidebar.advance_to_workflow()
         self.select_plates()
 

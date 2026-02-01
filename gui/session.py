@@ -28,6 +28,27 @@ def get_last_folder():
     return None
 
 
+def save_experiment_name(folder, name):
+    """Persist experiment name in output folder."""
+    try:
+        p = folder / 'output' / 'experiment_name.txt'
+        p.parent.mkdir(exist_ok=True)
+        p.write_text(name)
+    except Exception:
+        pass
+
+
+def get_experiment_name(folder):
+    """Load saved experiment name, or empty string."""
+    try:
+        p = folder / 'output' / 'experiment_name.txt'
+        if p.exists():
+            return p.read_text().strip()
+    except Exception:
+        pass
+    return ''
+
+
 def save_session(session_path, app):
     """Collect app/sidebar/canvas state and write to JSON."""
     folder = app.folder

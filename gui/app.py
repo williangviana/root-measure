@@ -185,9 +185,7 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
         current = data.get('current_image')
         canvas_data = data.get('canvas', {})
         if current and current in name_to_path:
-            # collapse folder and populate image list first
-            self.sidebar.advance_to_images(
-                self.folder.name, self.images, self._processed_images)
+            # load the image (this triggers advance_to_settings internally)
             self.load_image(name_to_path[current])
             # override DPI that load_image set
             self.sidebar.entry_dpi.delete(0, 'end')
@@ -195,7 +193,7 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
             # advance sidebar to workflow
             self.sidebar.advance_to_experiment()
             self.sidebar.advance_to_workflow()
-            # restore canvas state
+            # restore canvas state (set_image cleared plates/roots, re-add)
             if canvas_data.get('plates'):
                 self.canvas.set_plates(canvas_data['plates'])
             if canvas_data.get('root_points'):
@@ -210,6 +208,11 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
             self.canvas._redraw()
             step = data.get('workflow_step', 1)
             self.sidebar.set_step(step)
+            # now collapse folder with image list (after all layout is done)
+            self.sidebar.sec_folder.collapse(summary=self.folder.name)
+            self.sidebar.sec_images.collapse(
+                summary=name_to_path[current].name)
+            self.sidebar.sec_images.show()
             plates = self.canvas.get_plates()
             points = self.canvas.get_root_points()
             self.sidebar.set_status(

@@ -7,6 +7,24 @@ SESSION_VERSION = 1
 _LAST_FOLDER_FILE = Path.home() / '.root_measure_last_folder'
 _RECENT_FOLDERS_FILE = Path.home() / '.root_measure_recent_folders.json'
 
+# --- Output folder layout ---
+_ROOT = 'root_measure'
+
+
+def data_dir(folder):
+    """Return path to root_measure/data/ inside the scan folder."""
+    return folder / _ROOT / 'data'
+
+
+def traces_dir(folder):
+    """Return path to root_measure/traces/ inside the scan folder."""
+    return folder / _ROOT / 'traces'
+
+
+def session_dir(folder):
+    """Return path to root_measure/.session/ inside the scan folder."""
+    return folder / _ROOT / '.session'
+
 
 def save_last_folder(folder):
     """Remember the last opened folder path."""
@@ -56,7 +74,7 @@ def get_session_summary(folder):
     current_image.  Returns None if no valid session.
     """
     try:
-        session_path = folder / 'output' / 'session.json'
+        session_path = session_dir(folder) / 'session.json'
         if not session_path.exists():
             return None
         data = json.loads(session_path.read_text())
@@ -95,7 +113,7 @@ def get_last_folder():
 def save_experiment_name(folder, name):
     """Persist experiment name in output folder."""
     try:
-        p = folder / 'output' / 'experiment_name.txt'
+        p = session_dir(folder) / 'experiment_name.txt'
         p.parent.mkdir(exist_ok=True)
         p.write_text(name)
     except Exception:
@@ -105,7 +123,7 @@ def save_experiment_name(folder, name):
 def get_experiment_name(folder):
     """Load saved experiment name, or empty string."""
     try:
-        p = folder / 'output' / 'experiment_name.txt'
+        p = session_dir(folder) / 'experiment_name.txt'
         if p.exists():
             return p.read_text().strip()
     except Exception:
@@ -116,7 +134,7 @@ def get_experiment_name(folder):
 def save_persistent_settings(folder, settings):
     """Persist settings that carry across scans."""
     try:
-        p = folder / 'output' / 'persistent_settings.json'
+        p = session_dir(folder) / 'persistent_settings.json'
         p.parent.mkdir(exist_ok=True)
         p.write_text(json.dumps(settings))
     except Exception:
@@ -126,7 +144,7 @@ def save_persistent_settings(folder, settings):
 def get_persistent_settings(folder):
     """Load persistent settings dict, or empty dict."""
     try:
-        p = folder / 'output' / 'persistent_settings.json'
+        p = session_dir(folder) / 'persistent_settings.json'
         if p.exists():
             return json.loads(p.read_text())
     except Exception:
@@ -137,7 +155,7 @@ def get_persistent_settings(folder):
 def save_csv_format(folder, fmt):
     """Persist CSV format choice in output folder."""
     try:
-        p = folder / 'output' / 'csv_format.txt'
+        p = session_dir(folder) / 'csv_format.txt'
         p.parent.mkdir(exist_ok=True)
         p.write_text(fmt)
     except Exception:
@@ -147,7 +165,7 @@ def save_csv_format(folder, fmt):
 def get_csv_format(folder):
     """Load saved CSV format, or empty string."""
     try:
-        p = folder / 'output' / 'csv_format.txt'
+        p = session_dir(folder) / 'csv_format.txt'
         if p.exists():
             return p.read_text().strip()
     except Exception:

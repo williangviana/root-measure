@@ -21,7 +21,8 @@ from session import save_session, load_session, restore_settings, \
     save_last_folder, get_last_folder, save_experiment_name, \
     get_experiment_name, save_csv_format, get_csv_format, \
     save_persistent_settings, get_persistent_settings, \
-    get_recent_folders, get_session_summary
+    get_recent_folders, get_session_summary, \
+    session_dir, data_dir
 
 ctk.set_appearance_mode("dark")
 ctk.set_default_color_theme("blue")
@@ -122,13 +123,15 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
     # --- Image loading ---
 
     def _try_auto_resume(self):
-        """On startup, scan recent folders for saved sessions and show list."""
+        """On startup, show up to 5 most recent sessions from any folder."""
         folders = get_recent_folders()
         sessions = []
         for f in folders:
             s = get_session_summary(f)
             if s:
                 sessions.append(s)
+            if len(sessions) >= 5:
+                break
         if sessions:
             self.sidebar.populate_sessions(sessions)
 
@@ -146,7 +149,7 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
 
     def _session_path(self):
         if self.folder:
-            return self.folder / 'output' / 'session.json'
+            return session_dir(self.folder) / 'session.json'
         return None
 
     def _auto_save(self):
@@ -201,7 +204,7 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
             # advance sidebar to workflow
             self.sidebar.advance_to_experiment()
             # lock CSV format if data already written
-            if (self.folder / 'output' / 'data.csv').exists():
+            if (data_dir(self.folder) / 'data.csv').exists():
                 self.sidebar.menu_csv_format.configure(state="disabled")
                 self.sidebar.lbl_csv_locked.pack(pady=(0, 8), padx=15, anchor="w")
             self.sidebar.advance_to_workflow()
@@ -288,17 +291,20 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
             return
         self.folder = Path(folder)
         save_last_folder(self.folder)
-        self.sidebar.sec_sessions.hide()
         self.images = list_images_in_folder(self.folder)
 
         if not self.images:
+            self.sidebar.sec_sessions.hide()
             self.sidebar.set_status(f"No scans found in {self.folder.name}")
             return
 
-        if self._try_resume():
-            return
-
         self.sidebar.advance_to_images(self.folder.name, self.images)
+        # show this folder's session (if any) so user can click to resume
+        s = get_session_summary(self.folder)
+        if s:
+            self.sidebar.populate_sessions([s])
+        else:
+            self.sidebar.sec_sessions.hide()
 
     def load_image(self, path):
         """Load and display a single image."""
@@ -397,7 +403,7 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
                 self.sidebar.entry_experiment.insert(0, saved)
         # lock CSV format if data.csv already exists
         if self.folder:
-            csv_exists = (self.folder / 'output' / 'data.csv').exists()
+            csv_exists = (data_dir(self.folder) / 'data.csv').exists()
             if csv_exists:
                 saved_fmt = get_csv_format(self.folder)
                 if saved_fmt:

@@ -384,7 +384,6 @@ class Sidebar(ctk.CTkScrollableFrame):
             processed = set()
         self.btn_load_folder.pack_forget()
         self._populate_image_list(images, processed)
-        self.sec_sessions.hide()
         self.sec_folder.expand()
         self.sec_folder._summary.configure(text=folder_name)
         # hide later sections

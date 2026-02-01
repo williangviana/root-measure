@@ -443,10 +443,8 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
         """All images done — generate final plot."""
         if self.sidebar.var_plot.get():
             self._run_plot()
-        # clean up session file
-        sp = self._session_path()
-        if sp and sp.exists():
-            sp.unlink()
+        # save final session state (keeps session visible on next launch)
+        self._auto_save()
         self.sidebar.set_status(
             self.sidebar.lbl_status.cget("text") +
             "\nAll done!")

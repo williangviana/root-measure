@@ -17,6 +17,7 @@ from plate_detection import _to_uint8
 from canvas import ImageCanvas
 from sidebar import Sidebar
 from workflow import MeasurementMixin
+from session import save_session, load_session, restore_settings
 
 ctk.set_appearance_mode("dark")
 ctk.set_default_color_theme("blue")
@@ -113,6 +114,91 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
 
     # --- Image loading ---
 
+    def _session_path(self):
+        if self.folder:
+            return self.folder / 'output' / 'session.json'
+        return None
+
+    def _auto_save(self):
+        sp = self._session_path()
+        if sp:
+            save_session(sp, self)
+
+    def _try_resume(self):
+        """Check for session file and offer to resume."""
+        from tkinter import messagebox
+        sp = self._session_path()
+        if not sp:
+            return False
+        data = load_session(sp)
+        if not data:
+            return False
+        # validate images match
+        saved_names = set(data.get('images', []))
+        current_names = {p.name for p in self.images}
+        if not saved_names & current_names:
+            return False
+        n_done = len(data.get('processed_images', []))
+        n_total = len(data.get('images', []))
+        if not messagebox.askyesno(
+                "Resume Session?",
+                f"Found a previous session with {n_done}/{n_total} "
+                f"image(s) done.\nResume where you left off?"):
+            sp.unlink(missing_ok=True)
+            return False
+        # restore offsets
+        self._plate_offset = data.get('plate_offset', 0)
+        self._root_offset = data.get('root_offset', 0)
+        # restore processed images
+        name_to_path = {p.name: p for p in self.images}
+        self._processed_images = set()
+        for name in data.get('processed_images', []):
+            if name in name_to_path:
+                self._processed_images.add(name_to_path[name])
+        # restore settings
+        settings = data.get('settings', {})
+        restore_settings(self.sidebar, settings)
+        # restore current image and canvas state
+        current = data.get('current_image')
+        canvas_data = data.get('canvas', {})
+        if current and current in name_to_path:
+            self.load_image(name_to_path[current])
+            # override DPI that load_image set
+            self.sidebar.entry_dpi.delete(0, 'end')
+            self.sidebar.entry_dpi.insert(0, settings.get('dpi', ''))
+            # advance sidebar to workflow
+            self.sidebar.advance_to_experiment()
+            self.sidebar.advance_to_workflow()
+            # restore canvas state
+            if canvas_data.get('plates'):
+                self.canvas.set_plates(canvas_data['plates'])
+            if canvas_data.get('root_points'):
+                self.canvas.set_roots(
+                    canvas_data['root_points'],
+                    canvas_data.get('root_flags', []),
+                    canvas_data.get('root_groups', []),
+                    canvas_data.get('root_plates', []))
+            if canvas_data.get('all_marks'):
+                self.canvas.set_marks(canvas_data['all_marks'])
+            self.canvas.set_mode(ImageCanvas.MODE_VIEW)
+            self.canvas._redraw()
+            step = data.get('workflow_step', 1)
+            self.sidebar.set_step(step)
+            plates = self.canvas.get_plates()
+            points = self.canvas.get_root_points()
+            self.sidebar.set_status(
+                f"Session restored: {len(plates)} plate(s), "
+                f"{len(points)} root(s).\n"
+                f"Continue from where you left off.")
+            if plates:
+                self.sidebar.btn_click_roots.configure(state="normal")
+            if points:
+                self.sidebar.btn_measure.configure(state="normal")
+        else:
+            self.sidebar.advance_to_images(
+                self.folder.name, self.images, self._processed_images)
+        return True
+
     def load_folder(self):
         from tkinter import filedialog
         from utils import list_images_in_folder
@@ -125,6 +211,9 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
 
         if not self.images:
             self.sidebar.set_status(f"No scans found in {self.folder.name}")
+            return
+
+        if self._try_resume():
             return
 
         self.sidebar.advance_to_images(self.folder.name, self.images)
@@ -210,6 +299,7 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
         """Return to image selection after finishing measurement."""
         if self.image_path:
             self._processed_images.add(self.image_path)
+        self._auto_save()
         self.sidebar.advance_to_images(
             self.folder.name, self.images, self._processed_images)
 
@@ -217,6 +307,10 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
         """All images done — generate final plot."""
         if self.sidebar.var_plot.get():
             self._run_plot()
+        # clean up session file
+        sp = self._session_path()
+        if sp and sp.exists():
+            sp.unlink()
         self.sidebar.set_status(
             self.sidebar.lbl_status.cget("text") +
             "\nAll done!")
@@ -252,6 +346,7 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
         self.lbl_bottom.configure(text="Willian Viana — Dinneny Lab")
         self.sidebar.btn_click_roots.configure(state="normal")
         self.sidebar.set_step(2)
+        self._auto_save()
         self.click_roots()
 
     def click_roots(self):
@@ -309,6 +404,7 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
 
     def _plate_roots_done(self):
         """Called when user presses Enter after clicking roots on a plate."""
+        self._auto_save()
         num_marks = self._get_num_marks()
         if num_marks > 0:
             self._start_marks_phase()
@@ -410,6 +506,7 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
         for j, ri in enumerate(self._marks_plate_roots):
             start = j * num_marks
             self.canvas._all_marks[ri] = all_marks[start:start + num_marks]
+        self._auto_save()
         self._advance_to_next_stage()
 
 

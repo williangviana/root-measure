@@ -130,6 +130,22 @@ class ImageCanvas(ctk.CTkFrame):
     def get_mark_points(self):
         return list(self._mark_points)
 
+    def set_plates(self, plates):
+        """Restore plates from saved state."""
+        self._plates = [tuple(p) for p in plates]
+
+    def set_roots(self, points, flags, groups, plates):
+        """Restore root points from saved state."""
+        self._root_points = [tuple(p) for p in points]
+        self._root_flags = list(flags)
+        self._root_groups = list(groups)
+        self._root_plates = list(plates)
+
+    def set_marks(self, all_marks):
+        """Restore marks from saved state."""
+        self._all_marks = {int(k): [tuple(m) for m in v]
+                           for k, v in all_marks.items()}
+
     def clear_traces(self):
         self._traces.clear()
         self._trace_original_colors.clear()

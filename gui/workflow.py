@@ -390,6 +390,7 @@ class MeasurementMixin:
         if self.image_path:
             self._processed_images.add(self.image_path)
 
+        self._auto_save()
         self.sidebar.btn_next_image.pack(pady=(10, 3), padx=15, fill="x")
         self.sidebar.btn_stop.pack(pady=3, padx=15, fill="x")
 

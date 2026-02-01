@@ -340,12 +340,13 @@ class Sidebar(ctk.CTkScrollableFrame):
             self.btn_finish_plot.pack(pady=(8, 5), padx=10, fill="x")
 
     def advance_to_images(self, folder_name, images, processed=None):
-        """Phase 1: folder loaded — show images, collapse folder."""
+        """Phase 1: folder loaded — show images in folder section."""
         if processed is None:
             processed = set()
         self.btn_load_folder.pack_forget()
         self._populate_image_list(images, processed)
-        self.sec_folder.collapse(summary=folder_name)
+        self.sec_folder.expand()
+        self.sec_folder._summary.configure(text=folder_name)
         # hide later sections
         self.sec_images.hide()
         self.sec_settings.hide()

@@ -262,3 +262,29 @@ def append_results_to_csv(results, csv_path, plates, plate_labels, plate_offset,
     new_plate_offset = plate_offset + len(plates)
     new_root_offset = root_offset + len(results)
     return new_plate_offset, new_root_offset
+
+
+def save_metadata(meta_path, **kwargs):
+    """Append one row of measurement metadata to a CSV log file.
+
+    Each row records the settings used for one image, enabling
+    full reproducibility of the measurement session.
+    """
+    col_order = ['timestamp', 'image_name', 'dpi', 'sensitivity',
+                 'experiment', 'genotypes', 'conditions', 'csv_format',
+                 'split_plate', 'num_marks', 'software_version']
+    kwargs.setdefault('software_version', '1.0.0')
+    row = {k: kwargs.get(k, '') for k in col_order}
+    df_new = pd.DataFrame([row])
+
+    if meta_path.exists():
+        df_existing = pd.read_csv(meta_path)
+        df = pd.concat([df_existing, df_new], ignore_index=True)
+    else:
+        df = df_new
+
+    cols = [c for c in col_order if c in df.columns]
+    for c in df.columns:
+        if c not in cols:
+            cols.append(c)
+    df[cols].to_csv(meta_path, index=False)

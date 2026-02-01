@@ -2,11 +2,12 @@
 
 import cv2
 import numpy as np
+from datetime import datetime
 
 from image_processing import preprocess
 from root_tracing import find_root_tip, trace_root
 from utils import _compute_segments, _find_nearest_path_index
-from csv_output import append_results_to_csv
+from csv_output import append_results_to_csv, save_metadata
 from plotting import plot_results
 
 from canvas import ImageCanvas
@@ -317,6 +318,39 @@ class MeasurementMixin:
                 bgr = self._hex_to_bgr(shades[0])
                 pts = path[:, [1, 0]].astype(np.int32)
                 cv2.polylines(img_bgr, [pts], False, bgr, thickness=3)
+        # draw scale bar in bottom-right corner
+        scale = self._scale_val  # px/cm
+        bar_cm = 1.0
+        bar_px = int(bar_cm * scale)
+        h, w = img_bgr.shape[:2]
+        # if bar is wider than 1/3 of image, use 0.5 cm
+        if bar_px > w // 3:
+            bar_cm = 0.5
+            bar_px = int(bar_cm * scale)
+        margin = int(scale * 0.15)  # ~1.5 mm margin
+        bar_h = max(4, int(scale * 0.03))
+        x2 = w - margin
+        x1 = x2 - bar_px
+        y2 = h - margin
+        y1 = y2 - bar_h
+        # white bar with black outline
+        cv2.rectangle(img_bgr, (x1 - 1, y1 - 1), (x2 + 1, y2 + 1),
+                       (0, 0, 0), -1)
+        cv2.rectangle(img_bgr, (x1, y1), (x2, y2), (255, 255, 255), -1)
+        # label
+        label = f"{bar_cm:g} cm"
+        font = cv2.FONT_HERSHEY_SIMPLEX
+        font_scale = max(0.5, scale / 800)
+        thickness = max(1, int(scale / 400))
+        (tw, th), _ = cv2.getTextSize(label, font, font_scale, thickness)
+        tx = x1 + (bar_px - tw) // 2
+        ty = y1 - int(scale * 0.02) - 2
+        # black outline for readability
+        cv2.putText(img_bgr, label, (tx, ty), font, font_scale,
+                    (0, 0, 0), thickness + 2, cv2.LINE_AA)
+        cv2.putText(img_bgr, label, (tx, ty), font, font_scale,
+                    (255, 255, 255), thickness, cv2.LINE_AA)
+
         out_path = folder / 'output' / f'{self.image_path.stem}_traces.png'
         out_path.parent.mkdir(exist_ok=True)
         cv2.imwrite(str(out_path), img_bgr)
@@ -346,6 +380,7 @@ class MeasurementMixin:
 
         self._save_results(self._results, plates, self._scale_val)
         self._save_trace_screenshot()
+        self._save_metadata()
 
         self.sidebar.set_step(6)  # marks all 5 steps as done (green)
         self.sidebar.btn_select_plates.configure(state="normal")
@@ -354,8 +389,62 @@ class MeasurementMixin:
 
         if self.image_path:
             self._processed_images.add(self.image_path)
-        self.sidebar.btn_next_image.pack(pady=(10, 3), padx=15, fill="x")
-        self.sidebar.btn_stop.pack(pady=3, padx=15, fill="x")
+
+        # auto-advance: if more images remain, load next automatically
+        remaining = [p for p in self.images
+                     if p not in self._processed_images]
+        if remaining:
+            n_done = len(self._processed_images)
+            n_total = len(self.images)
+            self.sidebar.set_status(
+                self.sidebar.lbl_status.cget("text") +
+                f"\n\nAuto-advancing ({n_done}/{n_total})...")
+            self.update_idletasks()
+            self.after(800, lambda: self._auto_advance(remaining[0]))
+        else:
+            self.sidebar.btn_next_image.pack(pady=(10, 3), padx=15, fill="x")
+            self.sidebar.btn_stop.pack(pady=3, padx=15, fill="x")
+            # all images done — auto-plot
+            if self.sidebar.var_plot.get():
+                self._run_plot()
+            self.sidebar.set_status(
+                self.sidebar.lbl_status.cget("text") +
+                "\n\nAll images processed!")
+
+    def _auto_advance(self, next_path):
+        """Load next image and restart workflow with same settings."""
+        self.load_image(next_path)
+        # skip settings and experiment — reuse previous values
+        self.sidebar.advance_to_experiment()
+        self.sidebar.advance_to_workflow()
+        self.select_plates()
+
+    def _save_metadata(self):
+        """Save measurement metadata alongside CSV."""
+        folder = self.folder
+        if not folder and self.image_path:
+            folder = self.image_path.parent
+        if not folder:
+            return
+        meta_path = folder / 'output' / 'metadata.csv'
+        meta_path.parent.mkdir(exist_ok=True)
+        dpi_text = self.sidebar.entry_dpi.get().strip() or "1200"
+        experiment = self.sidebar.entry_experiment.get().strip() or ""
+        genotypes = self.sidebar.entry_genotypes.get().strip() or ""
+        conditions = self.sidebar.entry_condition.get().strip() or ""
+        save_metadata(
+            meta_path,
+            image_name=self.image_path.name if self.image_path else "",
+            dpi=dpi_text,
+            sensitivity=self._sensitivity,
+            experiment=experiment,
+            genotypes=genotypes,
+            conditions=conditions,
+            csv_format=self.sidebar.var_csv_format.get(),
+            split_plate=self.sidebar.var_split.get(),
+            num_marks=self._get_num_marks(),
+            timestamp=datetime.now().isoformat(timespec='seconds'),
+        )
 
     def _save_results(self, results, plates, scale):
         """Save measurement results to CSV."""

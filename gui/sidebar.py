@@ -336,8 +336,6 @@ class Sidebar(ctk.CTkScrollableFrame):
                 command=lambda p=img_path: self.app.load_image(p))
             btn.pack(fill="x", pady=1)
         self.btn_finish_plot.pack_forget()
-        if len(processed) > 0:
-            self.btn_finish_plot.pack(pady=(8, 5), padx=10, fill="x")
 
     def advance_to_images(self, folder_name, images, processed=None):
         """Phase 1: folder loaded — show images in folder section."""

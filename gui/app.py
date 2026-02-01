@@ -283,6 +283,11 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
                 img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
 
             self.image = img
+            # Clear overlays from previous image
+            self.canvas._measurement_done = False
+            self.canvas.clear_plates()
+            self.canvas.clear_roots()
+            self.canvas.clear_traces()
             display = _to_uint8(img)
             self.canvas.set_image(display)
 

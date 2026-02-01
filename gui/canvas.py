@@ -131,6 +131,7 @@ class ImageCanvas(ctk.CTkFrame):
             self.canvas.delete(rid)
         self._mark_points.clear()
         self._mark_marker_ids.clear()
+        self._all_marks.clear()
 
     def get_mark_points(self):
         return list(self._mark_points)
@@ -225,6 +226,7 @@ class ImageCanvas(ctk.CTkFrame):
             self._pil_base = None
         self.clear_plates()
         self.clear_roots()
+        self.clear_marks()
         self.clear_traces()
         self._fit_image()
         self._redraw()
@@ -367,10 +369,10 @@ class ImageCanvas(ctk.CTkFrame):
                         font=("Helvetica", 9, "bold"))
                     self._root_marker_ids.extend([rid, tid])
 
-        # mark circles (hide in review mode)
+        # mark circles (hide in review mode or when measurement done)
         _GROUP_MARK_COLOR = ["#ff8080", "#8080ff"]
         self._mark_marker_ids.clear()
-        if self._mode not in (self.MODE_REVIEW,):
+        if self._mode not in (self.MODE_REVIEW,) and not self._measurement_done:
             mark_r = 3 if is_view else 4
             for ri, marks in self._all_marks.items():
                 group = self._root_groups[ri] if ri < len(self._root_groups) else 0

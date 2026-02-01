@@ -287,6 +287,7 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
             self.canvas._measurement_done = False
             self.canvas.clear_plates()
             self.canvas.clear_roots()
+            self.canvas.clear_marks()
             self.canvas.clear_traces()
             display = _to_uint8(img)
             self.canvas.set_image(display)

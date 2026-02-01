@@ -223,21 +223,6 @@ class Sidebar(ctk.CTkScrollableFrame):
             state="disabled", fg_color=self._step_color_idle)
         self.btn_review.pack(pady=3, padx=15, fill="x")
 
-        self.btn_next_image = ctk.CTkButton(
-            b, text="Next Image", fg_color="#2b5797",
-            command=app.next_image)
-        # hidden until measurement finishes
-
-        self.btn_continue_later = ctk.CTkButton(
-            b, text="Continue Later", fg_color="#2b5797",
-            command=lambda: app.continue_later())
-        # hidden until measurement finishes
-
-        self.btn_stop = ctk.CTkButton(
-            b, text="Finish & Plot", fg_color="#2b5797",
-            command=lambda: app.finish_and_plot())
-        # hidden until measurement finishes
-
         # --- Status area (always visible, below workflow) ---
         self._status_frame = ctk.CTkFrame(self, fg_color="transparent")
         self._status_frame.pack(fill="x", pady=(15, 5))
@@ -245,6 +230,19 @@ class Sidebar(ctk.CTkScrollableFrame):
         self.btn_continue_later_mid = ctk.CTkButton(
             self, text="Continue Later", fg_color="#2b5797",
             command=lambda: app.continue_later())
+
+        # --- Action buttons (below status, hidden until needed) ---
+        self.btn_next_image = ctk.CTkButton(
+            self, text="Next Image", fg_color="#2b5797",
+            command=app.next_image)
+
+        self.btn_continue_later = ctk.CTkButton(
+            self, text="Continue Later", fg_color="#2b5797",
+            command=lambda: app.continue_later())
+
+        self.btn_stop = ctk.CTkButton(
+            self, text="Finish & Plot", fg_color="#2b5797",
+            command=lambda: app.finish_and_plot())
 
         self.lbl_status = ctk.CTkLabel(
             self._status_frame, text="Open a folder containing the scanned plates.",

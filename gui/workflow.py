@@ -67,11 +67,11 @@ class MeasurementMixin:
         self._scale_val = self._get_scale()
         self._sensitivity = self.sidebar.var_sensitivity.get()
 
+        self.sidebar.hide_action_buttons()
         self.sidebar.set_status("Preprocessing...")
         self.sidebar.btn_measure.configure(state="disabled")
         self.sidebar.btn_select_plates.configure(state="disabled")
         self.sidebar.btn_click_roots.configure(state="disabled")
-        self.sidebar.btn_continue_later_mid.pack_forget()
         self.sidebar.set_step(3)
         self.update()
 
@@ -191,6 +191,7 @@ class MeasurementMixin:
 
     def _start_reclick(self):
         """Enter reclick mode for bad traces."""
+        self.sidebar.hide_action_buttons()
         self.canvas.clear_reclick()
         self._reclick_idx = 0  # which retry root we're on
         num_marks = self._get_num_marks()
@@ -260,7 +261,7 @@ class MeasurementMixin:
 
     def _do_retrace(self):
         """Re-trace roots with manually clicked points."""
-        self.sidebar.btn_continue_later_mid.pack_forget()
+        self.sidebar.hide_action_buttons()
         # ensure binary mask exists (may be missing after session restore)
         if not hasattr(self, '_binary') or self._binary is None:
             self.sidebar.set_status("Preprocessing...")
@@ -395,9 +396,7 @@ class MeasurementMixin:
                 return
         self.canvas._measurement_done = False
         self.canvas.clear_review()
-        self.sidebar.btn_next_image.pack_forget()
-        self.sidebar.btn_continue_later.pack_forget()
-        self.sidebar.btn_stop.pack_forget()
+        self.sidebar.hide_action_buttons()
         self._show_review()
 
     def _rebuild_results_from_traces(self):
@@ -466,6 +465,7 @@ class MeasurementMixin:
             self._processed_images.add(self.image_path)
 
         self._auto_save()
+        self.sidebar.hide_action_buttons()
         self.sidebar.btn_next_image.pack(pady=(10, 3), padx=15, fill="x")
         self.sidebar.btn_continue_later.pack(pady=3, padx=15, fill="x")
         self.sidebar.btn_stop.pack(pady=3, padx=15, fill="x")

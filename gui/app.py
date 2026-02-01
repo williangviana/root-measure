@@ -262,6 +262,7 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
                 self.sidebar.btn_click_roots.configure(state="normal")
                 self.sidebar.btn_measure.configure(state="normal")
                 self.sidebar.btn_review.configure(state="normal")
+                self.sidebar.hide_action_buttons()
                 self.sidebar.btn_next_image.pack(
                     pady=(10, 3), padx=15, fill="x")
                 self.sidebar.btn_continue_later.pack(
@@ -366,6 +367,7 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
 
     def _restore_completed_view(self):
         """Show completed measurement view for the current image."""
+        self.sidebar.hide_action_buttons()
         self.sidebar.sec_sessions.hide()
         self.sidebar.sec_folder.collapse(summary=self.folder.name if self.folder else "")
         self.sidebar.sec_settings.show()
@@ -496,6 +498,7 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
 
     def select_plates(self):
         """Enter plate selection mode on canvas."""
+        self.sidebar.hide_action_buttons()
         self.canvas._measurement_done = False
         self.canvas.clear_plates()
         self.canvas.clear_roots()
@@ -529,6 +532,7 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
 
     def click_roots(self, resume=False):
         """Enter root clicking mode on canvas."""
+        self.sidebar.hide_action_buttons()
         plates = self.canvas.get_plates()
         if not plates:
             self.sidebar.set_status("Select plates first.")

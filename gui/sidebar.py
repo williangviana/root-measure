@@ -293,6 +293,13 @@ class Sidebar(ctk.CTkScrollableFrame):
 
     # --- helpers ---
 
+    def hide_action_buttons(self):
+        """Hide all post-measurement and mid-workflow action buttons."""
+        self.btn_next_image.pack_forget()
+        self.btn_continue_later.pack_forget()
+        self.btn_stop.pack_forget()
+        self.btn_continue_later_mid.pack_forget()
+
     def _add_separator(self):
         ctk.CTkFrame(self, height=1, fg_color="gray30").pack(
             fill="x", padx=15, pady=8)
@@ -414,10 +421,7 @@ class Sidebar(ctk.CTkScrollableFrame):
         self.sec_settings.hide()
         self.sec_experiment.hide()
         self.sec_workflow.hide()
-        self.btn_continue_later_mid.pack_forget()
-        self.btn_next_image.pack_forget()
-        self.btn_continue_later.pack_forget()
-        self.btn_stop.pack_forget()
+        self.hide_action_buttons()
         n_done = len(processed)
         n_total = len(images)
         if n_done > 0:

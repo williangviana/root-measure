@@ -225,25 +225,27 @@ class MeasurementMixin:
         """Called when user presses Enter during reclick."""
         pts = self.canvas._reclick_points
         cpr = self._reclick_clicks_per_root
-        # need exactly cpr points for current root
+        n = len(self._retry_result_indices)
+        # need at least enough points for the current root
         if len(pts) < (self._reclick_idx + 1) * cpr:
             self.sidebar.set_status(
                 f"Need {cpr} clicks per root. "
                 f"Click all points before pressing Enter.")
             return
-        self._reclick_idx += 1
-        n = len(self._retry_result_indices)
-        if self._reclick_idx < n:
-            # advance to next retry root
-            ri = self._retry_result_indices[self._reclick_idx]
-            top = self.canvas.get_root_points()[ri]
-            plates = self.canvas.get_plates()
-            for r1, r2, c1, c2 in plates:
-                if r1 <= top[0] <= r2 and c1 <= top[1] <= c2:
-                    self.canvas.zoom_to_region(r1, r2, c1, c2)
-                    break
-            self._show_reclick_status()
-            return
+        # advance past all roots that already have their points placed
+        while self._reclick_idx < n - 1:
+            self._reclick_idx += 1
+            if len(pts) < (self._reclick_idx + 1) * cpr:
+                # this root still needs clicks — stay here
+                ri = self._retry_result_indices[self._reclick_idx]
+                top = self.canvas.get_root_points()[ri]
+                plates = self.canvas.get_plates()
+                for r1, r2, c1, c2 in plates:
+                    if r1 <= top[0] <= r2 and c1 <= top[1] <= c2:
+                        self.canvas.zoom_to_region(r1, r2, c1, c2)
+                        break
+                self._show_reclick_status()
+                return
         # all re-clicks done — re-trace
         self._do_retrace()
 

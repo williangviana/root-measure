@@ -196,6 +196,9 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
             self.sidebar.entry_dpi.insert(0, settings.get('dpi', ''))
             # advance sidebar to workflow
             self.sidebar.advance_to_experiment()
+            # lock CSV format if data already written
+            if (self.folder / 'output' / 'data.csv').exists():
+                self.sidebar.menu_csv_format.configure(state="disabled")
             self.sidebar.advance_to_workflow()
             # restore canvas state (set_image cleared plates/roots, re-add)
             if canvas_data.get('plates'):
@@ -352,9 +355,10 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
         # lock CSV format if data.csv already exists
         if self.folder:
             csv_exists = (self.folder / 'output' / 'data.csv').exists()
-            saved_fmt = get_csv_format(self.folder)
-            if csv_exists and saved_fmt:
-                self.sidebar.var_csv_format.set(saved_fmt)
+            if csv_exists:
+                saved_fmt = get_csv_format(self.folder)
+                if saved_fmt:
+                    self.sidebar.var_csv_format.set(saved_fmt)
                 self.sidebar.menu_csv_format.configure(state="disabled")
             else:
                 self.sidebar.menu_csv_format.configure(state="normal")

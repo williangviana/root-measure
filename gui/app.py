@@ -208,11 +208,11 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
             self.canvas._redraw()
             step = data.get('workflow_step', 1)
             self.sidebar.set_step(step)
-            # now collapse folder with image list (after all layout is done)
+            # populate image list in folder body and collapse
+            self.sidebar.btn_load_folder.pack_forget()
+            self.sidebar._populate_image_list(
+                self.images, self._processed_images)
             self.sidebar.sec_folder.collapse(summary=self.folder.name)
-            self.sidebar.sec_images.collapse(
-                summary=name_to_path[current].name)
-            self.sidebar.sec_images.show()
             plates = self.canvas.get_plates()
             points = self.canvas.get_root_points()
             self.sidebar.set_status(

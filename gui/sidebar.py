@@ -91,7 +91,7 @@ class Sidebar(ctk.CTkScrollableFrame):
         # hidden until folder loaded
         self._image_list_frame = None
         self.btn_finish_plot = ctk.CTkButton(
-            self.sec_images.body, text="Finish & Plot",
+            self.sec_folder.body, text="Finish & Plot",
             fg_color="#2b5797",
             command=lambda: app.finish_and_plot())
         # hidden until at least one image is processed
@@ -311,16 +311,14 @@ class Sidebar(ctk.CTkScrollableFrame):
 
     # --- phase transitions ---
 
-    def advance_to_images(self, folder_name, images, processed=None):
-        """Phase 1: folder loaded — show images, collapse folder."""
+    def _populate_image_list(self, images, processed=None):
+        """Build the image list inside the folder section body."""
         if processed is None:
             processed = set()
-        self.sec_folder.collapse(summary=folder_name)
-        # populate image list
         if self._image_list_frame is not None:
             self._image_list_frame.destroy()
         self._image_list_frame = ctk.CTkFrame(
-            self.sec_images.body, fg_color="transparent")
+            self.sec_folder.body, fg_color="transparent")
         self._image_list_frame.pack(fill="x", padx=10, pady=5)
         for img_path in images:
             done = img_path in processed
@@ -340,9 +338,16 @@ class Sidebar(ctk.CTkScrollableFrame):
         self.btn_finish_plot.pack_forget()
         if len(processed) > 0:
             self.btn_finish_plot.pack(pady=(8, 5), padx=10, fill="x")
-        self.sec_images.show()
-        self.sec_images.expand()
+
+    def advance_to_images(self, folder_name, images, processed=None):
+        """Phase 1: folder loaded — show images, collapse folder."""
+        if processed is None:
+            processed = set()
+        self.btn_load_folder.pack_forget()
+        self._populate_image_list(images, processed)
+        self.sec_folder.collapse(summary=folder_name)
         # hide later sections
+        self.sec_images.hide()
         self.sec_settings.hide()
         self.sec_experiment.hide()
         self.sec_workflow.hide()
@@ -357,13 +362,14 @@ class Sidebar(ctk.CTkScrollableFrame):
             self.set_status(f"{n_total} scan(s) found.")
 
     def advance_to_settings(self, image_name, dpi):
-        """Phase 2: image selected — show settings, collapse images."""
-        self.sec_images.collapse(summary=image_name)
+        """Phase 2: image selected — show settings, collapse folder."""
+        self.sec_folder.collapse(summary=image_name)
         self.entry_dpi.delete(0, "end")
         self.entry_dpi.insert(0, str(dpi))
         self.sec_settings.show()
         self.sec_settings.expand()
         # hide later sections
+        self.sec_images.hide()
         self.sec_experiment.hide()
         self.sec_workflow.hide()
 

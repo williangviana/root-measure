@@ -7,6 +7,7 @@ class _Section:
     """Collapsible section: clickable header + toggle-able body."""
 
     def __init__(self, parent, title):
+        self._sidebar = parent  # reference to Sidebar for ordered packing
         self.frame = ctk.CTkFrame(parent, fg_color="transparent")
         # header row
         self._header = ctk.CTkFrame(self.frame, fg_color="transparent",
@@ -52,7 +53,22 @@ class _Section:
             self._summary.configure(text=summary)
 
     def show(self):
-        self.frame.pack(fill="x")
+        if self.frame.winfo_manager():
+            return  # already packed
+        sidebar = self._sidebar
+        order = getattr(sidebar, '_section_order', None)
+        if order is None:
+            # During __init__, sections are packed in order — plain pack is fine
+            self.frame.pack(fill="x")
+            return
+        # Find the correct 'before' widget to maintain section order
+        my_idx = next((i for i, s in enumerate(order) if s is self), -1)
+        before = sidebar._status_frame
+        for s in order[my_idx + 1:]:
+            if s.frame.winfo_manager():
+                before = s.frame
+                break
+        self.frame.pack(fill="x", before=before)
 
     def hide(self):
         self.frame.pack_forget()
@@ -223,29 +239,32 @@ class Sidebar(ctk.CTkScrollableFrame):
             state="disabled", fg_color=self._step_color_idle)
         self.btn_review.pack(pady=3, padx=15, fill="x")
 
-        # --- Status area (always visible, below workflow) ---
-        self._status_frame = ctk.CTkFrame(self, fg_color="transparent")
-        self._status_frame.pack(fill="x", pady=(15, 5))
-
-        # --- Action buttons container (always packed below status) ---
-        self._actions_frame = ctk.CTkFrame(self, fg_color="transparent")
-        self._actions_frame.pack(fill="x")
-
-        self.btn_continue_later_mid = ctk.CTkButton(
-            self._actions_frame, text="Continue Later", fg_color="#2b5797",
-            command=lambda: app.continue_later())
-
+        # Action buttons (inside workflow body, below step buttons)
         self.btn_next_image = ctk.CTkButton(
-            self._actions_frame, text="Next Image", fg_color="#2b5797",
+            b, text="Next Image", fg_color="#2b5797",
             command=app.next_image)
 
         self.btn_continue_later = ctk.CTkButton(
-            self._actions_frame, text="Continue Later", fg_color="#2b5797",
+            b, text="Continue Later", fg_color="#2b5797",
             command=lambda: app.continue_later())
 
         self.btn_stop = ctk.CTkButton(
-            self._actions_frame, text="Finish & Plot", fg_color="#2b5797",
+            b, text="Finish & Plot", fg_color="#2b5797",
             command=lambda: app.finish_and_plot())
+
+        self.btn_continue_later_mid = ctk.CTkButton(
+            b, text="Continue Later", fg_color="#2b5797",
+            command=lambda: app.continue_later())
+
+        # --- Ordered section list (for pack-order preservation) ---
+        self._section_order = [
+            self.sec_folder, self.sec_sessions, self.sec_images,
+            self.sec_settings, self.sec_experiment, self.sec_workflow,
+        ]
+
+        # --- Status area (always visible at bottom of sidebar) ---
+        self._status_frame = ctk.CTkFrame(self, fg_color="transparent")
+        self._status_frame.pack(fill="x", pady=(15, 5))
 
         self.lbl_status = ctk.CTkLabel(
             self._status_frame, text="Open a folder containing the scanned plates.",

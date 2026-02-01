@@ -160,9 +160,6 @@ def restore_settings(sidebar, settings):
     sidebar.var_split.set(settings.get('split_plate', False))
     sidebar.entry_experiment.delete(0, 'end')
     sidebar.entry_experiment.insert(0, settings.get('experiment', ''))
-    sidebar.entry_genotypes.delete(0, 'end')
-    sidebar.entry_genotypes.insert(0, settings.get('genotypes', ''))
-    sidebar.entry_condition.delete(0, 'end')
-    sidebar.entry_condition.insert(0, settings.get('conditions', ''))
+    # genotypes and condition are NOT restored — they change per scan
     sidebar.var_csv_format.set(settings.get('csv_format', 'R'))
     sidebar.var_plot.set(settings.get('plot', True))

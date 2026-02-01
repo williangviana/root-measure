@@ -367,7 +367,7 @@ class MeasurementMixin:
 
     def _finish_measurement(self):
         """Save results and show final summary."""
-        self.sidebar.set_step(5)
+        self.sidebar.set_step(4)
         plates = self.canvas.get_plates()
         traced = [r for r in self._results
                   if r['method'] not in ('skip', 'error')]
@@ -383,7 +383,7 @@ class MeasurementMixin:
         self._save_trace_screenshot()
         self._save_metadata()
 
-        self.sidebar.set_step(6)  # marks all 5 steps as done (green)
+        self.sidebar.set_step(5)  # marks all 4 steps as done (green)
         self.canvas._measurement_done = True
         self.sidebar.btn_select_plates.configure(state="normal")
         self.sidebar.btn_click_roots.configure(state="normal")

@@ -245,7 +245,7 @@ def _get_workflow_step(sidebar):
     """Determine current workflow step from button colors."""
     buttons = [
         sidebar.btn_select_plates, sidebar.btn_click_roots,
-        sidebar.btn_measure, sidebar.btn_review, sidebar.btn_save,
+        sidebar.btn_measure, sidebar.btn_review,
     ]
     step = 0
     for i, btn in enumerate(buttons):

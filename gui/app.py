@@ -219,7 +219,7 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
             if canvas_data.get('traces'):
                 self.canvas.set_traces(canvas_data['traces'])
             step = data.get('workflow_step', 1)
-            if step >= 6:
+            if step >= 5:
                 self.canvas._measurement_done = True
             self.canvas.set_mode(ImageCanvas.MODE_VIEW)
             self.canvas._redraw()
@@ -251,7 +251,7 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
                     f"Session restored: {len(points)} root(s) on "
                     f"{len(plates)} plate(s).\n"
                     f"Continue where you left off.")
-            elif step >= 6:
+            elif step >= 5:
                 # measurement complete — show action buttons
                 self.sidebar.btn_select_plates.configure(state="normal")
                 self.sidebar.btn_click_roots.configure(state="normal")

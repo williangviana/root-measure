@@ -396,6 +396,7 @@ class ImageCanvas(ctk.CTkFrame):
                     self._mark_marker_ids.extend([rid, tid])
 
         # traced paths with segment coloring
+        trace_plate_counters = {}
         for ti, (path, shades, mark_indices) in enumerate(self._traces):
             if len(path) < 2:
                 continue
@@ -418,11 +419,16 @@ class ImageCanvas(ctk.CTkFrame):
                 self._draw_path_segment(path, shades[0], w)
 
             if self._mode == self.MODE_REVIEW and len(path) > 0:
+                plate = (self._root_plates[ti]
+                         if ti < len(self._root_plates) else 0)
+                trace_plate_counters[plate] = \
+                    trace_plate_counters.get(plate, 0) + 1
                 top_row, top_col = path[0]
                 lx, ly = self.image_to_canvas(top_col, top_row)
                 lbl_color = "#ff8c00" if is_selected else shades[0]
                 self.canvas.create_text(
-                    lx, ly - 10, text=str(ti + 1),
+                    lx, ly - 10,
+                    text=str(trace_plate_counters[plate]),
                     fill=lbl_color, anchor="s",
                     font=("Helvetica", 10, "bold"))
 

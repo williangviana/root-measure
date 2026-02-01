@@ -87,10 +87,14 @@ def _collect_canvas(canvas):
         all_marks[str(k)] = [list(m) for m in v]
     traces = []
     for path, shades, mark_indices in canvas._traces:
+        # use tolist() for numpy arrays to get native Python types
+        p = path.tolist() if hasattr(path, 'tolist') else [list(r) for r in path]
+        mi = (mark_indices.tolist() if hasattr(mark_indices, 'tolist')
+              else [int(x) for x in mark_indices])
         traces.append({
-            'path': [list(p) for p in path],
+            'path': p,
             'shades': list(shades),
-            'mark_indices': list(mark_indices),
+            'mark_indices': mi,
         })
     return {
         'plates': [list(p) for p in canvas._plates],

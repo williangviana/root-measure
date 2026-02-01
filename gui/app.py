@@ -145,7 +145,10 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
     def _auto_save(self):
         sp = self._session_path()
         if sp:
-            save_session(sp, self)
+            try:
+                save_session(sp, self)
+            except Exception:
+                pass
 
     def _try_resume(self):
         """Check for session file and offer to resume."""

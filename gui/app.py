@@ -185,6 +185,9 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
         current = data.get('current_image')
         canvas_data = data.get('canvas', {})
         if current and current in name_to_path:
+            # collapse folder and populate image list first
+            self.sidebar.advance_to_images(
+                self.folder.name, self.images, self._processed_images)
             self.load_image(name_to_path[current])
             # override DPI that load_image set
             self.sidebar.entry_dpi.delete(0, 'end')

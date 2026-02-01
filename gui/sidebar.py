@@ -242,6 +242,10 @@ class Sidebar(ctk.CTkScrollableFrame):
         self._status_frame = ctk.CTkFrame(self, fg_color="transparent")
         self._status_frame.pack(fill="x", pady=(15, 5))
 
+        self.btn_continue_later_mid = ctk.CTkButton(
+            self._status_frame, text="Continue Later", fg_color="#2b5797",
+            command=lambda: app.continue_later())
+
         self.lbl_status = ctk.CTkLabel(
             self._status_frame, text="Open a folder containing the scanned plates.",
             font=ctk.CTkFont(size=11),

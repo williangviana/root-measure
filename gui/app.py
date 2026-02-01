@@ -507,7 +507,7 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
             self.canvas._current_root_group = 0
         self._enter_root_click_stage()
         self.sidebar.btn_measure.configure(state="disabled")
-        self.sidebar.btn_continue_later.pack(pady=3, padx=15, fill="x")
+        self.sidebar.btn_continue_later_mid.pack(pady=(10, 5), padx=15, fill="x")
         self.sidebar.set_step(2)
 
     def _enter_root_click_stage(self):

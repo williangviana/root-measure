@@ -70,7 +70,7 @@ class MeasurementMixin:
         self.sidebar.btn_measure.configure(state="disabled")
         self.sidebar.btn_select_plates.configure(state="disabled")
         self.sidebar.btn_click_roots.configure(state="disabled")
-        self.sidebar.btn_continue_later.pack_forget()
+        self.sidebar.btn_continue_later_mid.pack_forget()
         self.sidebar.set_step(3)
         self.update()
 

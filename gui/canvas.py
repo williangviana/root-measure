@@ -71,6 +71,9 @@ class ImageCanvas(ctk.CTkFrame):
         self._reclick_expected = 0  # how many pairs expected
         self._reclick_marker_ids = []
 
+        # help overlay
+        self._help_visible = False
+
         # bindings
         self.canvas.bind("<Configure>", self._on_resize)
         self.canvas.bind("<ButtonPress-1>", self._on_left_press)
@@ -424,6 +427,114 @@ class ImageCanvas(ctk.CTkFrame):
                     font=("Helvetica", 8, "bold"))
                 self._reclick_marker_ids.extend([rid, tid])
 
+        # help overlay
+        if self._help_visible:
+            self._draw_help_overlay()
+
+    def _draw_help_overlay(self):
+        """Draw a keyboard shortcut reference card on the canvas."""
+        _GLOBAL = [
+            ("?", "Toggle this help"),
+            ("Scroll", "Zoom in/out"),
+            ("Space+Drag", "Pan image"),
+            ("\u2318Z", "Undo last action"),
+        ]
+        _MODE_SHORTCUTS = {
+            self.MODE_VIEW: [],
+            self.MODE_SELECT_PLATES: [
+                ("Drag", "Draw plate rectangle"),
+                ("Enter", "Confirm plate / finish"),
+                ("Right-click", "Undo last plate"),
+            ],
+            self.MODE_CLICK_ROOTS: [
+                ("Click", "Place root top"),
+                ("D + Click", "Mark as dead"),
+                ("T + Click", "Mark as touching"),
+                ("Enter", "Next genotype / plate"),
+                ("Right-click", "Undo last click"),
+            ],
+            self.MODE_CLICK_MARKS: [
+                ("Click", "Place mark point"),
+                ("Enter", "Confirm marks"),
+                ("Right-click", "Undo last mark"),
+            ],
+            self.MODE_REVIEW: [
+                ("Click trace", "Select / deselect for retry"),
+                ("Enter", "Accept all / retry selected"),
+            ],
+            self.MODE_RECLICK: [
+                ("Click", "Place top / mark / bottom"),
+                ("Enter", "Confirm re-click"),
+                ("Right-click", "Undo last click"),
+            ],
+        }
+        _MODE_NAMES = {
+            self.MODE_VIEW: "View",
+            self.MODE_SELECT_PLATES: "Select Plates",
+            self.MODE_CLICK_ROOTS: "Click Roots",
+            self.MODE_CLICK_MARKS: "Click Marks",
+            self.MODE_REVIEW: "Review",
+            self.MODE_RECLICK: "Re-click",
+        }
+
+        mode_shortcuts = _MODE_SHORTCUTS.get(self._mode, [])
+        mode_name = _MODE_NAMES.get(self._mode, "")
+        lines = []
+        if mode_shortcuts:
+            lines.append(("", f"--- {mode_name} ---"))
+            lines.extend(mode_shortcuts)
+            lines.append(("", ""))
+        lines.append(("", "--- General ---"))
+        lines.extend(_GLOBAL)
+
+        cw = self.canvas.winfo_width()
+        ch = self.canvas.winfo_height()
+        font_key = ("Menlo", 11, "bold")
+        font_desc = ("Helvetica", 11)
+        line_h = 20
+        pad = 16
+        key_col_w = 120
+        desc_col_w = 200
+        card_w = key_col_w + desc_col_w + pad * 2
+        card_h = len(lines) * line_h + pad * 2 + 24  # +24 for title
+
+        x0 = (cw - card_w) // 2
+        y0 = (ch - card_h) // 2
+
+        # background
+        self.canvas.create_rectangle(
+            x0, y0, x0 + card_w, y0 + card_h,
+            fill="#1a1a1a", outline="#4a9eff", width=2,
+            stipple="gray75")
+        # title
+        self.canvas.create_text(
+            x0 + card_w // 2, y0 + pad,
+            text="Keyboard Shortcuts",
+            fill="#4a9eff", anchor="n",
+            font=("Helvetica", 13, "bold"))
+
+        y = y0 + pad + 28
+        for key, desc in lines:
+            if key == "" and desc.startswith("---"):
+                # section header
+                self.canvas.create_text(
+                    x0 + card_w // 2, y + line_h // 2,
+                    text=desc.strip("- "),
+                    fill="#4a9eff", anchor="center",
+                    font=("Helvetica", 10, "bold"))
+            elif key == "" and desc == "":
+                pass  # spacer
+            else:
+                self.canvas.create_text(
+                    x0 + pad + key_col_w, y + line_h // 2,
+                    text=key, fill="white", anchor="e",
+                    font=font_key)
+                self.canvas.create_text(
+                    x0 + pad + key_col_w + 12, y + line_h // 2,
+                    text=desc, fill="#cccccc", anchor="w",
+                    font=font_desc)
+            y += line_h
+
     def _draw_path_segment(self, path, color, width, dash=None):
         """Draw a subsection of a path on the canvas."""
         if len(path) < 2:
@@ -696,6 +807,17 @@ class ImageCanvas(ctk.CTkFrame):
 
     def handle_key(self, event):
         """Handle keyboard events (called from app-level binding)."""
+        # ? key toggles help overlay
+        if event.keysym == 'question' or \
+                (event.keysym == 'slash' and event.state & 0x1):
+            self._help_visible = not self._help_visible
+            self._redraw()
+            return True
+        # dismiss help on any other key
+        if self._help_visible:
+            self._help_visible = False
+            self._redraw()
+            return True
         # spacebar hold for pan mode
         if event.keysym == 'space':
             self._space_held = True

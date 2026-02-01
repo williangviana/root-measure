@@ -385,6 +385,9 @@ class MeasurementMixin:
                 return
         self.canvas._measurement_done = False
         self.canvas.clear_review()
+        self.sidebar.btn_next_image.pack_forget()
+        self.sidebar.btn_continue_later.pack_forget()
+        self.sidebar.btn_stop.pack_forget()
         self._show_review()
 
     def _rebuild_results_from_traces(self):

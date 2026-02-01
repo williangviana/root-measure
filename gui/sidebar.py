@@ -227,21 +227,24 @@ class Sidebar(ctk.CTkScrollableFrame):
         self._status_frame = ctk.CTkFrame(self, fg_color="transparent")
         self._status_frame.pack(fill="x", pady=(15, 5))
 
+        # --- Action buttons container (always packed below status) ---
+        self._actions_frame = ctk.CTkFrame(self, fg_color="transparent")
+        self._actions_frame.pack(fill="x")
+
         self.btn_continue_later_mid = ctk.CTkButton(
-            self, text="Continue Later", fg_color="#2b5797",
+            self._actions_frame, text="Continue Later", fg_color="#2b5797",
             command=lambda: app.continue_later())
 
-        # --- Action buttons (below status, hidden until needed) ---
         self.btn_next_image = ctk.CTkButton(
-            self, text="Next Image", fg_color="#2b5797",
+            self._actions_frame, text="Next Image", fg_color="#2b5797",
             command=app.next_image)
 
         self.btn_continue_later = ctk.CTkButton(
-            self, text="Continue Later", fg_color="#2b5797",
+            self._actions_frame, text="Continue Later", fg_color="#2b5797",
             command=lambda: app.continue_later())
 
         self.btn_stop = ctk.CTkButton(
-            self, text="Finish & Plot", fg_color="#2b5797",
+            self._actions_frame, text="Finish & Plot", fg_color="#2b5797",
             command=lambda: app.finish_and_plot())
 
         self.lbl_status = ctk.CTkLabel(
@@ -277,9 +280,6 @@ class Sidebar(ctk.CTkScrollableFrame):
 
     def set_status(self, text):
         self.lbl_status.configure(text=text)
-        if not self._progress_frame.winfo_ismapped():
-            self._status_frame.pack_forget()
-            self._status_frame.pack(fill="x", pady=(15, 5))
 
     def set_step(self, step):
         """Highlight the current workflow step (1-4). Previous steps turn green."""
@@ -389,6 +389,7 @@ class Sidebar(ctk.CTkScrollableFrame):
         self.sec_settings.hide()
         self.sec_experiment.hide()
         self.sec_workflow.hide()
+        self.btn_continue_later_mid.pack_forget()
         self.btn_next_image.pack_forget()
         self.btn_continue_later.pack_forget()
         self.btn_stop.pack_forget()

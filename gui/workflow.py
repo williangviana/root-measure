@@ -251,6 +251,12 @@ class MeasurementMixin:
 
     def _do_retrace(self):
         """Re-trace roots with manually clicked points."""
+        # ensure binary mask exists (may be missing after session restore)
+        if not hasattr(self, '_binary') or self._binary is None:
+            self.sidebar.set_status("Preprocessing...")
+            self.update()
+            self._binary = preprocess(self.image, scale=self._scale_val,
+                                      sensitivity=self._sensitivity)
         cpr = self._reclick_clicks_per_root
         groups = self.canvas.get_reclick_groups(cpr)
         self.canvas.set_mode(ImageCanvas.MODE_VIEW)
@@ -371,11 +377,52 @@ class MeasurementMixin:
     def show_review(self):
         """Re-enter review mode from the sidebar button."""
         if not hasattr(self, '_results') or not self._results:
-            self.sidebar.set_status("No traces to review.")
-            return
+            # try to rebuild from canvas traces (e.g. after session restore)
+            if self.canvas._traces:
+                self._rebuild_results_from_traces()
+            else:
+                self.sidebar.set_status("No traces to review.")
+                return
         self.canvas._measurement_done = False
         self.canvas.clear_review()
         self._show_review()
+
+    def _rebuild_results_from_traces(self):
+        """Reconstruct _results and _trace_to_result from canvas state."""
+        points = self.canvas.get_root_points()
+        flags = self.canvas.get_root_flags()
+        self._results = []
+        self._trace_to_result = []
+        self._scale_val = self._get_scale()
+        self._sensitivity = self.sidebar.var_sensitivity.get()
+        trace_idx = 0
+        for i, flag in enumerate(flags):
+            if flag is not None:
+                warning = 'dead seedling' if flag == 'dead' else 'roots touching'
+                self._results.append(dict(
+                    length_cm=None, length_px=None,
+                    path=np.empty((0, 2)),
+                    method='skip', warning=warning, segments=[]))
+            elif trace_idx < len(self.canvas._traces):
+                path_data = self.canvas._traces[trace_idx]
+                path = np.array(path_data[0]) if not isinstance(
+                    path_data[0], np.ndarray) else path_data[0]
+                length_px = 0
+                if len(path) >= 2:
+                    diffs = np.diff(path, axis=0)
+                    length_px = float(np.sum(np.sqrt(
+                        (diffs ** 2).sum(axis=1))))
+                length_cm = length_px / self._scale_val if self._scale_val else 0
+                self._results.append(dict(
+                    length_cm=length_cm, length_px=length_px,
+                    path=path, method='restored', segments=[]))
+                self._trace_to_result.append(i)
+                trace_idx += 1
+            else:
+                self._results.append(dict(
+                    length_cm=0, length_px=0,
+                    path=np.empty((0, 2)),
+                    method='error', warning='no trace', segments=[]))
 
     def _finish_measurement(self):
         """Save results and show final summary."""

@@ -390,34 +390,8 @@ class MeasurementMixin:
         if self.image_path:
             self._processed_images.add(self.image_path)
 
-        # auto-advance: if more images remain, load next automatically
-        remaining = [p for p in self.images
-                     if p not in self._processed_images]
-        if remaining:
-            n_done = len(self._processed_images)
-            n_total = len(self.images)
-            self.sidebar.set_status(
-                self.sidebar.lbl_status.cget("text") +
-                f"\n\nAuto-advancing ({n_done}/{n_total})...")
-            self.update_idletasks()
-            self.after(800, lambda: self._auto_advance(remaining[0]))
-        else:
-            self.sidebar.btn_next_image.pack(pady=(10, 3), padx=15, fill="x")
-            self.sidebar.btn_stop.pack(pady=3, padx=15, fill="x")
-            # all images done — auto-plot
-            if self.sidebar.var_plot.get():
-                self._run_plot()
-            self.sidebar.set_status(
-                self.sidebar.lbl_status.cget("text") +
-                "\n\nAll images processed!")
-
-    def _auto_advance(self, next_path):
-        """Load next image and restart workflow with same settings."""
-        self.load_image(next_path)
-        # skip settings and experiment — reuse previous values
-        self.sidebar.advance_to_experiment()
-        self.sidebar.advance_to_workflow()
-        self.select_plates()
+        self.sidebar.btn_next_image.pack(pady=(10, 3), padx=15, fill="x")
+        self.sidebar.btn_stop.pack(pady=3, padx=15, fill="x")
 
     def _save_metadata(self):
         """Save measurement metadata alongside CSV."""

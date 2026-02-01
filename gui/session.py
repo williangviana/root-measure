@@ -85,6 +85,13 @@ def _collect_canvas(canvas):
     all_marks = {}
     for k, v in canvas._all_marks.items():
         all_marks[str(k)] = [list(m) for m in v]
+    traces = []
+    for path, shades, mark_indices in canvas._traces:
+        traces.append({
+            'path': [list(p) for p in path],
+            'shades': list(shades),
+            'mark_indices': list(mark_indices),
+        })
     return {
         'plates': [list(p) for p in canvas._plates],
         'root_points': [list(p) for p in canvas._root_points],
@@ -92,6 +99,7 @@ def _collect_canvas(canvas):
         'root_groups': list(canvas._root_groups),
         'root_plates': list(canvas._root_plates),
         'all_marks': all_marks,
+        'traces': traces,
     }
 
 

@@ -169,6 +169,17 @@ class ImageCanvas(ctk.CTkFrame):
         self._traces.append((path, shades, mark_indices))
         self._trace_original_colors.append(shades)
 
+    def set_traces(self, traces_data):
+        """Restore traces from saved session data."""
+        self._traces.clear()
+        self._trace_original_colors.clear()
+        for t in traces_data:
+            path = t['path']
+            shades = t.get('shades', ['#00ff88'])
+            mark_indices = t.get('mark_indices', [])
+            self._traces.append((path, shades, mark_indices))
+            self._trace_original_colors.append(shades)
+
     def get_selected_for_retry(self):
         return sorted(self._selected_for_retry)
 

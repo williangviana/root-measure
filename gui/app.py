@@ -204,6 +204,8 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
                     canvas_data.get('root_plates', []))
             if canvas_data.get('all_marks'):
                 self.canvas.set_marks(canvas_data['all_marks'])
+            if canvas_data.get('traces'):
+                self.canvas.set_traces(canvas_data['traces'])
             self.canvas.set_mode(ImageCanvas.MODE_VIEW)
             self.canvas._redraw()
             step = data.get('workflow_step', 1)
@@ -224,6 +226,16 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
                 self.sidebar.btn_click_roots.configure(state="normal")
             if points:
                 self.sidebar.btn_measure.configure(state="normal")
+            # if measurement was complete, show the three action buttons
+            if step >= 6:
+                self.sidebar.btn_select_plates.configure(state="normal")
+                self.sidebar.btn_click_roots.configure(state="normal")
+                self.sidebar.btn_measure.configure(state="normal")
+                self.sidebar.btn_next_image.pack(
+                    pady=(10, 3), padx=15, fill="x")
+                self.sidebar.btn_continue_later.pack(
+                    pady=3, padx=15, fill="x")
+                self.sidebar.btn_stop.pack(pady=3, padx=15, fill="x")
         else:
             self.sidebar.advance_to_images(
                 self.folder.name, self.images, self._processed_images)

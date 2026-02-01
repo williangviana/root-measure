@@ -236,16 +236,26 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
             self.sidebar.sec_folder.collapse(summary=self.folder.name)
             plates = self.canvas.get_plates()
             points = self.canvas.get_root_points()
-            self.sidebar.set_status(
-                f"Session restored: {len(plates)} plate(s), "
-                f"{len(points)} root(s).\n"
-                f"Continue from where you left off.")
-            if plates:
-                self.sidebar.btn_click_roots.configure(state="normal")
-            if points:
-                self.sidebar.btn_measure.configure(state="normal")
-            # if measurement was complete, show the three action buttons
-            if step >= 6:
+            # resume into root clicking if saved mid-click
+            if step == 2 and plates and points:
+                root_plates = self.canvas._root_plates
+                last_plate = max(root_plates) if root_plates else 0
+                self._current_plate_idx = last_plate
+                self._split = self.sidebar.var_split.get()
+                self._current_group = 0
+                self._split_stage = 0
+                if self._split and root_plates:
+                    groups = self.canvas._root_groups
+                    self._current_group = max(groups) if groups else 0
+                    self._split_stage = self._current_group % 2
+                self.canvas._current_root_group = self._current_group
+                self.click_roots(resume=True)
+                self.sidebar.set_status(
+                    f"Session restored: {len(points)} root(s) on "
+                    f"{len(plates)} plate(s).\n"
+                    f"Continue clicking roots.")
+            elif step >= 6:
+                # measurement complete — show action buttons
                 self.sidebar.btn_select_plates.configure(state="normal")
                 self.sidebar.btn_click_roots.configure(state="normal")
                 self.sidebar.btn_measure.configure(state="normal")
@@ -254,6 +264,19 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
                 self.sidebar.btn_continue_later.pack(
                     pady=3, padx=15, fill="x")
                 self.sidebar.btn_stop.pack(pady=3, padx=15, fill="x")
+                self.sidebar.set_status(
+                    f"Session restored: {len(plates)} plate(s), "
+                    f"{len(points)} root(s).\n"
+                    f"Continue from where you left off.")
+            else:
+                self.sidebar.set_status(
+                    f"Session restored: {len(plates)} plate(s), "
+                    f"{len(points)} root(s).\n"
+                    f"Continue from where you left off.")
+                if plates:
+                    self.sidebar.btn_click_roots.configure(state="normal")
+                if points:
+                    self.sidebar.btn_measure.configure(state="normal")
         else:
             self.sidebar.advance_to_images(
                 self.folder.name, self.images, self._processed_images)
@@ -415,8 +438,6 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
 
     def continue_later(self):
         """Save session and quit the app."""
-        if self.image_path:
-            self._processed_images.add(self.image_path)
         self._auto_save()
         self.destroy()
 
@@ -468,26 +489,25 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
         self._auto_save()
         self.click_roots()
 
-    def click_roots(self):
+    def click_roots(self, resume=False):
         """Enter root clicking mode on canvas."""
         plates = self.canvas.get_plates()
         if not plates:
             self.sidebar.set_status("Select plates first.")
             return
-        self.canvas.clear_roots()
-        self.canvas.clear_marks()
-        self.canvas.clear_traces()
-        self.canvas._all_marks = {}
-        self._current_plate_idx = 0
-        self._split = self.sidebar.var_split.get()
-        # In split mode, each plate has 2 genotype groups (A=red, B=blue).
-        # _current_group tracks the global group index across all plates.
-        self._current_group = 0
-        # _split_stage: 0 = first genotype, 1 = second genotype (split only)
-        self._split_stage = 0
-        self.canvas._current_root_group = 0
+        if not resume:
+            self.canvas.clear_roots()
+            self.canvas.clear_marks()
+            self.canvas.clear_traces()
+            self.canvas._all_marks = {}
+            self._current_plate_idx = 0
+            self._split = self.sidebar.var_split.get()
+            self._current_group = 0
+            self._split_stage = 0
+            self.canvas._current_root_group = 0
         self._enter_root_click_stage()
         self.sidebar.btn_measure.configure(state="disabled")
+        self.sidebar.btn_continue_later.pack(pady=3, padx=15, fill="x")
         self.sidebar.set_step(2)
 
     def _enter_root_click_stage(self):

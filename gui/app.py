@@ -20,7 +20,8 @@ from workflow import MeasurementMixin
 from session import save_session, load_session, restore_settings, \
     save_last_folder, get_last_folder, save_experiment_name, \
     get_experiment_name, save_csv_format, get_csv_format, \
-    save_persistent_settings, get_persistent_settings
+    save_persistent_settings, get_persistent_settings, \
+    get_recent_folders, get_session_summary
 
 ctk.set_appearance_mode("dark")
 ctk.set_default_color_theme("blue")
@@ -121,23 +122,27 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
     # --- Image loading ---
 
     def _try_auto_resume(self):
-        """On startup, check if the last folder has a session to resume."""
+        """On startup, scan recent folders for saved sessions and show list."""
+        folders = get_recent_folders()
+        sessions = []
+        for f in folders:
+            s = get_session_summary(f)
+            if s:
+                sessions.append(s)
+        if sessions:
+            self.sidebar.populate_sessions(sessions)
+
+    def resume_session(self, folder):
+        """Resume a saved session from the sessions list."""
         from utils import list_images_in_folder
-        last = get_last_folder()
-        if not last:
-            return
-        sp = last / 'output' / 'session.json'
-        data = load_session(sp)
-        if not data:
-            return
-        self.folder = last
+        self.folder = folder
+        save_last_folder(folder)
         self.images = list_images_in_folder(self.folder)
         if not self.images:
+            self.sidebar.set_status(f"No scans found in {folder.name}")
             return
-        if self._try_resume():
-            return
-        # session existed but user declined resume — show image list
-        self.sidebar.advance_to_images(self.folder.name, self.images)
+        self.sidebar.sec_sessions.hide()
+        self._try_resume()
 
     def _session_path(self):
         if self.folder:
@@ -153,8 +158,7 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
                 pass
 
     def _try_resume(self):
-        """Check for session file and offer to resume."""
-        from tkinter import messagebox
+        """Check for session file and silently restore."""
         sp = self._session_path()
         if not sp:
             return False
@@ -165,14 +169,6 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
         saved_names = set(data.get('images', []))
         current_names = {p.name for p in self.images}
         if not saved_names & current_names:
-            return False
-        n_done = len(data.get('processed_images', []))
-        n_total = len(data.get('images', []))
-        if not messagebox.askyesno(
-                "Resume Session?",
-                f"Found a previous session with {n_done}/{n_total} "
-                f"image(s) done.\nResume where you left off?"):
-            sp.unlink(missing_ok=True)
             return False
         # restore offsets
         self._plate_offset = data.get('plate_offset', 0)
@@ -292,6 +288,7 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
             return
         self.folder = Path(folder)
         save_last_folder(self.folder)
+        self.sidebar.sec_sessions.hide()
         self.images = list_images_in_folder(self.folder)
 
         if not self.images:

@@ -86,6 +86,11 @@ class Sidebar(ctk.CTkScrollableFrame):
             b, text="Open Folder", command=app.load_folder)
         self.btn_load_folder.pack(pady=5, padx=15, fill="x")
 
+        # ===== SECTION: SAVED SESSIONS =====
+        self.sec_sessions = _Section(self, "SAVED SESSIONS")
+        # hidden until populated
+        self._session_buttons = []
+
         # ===== SECTION: IMAGES =====
         self.sec_images = _Section(self, "SCANNED PLATES")
         # hidden until folder loaded
@@ -313,6 +318,43 @@ class Sidebar(ctk.CTkScrollableFrame):
     def hide_progress(self):
         self._progress_frame.pack_forget()
 
+    def populate_sessions(self, sessions):
+        """Show saved session entries. sessions = list of summary dicts."""
+        # clear old buttons
+        for btn in self._session_buttons:
+            btn.destroy()
+        self._session_buttons.clear()
+
+        if not sessions:
+            self.sec_sessions.hide()
+            return
+
+        b = self.sec_sessions.body
+        for s in sessions:
+            title = s['experiment'] or s['folder_name']
+            progress = f"{s['n_done']}/{s['n_total']} scans done"
+            if s.get('current_image'):
+                progress += f"  •  {s['current_image']}"
+            frame = ctk.CTkFrame(b, fg_color="gray20", corner_radius=6,
+                                 cursor="hand2")
+            frame.pack(fill="x", padx=15, pady=3)
+            ctk.CTkLabel(frame, text=title,
+                         font=ctk.CTkFont(size=12, weight="bold"),
+                         text_color="white").pack(padx=10, pady=(6, 0),
+                                                   anchor="w")
+            ctk.CTkLabel(frame, text=progress,
+                         font=ctk.CTkFont(size=10),
+                         text_color="gray60").pack(padx=10, pady=(0, 6),
+                                                    anchor="w")
+            folder = s['folder']
+            for w in (frame, *frame.winfo_children()):
+                w.bind("<Button-1>",
+                       lambda e, f=folder: self.app.resume_session(f))
+            self._session_buttons.append(frame)
+
+        self.sec_sessions.show()
+        self.sec_sessions.expand()
+
     # --- phase transitions ---
 
     def _populate_image_list(self, images, processed=None):
@@ -347,6 +389,7 @@ class Sidebar(ctk.CTkScrollableFrame):
             processed = set()
         self.btn_load_folder.pack_forget()
         self._populate_image_list(images, processed)
+        self.sec_sessions.hide()
         self.sec_folder.expand()
         self.sec_folder._summary.configure(text=folder_name)
         # hide later sections
@@ -367,6 +410,7 @@ class Sidebar(ctk.CTkScrollableFrame):
     def advance_to_settings(self, image_name, dpi):
         """Phase 2: image selected — show settings, collapse folder."""
         self.btn_finish_plot.pack_forget()
+        self.sec_sessions.hide()
         self.sec_folder.collapse(summary=image_name)
         self.entry_dpi.delete(0, "end")
         self.entry_dpi.insert(0, str(dpi))

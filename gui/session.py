@@ -5,6 +5,7 @@ from pathlib import Path
 
 SESSION_VERSION = 1
 _LAST_FOLDER_FILE = Path.home() / '.root_measure_last_folder'
+_RECENT_FOLDERS_FILE = Path.home() / '.root_measure_recent_folders.json'
 
 
 def save_last_folder(folder):
@@ -13,6 +14,69 @@ def save_last_folder(folder):
         _LAST_FOLDER_FILE.write_text(str(folder))
     except Exception:
         pass
+    save_recent_folder(folder)
+
+
+def save_recent_folder(folder):
+    """Add folder to recent folders list (max 10, deduped)."""
+    try:
+        folders = []
+        if _RECENT_FOLDERS_FILE.exists():
+            folders = json.loads(_RECENT_FOLDERS_FILE.read_text())
+        folder_str = str(folder)
+        if folder_str in folders:
+            folders.remove(folder_str)
+        folders.insert(0, folder_str)
+        folders = folders[:10]
+        _RECENT_FOLDERS_FILE.write_text(json.dumps(folders))
+    except Exception:
+        pass
+
+
+def get_recent_folders():
+    """Return list of recent folder Paths that still exist on disk."""
+    try:
+        if not _RECENT_FOLDERS_FILE.exists():
+            return []
+        folders = json.loads(_RECENT_FOLDERS_FILE.read_text())
+        result = []
+        for f in folders:
+            p = Path(f)
+            if p.is_dir():
+                result.append(p)
+        return result
+    except Exception:
+        return []
+
+
+def get_session_summary(folder):
+    """Load session.json from folder and return a descriptive summary dict.
+
+    Returns dict with: folder, folder_name, experiment, n_done, n_total,
+    current_image.  Returns None if no valid session.
+    """
+    try:
+        session_path = folder / 'output' / 'session.json'
+        if not session_path.exists():
+            return None
+        data = json.loads(session_path.read_text())
+        if data.get('version') != SESSION_VERSION:
+            return None
+        experiment = data.get('settings', {}).get('experiment', '')
+        if not experiment:
+            experiment = get_experiment_name(folder)
+        images = data.get('images', [])
+        processed = data.get('processed_images', [])
+        return {
+            'folder': folder,
+            'folder_name': folder.name,
+            'experiment': experiment,
+            'n_done': len(processed),
+            'n_total': len(images),
+            'current_image': data.get('current_image', ''),
+        }
+    except Exception:
+        return None
 
 
 def get_last_folder():

@@ -21,7 +21,7 @@ from session import save_session, load_session, restore_settings, \
     save_last_folder, get_last_folder, save_experiment_name, \
     get_experiment_name, save_csv_format, get_csv_format, \
     save_persistent_settings, get_persistent_settings, \
-    get_recent_folders, get_session_summary, \
+    get_recent_folders, get_session_summaries, \
     session_dir, data_dir
 
 ctk.set_appearance_mode("dark")
@@ -69,6 +69,7 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
         self._plate_offset = 0     # accumulated plate offset across images
         self._root_offset = 0      # accumulated root offset across images
         self._processed_images = set()  # image paths already measured
+        self._experiment_name = ''  # current experiment (scopes output dirs)
 
         # layout: sidebar + canvas
         self.grid_columnconfigure(1, weight=1)
@@ -127,18 +128,20 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
         folders = get_recent_folders()
         sessions = []
         for f in folders:
-            s = get_session_summary(f)
-            if s:
+            for s in get_session_summaries(f):
                 sessions.append(s)
+                if len(sessions) >= 5:
+                    break
             if len(sessions) >= 5:
                 break
         if sessions:
             self.sidebar.populate_sessions(sessions)
 
-    def resume_session(self, folder):
+    def resume_session(self, folder, experiment=''):
         """Resume a saved session from the sessions list."""
         from utils import list_images_in_folder
         self.folder = folder
+        self._experiment_name = experiment
         save_last_folder(folder)
         self.images = list_images_in_folder(self.folder)
         if not self.images:
@@ -149,7 +152,7 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
 
     def _session_path(self):
         if self.folder:
-            return session_dir(self.folder) / 'session.json'
+            return session_dir(self.folder, self._experiment_name) / 'session.json'
         return None
 
     def _auto_save(self):
@@ -175,6 +178,10 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
         current_names = {p.name for p in self.images}
         if not saved_names & current_names:
             return False
+        # restore experiment name from session
+        settings = data.get('settings', {})
+        self._experiment_name = settings.get('experiment', '')
+        exp = self._experiment_name
         # restore offsets
         self._plate_offset = data.get('plate_offset', 0)
         self._root_offset = data.get('root_offset', 0)
@@ -185,7 +192,6 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
             if name in name_to_path:
                 self._processed_images.add(name_to_path[name])
         # restore settings
-        settings = data.get('settings', {})
         restore_settings(self.sidebar, settings)
         # restore current image and canvas state
         current = data.get('current_image')
@@ -197,16 +203,16 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
             self.sidebar.entry_dpi.delete(0, 'end')
             self.sidebar.entry_dpi.insert(0, settings.get('dpi', ''))
             # seed persistent settings from session if not yet saved
-            if not get_persistent_settings(self.folder):
+            if not get_persistent_settings(self.folder, exp):
                 save_persistent_settings(self.folder, {
                     'multi_measurement': settings.get('multi_measurement', False),
                     'segments': settings.get('segments', ''),
                     'split_plate': settings.get('split_plate', False),
-                })
+                }, exp)
             # advance sidebar to workflow
             self.sidebar.advance_to_experiment()
             # lock CSV format if data already written
-            if (data_dir(self.folder) / 'data.csv').exists():
+            if (data_dir(self.folder, exp) / 'data.csv').exists():
                 self.sidebar.menu_csv_format.configure(state="disabled")
                 self.sidebar.lbl_csv_locked.pack(pady=(0, 8), padx=15, anchor="w")
             self.sidebar.advance_to_workflow()
@@ -302,11 +308,12 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
             self.sidebar.set_status(f"No scans found in {self.folder.name}")
             return
 
+        self._experiment_name = ''
         self.sidebar.advance_to_images(self.folder.name, self.images)
-        # show this folder's session (if any) so user can click to resume
-        s = get_session_summary(self.folder)
-        if s:
-            self.sidebar.populate_sessions([s])
+        # show this folder's sessions (if any) so user can click to resume
+        sessions = get_session_summaries(self.folder)
+        if sessions:
+            self.sidebar.populate_sessions(sessions)
         else:
             self.sidebar.sec_sessions.hide()
 
@@ -347,7 +354,7 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
 
             # restore multi-measurement / segments from previous scan
             if self.folder:
-                ps = get_persistent_settings(self.folder)
+                ps = get_persistent_settings(self.folder, self._experiment_name)
                 if ps.get('multi_measurement'):
                     self.sidebar.var_multi.set(True)
                     self.sidebar._toggle_segments()
@@ -436,37 +443,30 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
         self.sidebar.advance_to_experiment()
         # pre-fill experiment name from previous session
         if not self.sidebar.entry_experiment.get().strip() and self.folder:
-            saved = get_experiment_name(self.folder)
+            saved = get_experiment_name(self.folder, self._experiment_name)
             if saved:
                 self.sidebar.entry_experiment.insert(0, saved)
-        # lock CSV format if data.csv already exists
-        if self.folder:
-            csv_exists = (data_dir(self.folder) / 'data.csv').exists()
-            if csv_exists:
-                saved_fmt = get_csv_format(self.folder)
-                if saved_fmt:
-                    self.sidebar.var_csv_format.set(saved_fmt)
-                self.sidebar.menu_csv_format.configure(state="disabled")
-                self.sidebar.lbl_csv_locked.pack_forget()
-                self.sidebar.lbl_csv_locked.pack(
-                    pady=(2, 0), padx=15, anchor="w",
-                    before=self.sidebar.btn_start_workflow)
-            else:
-                self.sidebar.menu_csv_format.configure(state="normal")
-                self.sidebar.lbl_csv_locked.pack_forget()
+        # CSV format lock is deferred to _on_start_workflow when experiment is known
+        self.sidebar.menu_csv_format.configure(state="normal")
+        self.sidebar.lbl_csv_locked.pack_forget()
 
     def _on_start_workflow(self):
         """Called when user clicks Start Workflow."""
+        self._experiment_name = self.sidebar.entry_experiment.get().strip()
+        exp = self._experiment_name
         if self.folder:
-            save_experiment_name(
-                self.folder, self.sidebar.entry_experiment.get().strip())
-            save_csv_format(
-                self.folder, self.sidebar.var_csv_format.get())
+            # check if this experiment already has data — lock CSV format
+            if (data_dir(self.folder, exp) / 'data.csv').exists():
+                saved_fmt = get_csv_format(self.folder, exp)
+                if saved_fmt:
+                    self.sidebar.var_csv_format.set(saved_fmt)
+            save_experiment_name(self.folder, exp, exp)
+            save_csv_format(self.folder, self.sidebar.var_csv_format.get(), exp)
             save_persistent_settings(self.folder, {
                 'multi_measurement': self.sidebar.var_multi.get(),
                 'segments': self.sidebar.entry_segments.get().strip(),
                 'split_plate': self.sidebar.var_split.get(),
-            })
+            }, exp)
         self.sidebar.advance_to_workflow()
         self.select_plates()
 

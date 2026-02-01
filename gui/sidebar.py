@@ -372,9 +372,10 @@ class Sidebar(ctk.CTkScrollableFrame):
                          text_color="gray60").pack(padx=10, pady=(0, 6),
                                                     anchor="w")
             folder = s['folder']
+            exp = s.get('experiment', '')
             for w in (frame, *frame.winfo_children()):
                 w.bind("<Button-1>",
-                       lambda e, f=folder: self.app.resume_session(f))
+                       lambda e, f=folder, x=exp: self.app.resume_session(f, x))
             self._session_buttons.append(frame)
 
         self.sec_sessions.show()

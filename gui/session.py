@@ -1,6 +1,7 @@
 """Session save/resume — auto-save state to JSON, load on folder open."""
 
 import json
+import re
 from pathlib import Path
 
 SESSION_VERSION = 1
@@ -11,19 +12,35 @@ _RECENT_FOLDERS_FILE = Path.home() / '.root_measure_recent_folders.json'
 _ROOT = 'root_measure'
 
 
-def data_dir(folder):
-    """Return path to root_measure/data/ inside the scan folder."""
-    return folder / _ROOT / 'data'
+def _sanitize_name(name):
+    """Convert experiment name to a safe directory name."""
+    if not name:
+        return ''
+    name = name.strip()
+    name = re.sub(r'[^\w\s\-.]', '_', name)
+    name = re.sub(r'\s+', '_', name)
+    return name
 
 
-def traces_dir(folder):
-    """Return path to root_measure/traces/ inside the scan folder."""
-    return folder / _ROOT / 'traces'
+def data_dir(folder, experiment=''):
+    """Return path to root_measure/data/[experiment]/ inside the scan folder."""
+    base = folder / _ROOT / 'data'
+    safe = _sanitize_name(experiment)
+    return base / safe if safe else base
 
 
-def session_dir(folder):
-    """Return path to root_measure/.session/ inside the scan folder."""
-    return folder / _ROOT / '.session'
+def traces_dir(folder, experiment=''):
+    """Return path to root_measure/traces/[experiment]/ inside the scan folder."""
+    base = folder / _ROOT / 'traces'
+    safe = _sanitize_name(experiment)
+    return base / safe if safe else base
+
+
+def session_dir(folder, experiment=''):
+    """Return path to root_measure/.session/[experiment]/ inside the scan folder."""
+    base = folder / _ROOT / '.session'
+    safe = _sanitize_name(experiment)
+    return base / safe if safe else base
 
 
 def save_last_folder(folder):
@@ -67,22 +84,48 @@ def get_recent_folders():
         return []
 
 
-def get_session_summary(folder):
-    """Load session.json from folder and return a descriptive summary dict.
+def get_session_summaries(folder):
+    """Scan for all experiment sessions under folder.
 
-    Returns dict with: folder, folder_name, experiment, n_done, n_total,
-    current_image.  Returns None if no valid session.
+    Returns list of summary dicts, one per experiment session found.
+    Each dict has: folder, folder_name, experiment, n_done, n_total,
+    current_image.
     """
+    results = []
+    base = folder / _ROOT / '.session'
+    if not base.is_dir():
+        return results
+    # scan experiment subfolders
+    for sub in sorted(base.iterdir()):
+        if not sub.is_dir():
+            continue
+        s = _load_session_summary(folder, sub / 'session.json')
+        if s:
+            results.append(s)
+    # also check for legacy session.json at base level (no experiment subfolder)
+    legacy = base / 'session.json'
+    if legacy.exists():
+        s = _load_session_summary(folder, legacy)
+        if s:
+            results.append(s)
+    return results
+
+
+def get_session_summary(folder):
+    """Load first valid session summary from folder. Returns dict or None."""
+    summaries = get_session_summaries(folder)
+    return summaries[0] if summaries else None
+
+
+def _load_session_summary(folder, session_path):
+    """Load a single session.json and return summary dict or None."""
     try:
-        session_path = session_dir(folder) / 'session.json'
         if not session_path.exists():
             return None
         data = json.loads(session_path.read_text())
         if data.get('version') != SESSION_VERSION:
             return None
         experiment = data.get('settings', {}).get('experiment', '')
-        if not experiment:
-            experiment = get_experiment_name(folder)
         images = data.get('images', [])
         processed = data.get('processed_images', [])
         return {
@@ -110,20 +153,20 @@ def get_last_folder():
     return None
 
 
-def save_experiment_name(folder, name):
+def save_experiment_name(folder, name, experiment=''):
     """Persist experiment name in output folder."""
     try:
-        p = session_dir(folder) / 'experiment_name.txt'
-        p.parent.mkdir(exist_ok=True)
+        p = session_dir(folder, experiment) / 'experiment_name.txt'
+        p.parent.mkdir(parents=True, exist_ok=True)
         p.write_text(name)
     except Exception:
         pass
 
 
-def get_experiment_name(folder):
+def get_experiment_name(folder, experiment=''):
     """Load saved experiment name, or empty string."""
     try:
-        p = session_dir(folder) / 'experiment_name.txt'
+        p = session_dir(folder, experiment) / 'experiment_name.txt'
         if p.exists():
             return p.read_text().strip()
     except Exception:
@@ -131,20 +174,20 @@ def get_experiment_name(folder):
     return ''
 
 
-def save_persistent_settings(folder, settings):
+def save_persistent_settings(folder, settings, experiment=''):
     """Persist settings that carry across scans."""
     try:
-        p = session_dir(folder) / 'persistent_settings.json'
-        p.parent.mkdir(exist_ok=True)
+        p = session_dir(folder, experiment) / 'persistent_settings.json'
+        p.parent.mkdir(parents=True, exist_ok=True)
         p.write_text(json.dumps(settings))
     except Exception:
         pass
 
 
-def get_persistent_settings(folder):
+def get_persistent_settings(folder, experiment=''):
     """Load persistent settings dict, or empty dict."""
     try:
-        p = session_dir(folder) / 'persistent_settings.json'
+        p = session_dir(folder, experiment) / 'persistent_settings.json'
         if p.exists():
             return json.loads(p.read_text())
     except Exception:
@@ -152,20 +195,20 @@ def get_persistent_settings(folder):
     return {}
 
 
-def save_csv_format(folder, fmt):
+def save_csv_format(folder, fmt, experiment=''):
     """Persist CSV format choice in output folder."""
     try:
-        p = session_dir(folder) / 'csv_format.txt'
-        p.parent.mkdir(exist_ok=True)
+        p = session_dir(folder, experiment) / 'csv_format.txt'
+        p.parent.mkdir(parents=True, exist_ok=True)
         p.write_text(fmt)
     except Exception:
         pass
 
 
-def get_csv_format(folder):
+def get_csv_format(folder, experiment=''):
     """Load saved CSV format, or empty string."""
     try:
-        p = session_dir(folder) / 'csv_format.txt'
+        p = session_dir(folder, experiment) / 'csv_format.txt'
         if p.exists():
             return p.read_text().strip()
     except Exception:

@@ -373,7 +373,8 @@ class MeasurementMixin:
         cv2.putText(img_bgr, label, (tx, ty), font, font_scale,
                     (255, 255, 255), thickness, cv2.LINE_AA)
 
-        out_path = traces_dir(folder) / f'{self.image_path.stem}_traces.png'
+        exp = getattr(self, '_experiment_name', '')
+        out_path = traces_dir(folder, exp) / f'{self.image_path.stem}_traces.png'
         out_path.parent.mkdir(parents=True, exist_ok=True)
         cv2.imwrite(str(out_path), img_bgr)
         self.sidebar.set_status(
@@ -478,7 +479,8 @@ class MeasurementMixin:
             folder = self.image_path.parent
         if not folder:
             return
-        meta_path = data_dir(folder) / 'metadata.csv'
+        exp = getattr(self, '_experiment_name', '')
+        meta_path = data_dir(folder, exp) / 'metadata.csv'
         meta_path.parent.mkdir(parents=True, exist_ok=True)
         dpi_text = self.sidebar.entry_dpi.get().strip() or "1200"
         experiment = self.sidebar.entry_experiment.get().strip() or ""
@@ -509,7 +511,8 @@ class MeasurementMixin:
                 "\nNo folder set — could not save CSV.")
             return
 
-        csv_path = data_dir(folder) / 'data.csv'
+        exp = getattr(self, '_experiment_name', '')
+        csv_path = data_dir(folder, exp) / 'data.csv'
         csv_path.parent.mkdir(parents=True, exist_ok=True)
 
         # use stored group indices for each root
@@ -567,7 +570,8 @@ class MeasurementMixin:
             folder = self.image_path.parent
         if not folder:
             return
-        csv_path = data_dir(folder) / 'data.csv'
+        exp = getattr(self, '_experiment_name', '')
+        csv_path = data_dir(folder, exp) / 'data.csv'
         if not csv_path.exists():
             return
         try:

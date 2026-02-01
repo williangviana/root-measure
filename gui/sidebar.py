@@ -229,7 +229,7 @@ class Sidebar(ctk.CTkScrollableFrame):
         # hidden until measurement finishes
 
         self.btn_continue_later = ctk.CTkButton(
-            b, text="Continue Later", fg_color="#3a3a3a",
+            b, text="Continue Later", fg_color="#2b5797",
             command=lambda: app.continue_later())
         # hidden until measurement finishes
 

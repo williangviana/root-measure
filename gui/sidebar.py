@@ -363,6 +363,7 @@ class Sidebar(ctk.CTkScrollableFrame):
 
     def advance_to_settings(self, image_name, dpi):
         """Phase 2: image selected — show settings, collapse folder."""
+        self.btn_finish_plot.pack_forget()
         self.sec_folder.collapse(summary=image_name)
         self.entry_dpi.delete(0, "end")
         self.entry_dpi.insert(0, str(dpi))

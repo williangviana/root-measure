@@ -212,6 +212,7 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
             self.sidebar.btn_load_folder.pack_forget()
             self.sidebar._populate_image_list(
                 self.images, self._processed_images)
+            self.sidebar.btn_finish_plot.pack_forget()
             self.sidebar.sec_folder.collapse(summary=self.folder.name)
             plates = self.canvas.get_plates()
             points = self.canvas.get_root_points()

@@ -259,6 +259,7 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
                 self.sidebar.btn_select_plates.configure(state="normal")
                 self.sidebar.btn_click_roots.configure(state="normal")
                 self.sidebar.btn_measure.configure(state="normal")
+                self.sidebar.btn_review.configure(state="normal")
                 self.sidebar.btn_next_image.pack(
                     pady=(10, 3), padx=15, fill="x")
                 self.sidebar.btn_continue_later.pack(
@@ -308,6 +309,11 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
 
     def load_image(self, path):
         """Load and display a single image."""
+        # If clicking the same image that's already done, restore completed view
+        if (path == self.image_path and self.canvas._measurement_done
+                and path in self._processed_images):
+            self._restore_completed_view()
+            return
         self.image_path = path
         try:
             ext = path.suffix.lower()
@@ -355,6 +361,34 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
                 f"DPI: {dpi} ({dpi_src})")
         except Exception as e:
             self.sidebar.set_status(f"Error: {e}")
+
+    def _restore_completed_view(self):
+        """Show completed measurement view for the current image."""
+        self.sidebar.sec_sessions.hide()
+        self.sidebar.sec_folder.collapse(summary=self.folder.name if self.folder else "")
+        self.sidebar.sec_settings.show()
+        self.sidebar.sec_settings.collapse(
+            summary=f"{self.sidebar.entry_dpi.get()} DPI")
+        self.sidebar.sec_experiment.show()
+        self.sidebar.sec_experiment.collapse(
+            summary=self.sidebar.entry_genotypes.get().strip() or "genotype")
+        self.sidebar.sec_workflow.show()
+        self.sidebar.sec_workflow.expand()
+        self.sidebar.set_step(5)
+        self.sidebar.btn_select_plates.configure(state="normal")
+        self.sidebar.btn_click_roots.configure(state="normal")
+        self.sidebar.btn_measure.configure(state="normal")
+        self.sidebar.btn_review.configure(state="normal")
+        self.sidebar.btn_next_image.pack(pady=(10, 3), padx=15, fill="x")
+        self.sidebar.btn_continue_later.pack(pady=3, padx=15, fill="x")
+        self.sidebar.btn_stop.pack(pady=3, padx=15, fill="x")
+        plates = self.canvas.get_plates()
+        points = self.canvas.get_root_points()
+        self.sidebar.set_status(
+            f"Measurement complete: {len(plates)} plate(s), "
+            f"{len(points)} root(s).\n"
+            f"Click Review & Save to review traces.")
+        self.lbl_bottom.configure(text="Willian Viana — Dinneny Lab")
 
     # --- Settings helpers ---
 

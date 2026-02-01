@@ -329,7 +329,7 @@ class ImageCanvas(ctk.CTkFrame):
                         or self._measurement_done
                         or len(self._traces) > 0)
         if not hide_markers:
-            plate_counters = {}
+            group_counters = {}
             clicking_roots = self._mode in (self.MODE_CLICK_ROOTS,
                                              self.MODE_CLICK_MARKS)
             active_plate = getattr(self, '_current_plate_idx', None)
@@ -339,12 +339,13 @@ class ImageCanvas(ctk.CTkFrame):
                     zip(self._root_points, self._root_flags)):
                 group = self._root_groups[i] if i < len(self._root_groups) else 0
                 plate = self._root_plates[i] if i < len(self._root_plates) else 0
-                plate_counters[plate] = plate_counters.get(plate, 0) + 1
+                key = (plate, group)
+                group_counters[key] = group_counters.get(key, 0) + 1
                 if clicking_roots and active_plate is not None \
                         and plate != active_plate:
                     continue
                 cx, cy = self.image_to_canvas(col, row)
-                display_num = plate_counters[plate]
+                display_num = group_counters[key]
                 marker_color = _GROUP_MARKER_COLORS[group % len(_GROUP_MARKER_COLORS)]
                 if flag is not None:
                     label = "DEAD" if flag == 'dead' else "TOUCH"

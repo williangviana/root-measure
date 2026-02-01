@@ -366,6 +366,15 @@ class MeasurementMixin:
         r, g, b = int(h[0:2], 16), int(h[2:4], 16), int(h[4:6], 16)
         return (b, g, r)
 
+    def show_review(self):
+        """Re-enter review mode from the sidebar button."""
+        if not hasattr(self, '_results') or not self._results:
+            self.sidebar.set_status("No traces to review.")
+            return
+        self.canvas._measurement_done = False
+        self.canvas.clear_review()
+        self._show_review()
+
     def _finish_measurement(self):
         """Save results and show final summary."""
         self.sidebar.set_step(4)
@@ -389,6 +398,7 @@ class MeasurementMixin:
         self.sidebar.btn_select_plates.configure(state="normal")
         self.sidebar.btn_click_roots.configure(state="normal")
         self.sidebar.btn_measure.configure(state="normal")
+        self.sidebar.btn_review.configure(state="normal")
 
         if self.image_path:
             self._processed_images.add(self.image_path)

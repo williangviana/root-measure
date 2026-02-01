@@ -157,8 +157,10 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
         if sp:
             try:
                 save_session(sp, self)
-            except Exception:
-                pass
+            except Exception as e:
+                print(f"[auto_save] Error: {e}")
+                import traceback
+                traceback.print_exc()
 
     def _try_resume(self):
         """Check for session file and silently restore."""

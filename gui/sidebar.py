@@ -256,10 +256,6 @@ class Sidebar(ctk.CTkScrollableFrame):
             b, text="Finish & Plot", fg_color="#2b5797",
             command=lambda: app.finish_and_plot())
 
-        self.btn_continue_later_mid = ctk.CTkButton(
-            b, text="Continue Later", fg_color="#2b5797",
-            command=lambda: app.continue_later())
-
         # --- Ordered section list (for pack-order preservation) ---
         # sec_sessions is excluded — it always packs after _status_frame
         self._section_order = [
@@ -289,6 +285,11 @@ class Sidebar(ctk.CTkScrollableFrame):
         self.lbl_progress.pack(padx=15, anchor="w")
         self._progress_frame.pack(fill="x")
         self._progress_frame.pack_forget()
+
+        # Mid-workflow continue later (child of status area, hidden by default)
+        self.btn_continue_later_mid = ctk.CTkButton(
+            self._status_frame, text="Continue Later", fg_color="#2b5797",
+            command=lambda: app.continue_later())
 
     # --- helpers ---
 

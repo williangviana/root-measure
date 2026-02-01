@@ -141,9 +141,12 @@ class MeasurementMixin:
         """Show traced results and let user click bad traces to retry."""
         self.sidebar.hide_progress()
         self.sidebar.set_step(4)
+        # Block Enter for 500ms to prevent leftover keypresses from skipping review
+        self._review_ready = False
         self.canvas.set_mode(
             ImageCanvas.MODE_REVIEW,
             on_done=self._review_done)
+        self.after(500, self._enable_review)
         self.canvas._fit_image()
         self.canvas._redraw()
 
@@ -162,8 +165,13 @@ class MeasurementMixin:
         self.lbl_bottom.configure(
             text="Click trace=select for retry (orange)  |  Enter=accept / retry selected  |  Scroll=zoom")
 
+    def _enable_review(self):
+        self._review_ready = True
+
     def _review_done(self):
         """Called when user presses Enter in review mode."""
+        if not getattr(self, '_review_ready', True):
+            return  # ignore leftover Enter from previous mode
         selected = self.canvas.get_selected_for_retry()
         if not selected:
             # accept all — save and finish

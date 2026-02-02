@@ -3,7 +3,7 @@ import pandas as pd
 
 
 def _build_rows(results, plate_labels, plate_offset, root_offset,
-                point_plates, num_marks, split_plate):
+                point_plates, num_marks, split_plate, image_name=''):
     """Build list of row dicts and detect if factorial design."""
     is_factorial = plate_labels and any(
         cond is not None for (geno, cond) in plate_labels)
@@ -14,6 +14,7 @@ def _build_rows(results, plate_labels, plate_offset, root_offset,
         root_num = root_offset + i + 1
         row = {
             'Root_ID': root_num,
+            'Image': image_name,
             'Length_cm': round(r['length_cm'], 3) if r['length_cm'] is not None else '',
             'Length_px': round(r['length_px'], 1) if r['length_px'] is not None else '',
             'Warning': r['warning'] or '',
@@ -51,10 +52,10 @@ def _build_rows(results, plate_labels, plate_offset, root_offset,
 def _save_r_format(df_new, csv_path, is_factorial, num_marks):
     """Save in R (tidy/long) format — one row per root."""
     if is_factorial:
-        col_order = ['Root_ID', 'Plate', 'Genotype', 'Plant_ID',
+        col_order = ['Root_ID', 'Image', 'Plate', 'Genotype', 'Plant_ID',
                       'Condition', 'Length_cm']
     else:
-        col_order = ['Root_ID', 'Plate', 'Genotype', 'Plant_ID', 'Length_cm']
+        col_order = ['Root_ID', 'Image', 'Plate', 'Genotype', 'Plant_ID', 'Length_cm']
 
     if num_marks > 0:
         for seg_i in range(num_marks + 1):
@@ -63,6 +64,11 @@ def _save_r_format(df_new, csv_path, is_factorial, num_marks):
 
     if csv_path.exists():
         df_existing = pd.read_csv(csv_path)
+        # remove old rows for this image (avoid duplicates on re-measure)
+        if 'Image' in df_existing.columns and 'Image' in df_new.columns:
+            image_name = df_new['Image'].iloc[0] if len(df_new) > 0 else ''
+            if image_name:
+                df_existing = df_existing[df_existing['Image'] != image_name]
         for col in col_order:
             if col not in df_existing.columns:
                 df_existing[col] = ''
@@ -72,6 +78,10 @@ def _save_r_format(df_new, csv_path, is_factorial, num_marks):
         df = pd.concat([df_existing, df_new], ignore_index=True)
     else:
         df = df_new
+
+    # re-number Root_ID sequentially after any dedup
+    if 'Root_ID' in df.columns:
+        df['Root_ID'] = range(1, len(df) + 1)
 
     col_order = [c for c in col_order if c in df.columns]
     for col in df.columns:
@@ -227,7 +237,7 @@ def get_offsets_from_csv(csv_path):
     """Read existing CSV and return (plate_offset, root_offset).
 
     plate_offset = max Plate value found (0 if no file).
-    root_offset  = number of rows (roots) already in the file.
+    root_offset  = total number of rows already in the file.
     """
     try:
         if not csv_path.exists():
@@ -238,6 +248,7 @@ def get_offsets_from_csv(csv_path):
         plate_off = 0
         if 'Plate' in df.columns:
             plate_off = int(df['Plate'].max())
+        # use row count; Root_IDs are re-numbered sequentially on save
         root_off = len(df)
         return plate_off, root_off
     except Exception:
@@ -246,7 +257,7 @@ def get_offsets_from_csv(csv_path):
 
 def append_results_to_csv(results, csv_path, plates, plate_labels, plate_offset,
                           root_offset, point_plates, num_marks=0,
-                          split_plate=False, csv_format='R'):
+                          split_plate=False, csv_format='R', image_name=''):
     """Append measurements to a shared CSV file.
 
     Args:
@@ -260,13 +271,14 @@ def append_results_to_csv(results, csv_path, plates, plate_labels, plate_offset,
         num_marks: number of marks per root (0 = normal mode)
         split_plate: if True, point_plates stores group indices (2 per plate)
         csv_format: 'R' for tidy/long format, 'Prism' for wide format
+        image_name: filename of the source image
 
     Returns:
         (new_plate_offset, new_root_offset) for the next image
     """
     rows, is_factorial = _build_rows(
         results, plate_labels, plate_offset, root_offset,
-        point_plates, num_marks, split_plate)
+        point_plates, num_marks, split_plate, image_name=image_name)
 
     df_new = pd.DataFrame(rows)
 

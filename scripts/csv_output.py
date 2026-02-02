@@ -169,8 +169,14 @@ def _write_tidy_prism(df, tidy_path):
                      df['Condition'].astype(str).str.strip().replace('', np.nan)
                      .dropna().nunique() > 1)
 
-    if has_condition:
+    n_genotypes = df['Genotype'].nunique() if 'Genotype' in df.columns else 0
+
+    if has_condition and n_genotypes > 1:
+        # True factorial: multiple genotypes × multiple conditions
         _write_tidy_prism_factorial(df, tidy_path)
+    elif has_condition and n_genotypes <= 1:
+        # Single genotype with multiple conditions → conditions become columns
+        _write_tidy_prism_by_condition(df, tidy_path)
     else:
         _write_tidy_prism_simple(df, tidy_path)
 
@@ -189,6 +195,24 @@ def _write_tidy_prism_simple(df, tidy_path):
     max_len = max(len(v) for v in data.values()) if data else 0
     for geno in data:
         data[geno] = data[geno] + [np.nan] * (max_len - len(data[geno]))
+
+    pd.DataFrame(data).to_csv(tidy_path, index=False)
+
+
+def _write_tidy_prism_by_condition(df, tidy_path):
+    """Prism simple (Column format): condition columns, Length_cm values."""
+    if 'Condition' not in df.columns:
+        df.to_csv(tidy_path, index=False)
+        return
+
+    conditions = df['Condition'].unique().tolist()
+    data = {}
+    for cond in conditions:
+        data[cond] = df.loc[df['Condition'] == cond, 'Length_cm'].tolist()
+
+    max_len = max(len(v) for v in data.values()) if data else 0
+    for cond in data:
+        data[cond] = data[cond] + [np.nan] * (max_len - len(data[cond]))
 
     pd.DataFrame(data).to_csv(tidy_path, index=False)
 

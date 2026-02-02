@@ -70,6 +70,7 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
         self._root_offset = 0      # accumulated root offset across images
         self._processed_images = set()  # image paths already measured
         self._experiment_name = ''  # current experiment (scopes output dirs)
+        self._image_canvas_data = {}  # per-image canvas snapshots {name: dict}
 
         # layout: sidebar + canvas
         self.grid_columnconfigure(1, weight=1)
@@ -195,6 +196,8 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
                 self._processed_images.add(name_to_path[name])
         # restore settings
         restore_settings(self.sidebar, settings)
+        # restore per-image canvas dict
+        self._image_canvas_data = data.get('image_canvas_data', {})
         # restore current image and canvas state
         current = data.get('current_image')
         canvas_data = data.get('canvas', {})
@@ -341,6 +344,8 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
                 img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
 
             self.image = img
+            # Stash canvas from previous image before clearing
+            self._stash_canvas()
             # Clear overlays from previous image
             self.canvas._measurement_done = False
             self.canvas.clear_plates()
@@ -350,9 +355,11 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
             display = _to_uint8(img)
             self.canvas.set_image(display)
 
-            # Finished image — show completed view instead of settings
+            # Finished image — restore its saved canvas data
             if path in self._processed_images:
+                self._restore_image_canvas(path.name)
                 self.canvas._measurement_done = True
+                self.canvas._redraw()
                 self._restore_completed_view()
                 self.sidebar.set_status(
                     f"Image already measured. "
@@ -483,16 +490,40 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
         self.sidebar.advance_to_workflow()
         self.select_plates()
 
+    def _stash_canvas(self):
+        """Snapshot current canvas state into per-image dict."""
+        if self.image_path:
+            from session import _collect_canvas
+            self._image_canvas_data[self.image_path.name] = _collect_canvas(self.canvas)
+
+    def _restore_image_canvas(self, image_name):
+        """Restore canvas state from per-image dict."""
+        cd = self._image_canvas_data.get(image_name, {})
+        if cd.get('plates'):
+            self.canvas.set_plates(cd['plates'])
+        if cd.get('root_points'):
+            self.canvas.set_roots(
+                cd['root_points'],
+                cd.get('root_flags', []),
+                cd.get('root_groups', []),
+                cd.get('root_plates', []))
+        if cd.get('all_marks'):
+            self.canvas.set_marks(cd['all_marks'])
+        if cd.get('traces'):
+            self.canvas.set_traces(cd['traces'])
+
     def next_image(self):
         """Return to image selection after finishing measurement."""
         if self.image_path:
             self._processed_images.add(self.image_path)
+        self._stash_canvas()
         self._auto_save()
         self.sidebar.advance_to_images(
             self.folder.name, self.images, self._processed_images)
 
     def continue_later(self):
         """Save session and quit the app."""
+        self._stash_canvas()
         self._auto_save()
         self.destroy()
 

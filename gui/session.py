@@ -226,6 +226,10 @@ def save_session(session_path, app):
     if not folder:
         return
 
+    # snapshot current image canvas into per-image dict
+    if app.image_path:
+        app._image_canvas_data[app.image_path.name] = _collect_canvas(app.canvas)
+
     data = {
         'version': SESSION_VERSION,
         'folder': str(folder),
@@ -236,6 +240,7 @@ def save_session(session_path, app):
         'current_image': app.image_path.name if app.image_path else None,
         'settings': _collect_settings(app.sidebar),
         'canvas': _collect_canvas(app.canvas),
+        'image_canvas_data': dict(app._image_canvas_data),
         'workflow_step': _get_workflow_step(app.sidebar),
         'click_state': {
             'plate_idx': getattr(app, '_current_plate_idx', 0),

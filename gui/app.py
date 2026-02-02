@@ -112,7 +112,9 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
         if event.keysym == 'space':
             self.canvas.handle_key(event)
             return "break"
-        self.canvas.handle_key(event)
+        handled = self.canvas.handle_key(event)
+        if handled:
+            return "break"
 
     def _on_global_key_release(self, event):
         """Route key release events to canvas."""

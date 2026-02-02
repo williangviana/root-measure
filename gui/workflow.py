@@ -203,14 +203,22 @@ class MeasurementMixin:
         self.canvas.set_mode(
             ImageCanvas.MODE_RECLICK,
             on_done=self._reclick_enter)
-        # zoom to first bad root
+        # zoom to first bad root's plate
         ri = self._retry_result_indices[0]
-        top = self.canvas.get_root_points()[ri]
-        plates = self.canvas.get_plates()
-        for r1, r2, c1, c2 in plates:
-            if r1 <= top[0] <= r2 and c1 <= top[1] <= c2:
-                self.canvas.zoom_to_region(r1, r2, c1, c2)
-                break
+        points = self.canvas.get_root_points()
+        if ri < len(points):
+            top = points[ri]
+            plates = self.canvas.get_plates()
+            zoomed = False
+            for r1, r2, c1, c2 in plates:
+                if r1 <= top[0] <= r2 and c1 <= top[1] <= c2:
+                    self.canvas.zoom_to_region(r1, r2, c1, c2)
+                    zoomed = True
+                    break
+            if not zoomed and plates:
+                self.canvas.zoom_to_region(*plates[0])
+        elif self.canvas.get_plates():
+            self.canvas.zoom_to_region(*self.canvas.get_plates()[0])
         self._show_reclick_status()
         self.sidebar.btn_continue_later_mid.pack(pady=3, padx=15, fill="x")
 
@@ -249,12 +257,18 @@ class MeasurementMixin:
             if len(pts) < (self._reclick_idx + 1) * cpr:
                 # this root still needs clicks — stay here
                 ri = self._retry_result_indices[self._reclick_idx]
-                top = self.canvas.get_root_points()[ri]
-                plates = self.canvas.get_plates()
-                for r1, r2, c1, c2 in plates:
-                    if r1 <= top[0] <= r2 and c1 <= top[1] <= c2:
-                        self.canvas.zoom_to_region(r1, r2, c1, c2)
-                        break
+                points = self.canvas.get_root_points()
+                if ri < len(points):
+                    top = points[ri]
+                    plates = self.canvas.get_plates()
+                    zoomed = False
+                    for r1, r2, c1, c2 in plates:
+                        if r1 <= top[0] <= r2 and c1 <= top[1] <= c2:
+                            self.canvas.zoom_to_region(r1, r2, c1, c2)
+                            zoomed = True
+                            break
+                    if not zoomed and plates:
+                        self.canvas.zoom_to_region(*plates[0])
                 self._show_reclick_status()
                 return
         # all re-clicks done — re-trace

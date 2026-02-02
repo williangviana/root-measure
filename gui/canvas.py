@@ -793,12 +793,19 @@ class ImageCanvas(ctk.CTkFrame):
             current_group = getattr(self, '_current_root_group', 0)
             color = GROUP_MARK_COLORS[current_group % len(GROUP_MARK_COLORS)]
             n = len(self._mark_points)
+            # compute display label from root position numbers
+            num_m = max(1, self._marks_expected // max(1, len(self._marks_display_numbers))) if self._marks_display_numbers else 1
+            group_idx = (n - 1) // num_m
+            if group_idx < len(self._marks_display_numbers):
+                label = str(self._marks_display_numbers[group_idx])
+            else:
+                label = str(n)
             r = 5
             rid = self.canvas.create_oval(
                 cx - r, cy - r, cx + r, cy + r,
                 outline="white", fill=color, width=1)
             tid = self.canvas.create_text(
-                cx + 10, cy - 8, text=str(n),
+                cx + 10, cy - 8, text=label,
                 fill=color, anchor="w",
                 font=("Helvetica", 8, "bold"))
             self._mark_marker_ids.extend([rid, tid])

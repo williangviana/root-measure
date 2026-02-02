@@ -114,12 +114,16 @@ class MeasurementMixin:
 
         # pre-build skeleton + graph per plate (once each)
         self._plate_graphs = {}
+        self.sidebar.show_progress(len(plates))
+        self.update()
         for pi, bounds in enumerate(plates):
             self.sidebar.set_status(
                 f"Building skeleton for plate {pi + 1}/{len(plates)}...")
+            self.sidebar.update_progress(pi + 1)
             self.update()
             self._plate_graphs[pi] = build_plate_graph(
                 self._binary, bounds, self._scale_val)
+        self.sidebar.hide_progress()
 
         root_plates = self.canvas._root_plates
 

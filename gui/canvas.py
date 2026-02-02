@@ -488,7 +488,11 @@ class ImageCanvas(ctk.CTkFrame):
                                     self.MODE_CLICK_MARKS):
             cw = self.canvas.winfo_width()
             ch = self.canvas.winfo_height()
-            y = ch - 12
+            bar_h = 28
+            self.canvas.create_rectangle(
+                0, ch - bar_h, cw, ch,
+                fill="white", outline="white")
+            y = ch - 6
             # center: "Plate N"
             self.canvas.create_text(
                 cw / 2, y, text=info.get('center', ''),

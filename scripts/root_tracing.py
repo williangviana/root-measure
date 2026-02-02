@@ -174,23 +174,33 @@ def _find_root_tip_fast(top_point, pg, scale):
     comp_label = pg['comp_labels'][start_idx]
     comp_mask = pg['comp_labels'] == comp_label
     endpoints = np.where(comp_mask & (pg['degrees'] == 1))[0]
+    start_row = sp[start_idx][0]
 
     if len(endpoints) == 0:
         dists = dijkstra(pg['graph'], indices=start_idx)
         dists[~comp_mask] = -1
+        # only consider points at or below click row
+        above = sp[:, 0] < start_row
+        dists[above] = -1
         furthest = int(np.argmax(dists))
         tip_local = sp[furthest]
     else:
-        start_row = sp[start_idx][0]
-        below = endpoints[sp[endpoints, 0] > start_row]
+        below = endpoints[sp[endpoints, 0] >= start_row]
 
         if len(below) > 0:
             start_col = sp[start_idx][1]
             scores = sp[below, 0] - 2.0 * np.abs(sp[below, 1] - start_col)
             tip_idx = below[np.argmax(scores)]
         else:
+            # all endpoints above click — pick closest below-ish by graph dist
             dists = dijkstra(pg['graph'], indices=start_idx)
-            tip_idx = endpoints[np.argmax(dists[endpoints])]
+            dists[sp[:, 0] < start_row] = np.inf
+            valid = dists[endpoints]
+            if np.all(np.isinf(valid)):
+                tip_idx = endpoints[np.argmax(
+                    dijkstra(pg['graph'], indices=start_idx)[endpoints])]
+            else:
+                tip_idx = endpoints[np.argmax(valid)]
         tip_local = sp[tip_idx]
 
     return (int(tip_local[0] + off_r), int(tip_local[1] + off_c))
@@ -243,15 +253,17 @@ def _find_root_tip_local(binary_image, top_point, scale, plate_bounds):
     comp_label = comp_labels[start_idx]
     comp_mask = comp_labels == comp_label
     endpoints = np.where(comp_mask & (degrees == 1))[0]
+    start_row = skel_points[start_idx][0]
 
     if len(endpoints) == 0:
         dists = dijkstra(graph, indices=start_idx)
         dists[~comp_mask] = -1
+        above = skel_points[:, 0] < start_row
+        dists[above] = -1
         furthest = int(np.argmax(dists))
         tip_local = skel_points[furthest]
     else:
-        start_row = skel_points[start_idx][0]
-        below = endpoints[skel_points[endpoints, 0] > start_row]
+        below = endpoints[skel_points[endpoints, 0] >= start_row]
 
         if len(below) > 0:
             start_col = skel_points[start_idx][1]
@@ -260,7 +272,13 @@ def _find_root_tip_local(binary_image, top_point, scale, plate_bounds):
             tip_idx = below[np.argmax(scores)]
         else:
             dists = dijkstra(graph, indices=start_idx)
-            tip_idx = endpoints[np.argmax(dists[endpoints])]
+            dists[skel_points[:, 0] < start_row] = np.inf
+            valid = dists[endpoints]
+            if np.all(np.isinf(valid)):
+                tip_idx = endpoints[np.argmax(
+                    dijkstra(graph, indices=start_idx)[endpoints])]
+            else:
+                tip_idx = endpoints[np.argmax(valid)]
         tip_local = skel_points[tip_idx]
 
     return (int(tip_local[0] + rmin), int(tip_local[1] + cmin))

@@ -506,21 +506,11 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
         """Snapshot current canvas state into per-image dict."""
         if self.image_path:
             from session import _collect_canvas
-            cd = _collect_canvas(self.canvas)
-            print(f"[stash] {self.image_path.name}: "
-                  f"{len(cd['plates'])} plates, "
-                  f"{len(cd['root_points'])} roots, "
-                  f"{len(cd['traces'])} traces")
-            self._image_canvas_data[self.image_path.name] = cd
+            self._image_canvas_data[self.image_path.name] = _collect_canvas(self.canvas)
 
     def _restore_image_canvas(self, image_name):
         """Restore canvas state from per-image dict."""
         cd = self._image_canvas_data.get(image_name, {})
-        print(f"[restore] {image_name}: "
-              f"{len(cd.get('plates', []))} plates, "
-              f"{len(cd.get('root_points', []))} roots, "
-              f"{len(cd.get('traces', []))} traces, "
-              f"keys in dict: {list(self._image_canvas_data.keys())}")
         if cd.get('plates'):
             self.canvas.set_plates(cd['plates'])
         if cd.get('root_points'):
@@ -634,10 +624,6 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
         r1, r2, c1, c2 = plates[pi]
         self.canvas._current_root_group = self._current_group
         self.canvas._current_plate_idx = self._current_plate_idx
-        print(f"[click_stage] plate_idx={pi}, group={self._current_group}, "
-              f"split_stage={self._split_stage}, "
-              f"root_groups={self.canvas._root_groups}, "
-              f"root_plates={self.canvas._root_plates}")
         self.canvas.set_mode(
             ImageCanvas.MODE_CLICK_ROOTS,
             on_done=self._plate_roots_done)

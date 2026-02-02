@@ -424,14 +424,17 @@ class ImageCanvas(ctk.CTkFrame):
             if self._mode == self.MODE_REVIEW and len(path) > 0:
                 plate = (self._root_plates[ti]
                          if ti < len(self._root_plates) else 0)
-                trace_plate_counters[plate] = \
-                    trace_plate_counters.get(plate, 0) + 1
+                group = (self._root_groups[ti]
+                         if ti < len(self._root_groups) else 0)
+                key = (plate, group)
+                trace_plate_counters[key] = \
+                    trace_plate_counters.get(key, 0) + 1
                 top_row, top_col = path[0]
                 lx, ly = self.image_to_canvas(top_col, top_row)
                 lbl_color = "#ff8c00" if is_selected else shades[0]
                 self.canvas.create_text(
                     lx, ly - 10,
-                    text=str(trace_plate_counters[plate]),
+                    text=str(trace_plate_counters[key]),
                     fill=lbl_color, anchor="s",
                     font=("Helvetica", 10, "bold"))
 

@@ -937,11 +937,17 @@ class ImageCanvas(ctk.CTkFrame):
         if event.keysym == 'Return':
             if self._mode == self.MODE_SELECT_PLATES:
                 if self._pending_plate is not None:
-                    # confirm pending plate and finish selection
+                    # confirm pending plate
                     self._plates.append(self._pending_plate)
                     self._pending_plate = None
                     self._redraw()
-                # no pending plate (or just confirmed) — finish selection
+                    n = len(self._plates)
+                    if getattr(self, '_app_status_callback', None):
+                        self._app_status_callback(
+                            f"{n} plate(s) confirmed.\n"
+                            f"Draw another plate, or Enter to finish.")
+                    return True
+                # no pending plate — finish selection
             if self._on_done_callback:
                 self._on_done_callback()
                 return True

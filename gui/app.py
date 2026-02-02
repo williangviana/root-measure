@@ -694,6 +694,7 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
         self._current_group = self._register_genotype(geno_name)
         self.canvas._current_root_group = self._current_group
         self.canvas._current_plate_idx = self._current_plate_idx
+        self._set_plate_info(pi)
         self.canvas.set_mode(
             ImageCanvas.MODE_CLICK_ROOTS,
             on_done=self._plate_roots_done)
@@ -710,7 +711,6 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
             "Click root tops. D+Click=dead, T+Click=touching. Enter=next.")
         self.lbl_bottom.configure(
             text="Click=root top  |  D+Click=dead  |  T+Click=touching  |  Right-click=undo  |  Enter=next  |  Scroll=zoom")
-        self._set_plate_info(pi)
 
     def _plate_roots_done(self):
         """Called when user presses Enter after clicking roots on a plate."""
@@ -768,6 +768,7 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
         num_marks = self._get_num_marks()
         self.canvas._marks_expected = len(self._marks_plate_roots) * num_marks
         self.canvas._on_click_callback = self._update_marks_status
+        self._set_plate_info(pi)
         self.canvas.set_mode(
             ImageCanvas.MODE_CLICK_MARKS,
             on_done=self._plate_marks_done)
@@ -777,7 +778,6 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
         self._update_marks_status()
         self.lbl_bottom.configure(
             text="Click=place mark  |  Right-click=undo  |  Enter=done  |  Scroll=zoom")
-        self._set_plate_info(pi)
 
     def _start_marks_phase(self):
         """Enter mark clicking mode for normal roots on the current plate/group."""
@@ -805,6 +805,7 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
         self.canvas._marks_expected = len(self._marks_plate_roots) * num_marks
         self.canvas.clear_marks()
         self.canvas._on_click_callback = self._update_marks_status
+        self._set_plate_info(pi)
         self.canvas.set_mode(
             ImageCanvas.MODE_CLICK_MARKS,
             on_done=self._plate_marks_done)
@@ -812,7 +813,6 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
         self._update_marks_status()
         self.lbl_bottom.configure(
             text="Click=place mark  |  Right-click=undo  |  Enter=done  |  Scroll=zoom")
-        self._set_plate_info(pi)
 
     def _update_marks_status(self):
         """Update status bar with marks progress."""

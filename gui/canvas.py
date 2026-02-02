@@ -9,7 +9,7 @@ from PIL import Image, ImageTk
 # Bright, saturated colors for root markers/traces
 GROUP_MARKER_COLORS = [
     "#0072B2", "#E69F00", "#D55E00", "#56B4E9", "#009E73",  # OI 1-5
-    "#F0E442", "#CC79A7", "#555555", "#882255", "#44AA99",  # OI 6-8 + ext
+    "#F0E442", "#CC79A7", "#AA4400", "#882255", "#44AA99",  # OI 6-8 + ext
     "#AA4499", "#999933", "#6699CC", "#DD7788", "#117733",
     "#88CCEE", "#CC6677", "#DDCC77", "#332288", "#44BB99",
     "#EE8866", "#BBCC33", "#EEDD88", "#77AADD", "#EE6677",
@@ -18,7 +18,7 @@ GROUP_MARKER_COLORS = [
 # Pastel versions of the same hues for segment marks
 GROUP_MARK_COLORS = [
     "#A0D4F0", "#F5D89A", "#F0BFA0", "#B8DDF5", "#A0E8D0",  # OI 1-5
-    "#F8F2B0", "#E8C4DA", "#C0C0C0", "#D4A0C0", "#B0DDD4",  # OI 6-8 + ext
+    "#F8F2B0", "#E8C4DA", "#E0C4A0", "#D4A0C0", "#B0DDD4",  # OI 6-8 + ext
     "#D8B0D8", "#D4D4A0", "#B8CCE0", "#F0C0CC", "#A0D4A0",
     "#C4E8F0", "#E0B8C4", "#F0E8B8", "#B0A8D8", "#B0DDD4",
     "#F5C8B0", "#D8E0A0", "#F5F0C0", "#C0D4F0", "#F0B8C4",

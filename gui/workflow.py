@@ -23,7 +23,7 @@ GROUP_COLORS = [
     ["#009E73", "#A0E8D0"],  # 4: green (OI)
     ["#F0E442", "#F8F2B0"],  # 5: yellow (OI)
     ["#CC79A7", "#E8C4DA"],  # 6: pink (OI)
-    ["#555555", "#C0C0C0"],  # 7: grey (OI)
+    ["#AA4400", "#E0C4A0"],  # 7: brown (OI)
     ["#882255", "#D4A0C0"],  # 8: wine
     ["#44AA99", "#B0DDD4"],  # 9: teal
     ["#AA4499", "#D8B0D8"],  # 10: magenta

@@ -12,7 +12,7 @@ from itertools import combinations
 # -- bright colors for up to 30 genotypes (matches canvas trace colors) --
 COLORS = [
     "#0072B2", "#E69F00", "#D55E00", "#56B4E9", "#009E73",
-    "#F0E442", "#CC79A7", "#555555", "#882255", "#44AA99",
+    "#F0E442", "#CC79A7", "#AA4400", "#882255", "#44AA99",
     "#AA4499", "#999933", "#6699CC", "#DD7788", "#117733",
     "#88CCEE", "#CC6677", "#DDCC77", "#332288", "#44BB99",
     "#EE8866", "#BBCC33", "#EEDD88", "#77AADD", "#EE6677",

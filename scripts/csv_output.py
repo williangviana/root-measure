@@ -175,22 +175,21 @@ def _write_tidy_prism(df, tidy_path):
 
 
 def _write_tidy_prism_simple(df, tidy_path):
-    """Prism simple: tall format sorted by Genotype, no internal columns."""
-    sort_cols = []
-    if 'Genotype' in df.columns:
-        sort_cols.append('Genotype')
-    if 'Plate' in df.columns:
-        sort_cols.append('Plate')
-    if sort_cols:
-        df = df.sort_values(sort_cols, ignore_index=True)
+    """Prism simple (Column format): genotype columns, Length_cm values."""
+    if 'Genotype' not in df.columns:
+        df.to_csv(tidy_path, index=False)
+        return
 
-    drop = ['Warning', 'Length_px', 'Image']
-    df = df.drop(columns=[c for c in drop if c in df.columns])
+    genotypes = df['Genotype'].unique().tolist()
+    data = {}
+    for geno in genotypes:
+        data[geno] = df.loc[df['Genotype'] == geno, 'Length_cm'].tolist()
 
-    if 'Root_ID' in df.columns:
-        df['Root_ID'] = range(1, len(df) + 1)
+    max_len = max(len(v) for v in data.values()) if data else 0
+    for geno in data:
+        data[geno] = data[geno] + [np.nan] * (max_len - len(data[geno]))
 
-    df.to_csv(tidy_path, index=False)
+    pd.DataFrame(data).to_csv(tidy_path, index=False)
 
 
 def _write_tidy_prism_factorial(df, tidy_path):

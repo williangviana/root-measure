@@ -894,7 +894,7 @@ class ImageCanvas(ctk.CTkFrame):
                     self._pending_plate = None
                     self._redraw()
                     n = len(self._plates)
-                    if hasattr(self, '_app_status_callback'):
+                    if getattr(self, '_app_status_callback', None):
                         self._app_status_callback(
                             f"{n} plate(s) confirmed.\n"
                             f"Draw another plate, or Enter to finish.")

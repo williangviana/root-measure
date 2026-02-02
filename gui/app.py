@@ -604,6 +604,7 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
         if not plates:
             self.sidebar.set_status("No plates selected. Draw at least one rectangle.")
             return
+        self.canvas._app_status_callback = None
         self.canvas.set_mode(ImageCanvas.MODE_VIEW)
         self.sidebar.set_status(f"{len(plates)} plate(s) selected.")
         self.lbl_bottom.configure(text="Willian Viana — Dinneny Lab")
@@ -623,7 +624,6 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
             self.canvas.clear_roots()
             self.canvas.clear_marks()
             self.canvas.clear_traces()
-            self.canvas._all_marks = {}
             self._current_plate_idx = 0
             self._split = self.sidebar.var_split.get()
             self._split_stage = 0

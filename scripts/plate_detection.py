@@ -1,8 +1,5 @@
 import numpy as np
 import cv2
-import matplotlib.pyplot as plt
-from matplotlib.widgets import RectangleSelector
-from matplotlib.patches import Rectangle
 
 from config import MIN_PLATE_AREA_FRAC
 
@@ -257,6 +254,9 @@ def select_plates_interactive(image, downsample=4):
     Returns list of (r1, r2, c1, c2) plate regions in full-image coordinates,
     sorted top to bottom.
     """
+    import matplotlib.pyplot as plt
+    from matplotlib.widgets import RectangleSelector
+    from matplotlib.patches import Rectangle
     img_8 = _to_uint8(image[::downsample, ::downsample])
 
     plates = []

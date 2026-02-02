@@ -4,6 +4,24 @@ import numpy as np
 import customtkinter as ctk
 from PIL import Image, ImageTk
 
+# 30-color palettes (module-level so they're shared everywhere)
+GROUP_MARKER_COLORS = [
+    "#e63333", "#3333e6", "#33b033", "#e6a833", "#b033b0",
+    "#33b0b0", "#e66333", "#8033e6", "#b08033", "#33e680",
+    "#e63380", "#3380e6", "#80e633", "#e6b033", "#6633e6",
+    "#33e6b0", "#e63366", "#3366e6", "#66e633", "#e68033",
+    "#b033e6", "#33e666", "#e63399", "#3399e6", "#99e633",
+    "#e69933", "#9933e6", "#33e699", "#cc3333", "#3333cc",
+]
+GROUP_MARK_COLORS = [
+    "#ff8080", "#8080ff", "#80d080", "#ffd080", "#d080d0",
+    "#80d0d0", "#ff9980", "#b080ff", "#d0b080", "#80ffb0",
+    "#ff80b0", "#80b0ff", "#b0ff80", "#ffd880", "#9980ff",
+    "#80ffd0", "#ff8099", "#8099ff", "#99ff80", "#ffb080",
+    "#d080ff", "#80ff99", "#ff80cc", "#80ccff", "#ccff80",
+    "#ffcc80", "#cc80ff", "#80ffcc", "#e68080", "#8080e6",
+]
+
 
 class ImageCanvas(ctk.CTkFrame):
     """Zoomable, pannable image canvas with overlay drawing."""
@@ -323,14 +341,6 @@ class ImageCanvas(ctk.CTkFrame):
                 font=("Helvetica", 16, "bold"))
 
         # root markers (hide when measurement done or in review mode)
-        _GROUP_MARKER_COLORS = [
-            "#e63333", "#3333e6", "#33b033", "#e6a833", "#b033b0",
-            "#33b0b0", "#e66333", "#8033e6", "#b08033", "#33e680",
-            "#e63380", "#3380e6", "#80e633", "#e6b033", "#6633e6",
-            "#33e6b0", "#e63366", "#3366e6", "#66e633", "#e68033",
-            "#b033e6", "#33e666", "#e63399", "#3399e6", "#99e633",
-            "#e69933", "#9933e6", "#33e699", "#cc3333", "#3333cc",
-        ]
         self._root_marker_ids.clear()
         hide_markers = (self._mode == self.MODE_REVIEW
                         or self._measurement_done
@@ -353,7 +363,7 @@ class ImageCanvas(ctk.CTkFrame):
                     continue
                 cx, cy = self.image_to_canvas(col, row)
                 display_num = group_counters[key]
-                marker_color = _GROUP_MARKER_COLORS[group % len(_GROUP_MARKER_COLORS)]
+                marker_color = GROUP_MARKER_COLORS[group % len(GROUP_MARKER_COLORS)]
                 if flag is not None:
                     label = "DEAD" if flag == 'dead' else "TOUCH"
                     id1 = self.canvas.create_line(
@@ -378,13 +388,12 @@ class ImageCanvas(ctk.CTkFrame):
                     self._root_marker_ids.extend([rid, tid])
 
         # mark circles (hide in review mode or when measurement done)
-        _GROUP_MARK_COLOR = ["#ff8080", "#8080ff"]
         self._mark_marker_ids.clear()
         if self._mode not in (self.MODE_REVIEW,) and not self._measurement_done:
             mark_r = 3 if is_view else 4
             for ri, marks in self._all_marks.items():
                 group = self._root_groups[ri] if ri < len(self._root_groups) else 0
-                color = _GROUP_MARK_COLOR[group % len(_GROUP_MARK_COLOR)]
+                color = GROUP_MARK_COLORS[group % len(GROUP_MARK_COLORS)]
                 for mi, (row, col) in enumerate(marks):
                     cx, cy = self.image_to_canvas(col, row)
                     self.canvas.create_oval(
@@ -392,7 +401,7 @@ class ImageCanvas(ctk.CTkFrame):
                         outline="white", fill=color, width=1)
             if self._mode == self.MODE_CLICK_MARKS:
                 current_group = getattr(self, '_current_root_group', 0)
-                color = _GROUP_MARK_COLOR[current_group % len(_GROUP_MARK_COLOR)]
+                color = GROUP_MARK_COLORS[current_group % len(GROUP_MARK_COLORS)]
                 for i, (row, col) in enumerate(self._mark_points):
                     cx, cy = self.image_to_canvas(col, row)
                     r = 5
@@ -715,9 +724,8 @@ class ImageCanvas(ctk.CTkFrame):
             self._mark_points.append((row, col))
             # draw mark as genotype-colored circle (light shade)
             cx, cy = event.x, event.y
-            _GROUP_MARK_COLOR = ["#ff8080", "#8080ff"]
             current_group = getattr(self, '_current_root_group', 0)
-            color = _GROUP_MARK_COLOR[current_group % len(_GROUP_MARK_COLOR)]
+            color = GROUP_MARK_COLORS[current_group % len(GROUP_MARK_COLORS)]
             n = len(self._mark_points)
             r = 5
             rid = self.canvas.create_oval(

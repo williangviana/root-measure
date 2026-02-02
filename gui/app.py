@@ -71,6 +71,7 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
         self._processed_images = set()  # image paths already measured
         self._experiment_name = ''  # current experiment (scopes output dirs)
         self._image_canvas_data = {}  # per-image canvas snapshots {name: dict}
+        self._genotype_colors = {}   # genotype name → color index (experiment-wide)
 
         # layout: sidebar + canvas
         self.grid_columnconfigure(1, weight=1)
@@ -185,9 +186,10 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
         settings = data.get('settings', {})
         self._experiment_name = settings.get('experiment', '')
         exp = self._experiment_name
-        # restore offsets
+        # restore offsets and genotype color registry
         self._plate_offset = data.get('plate_offset', 0)
         self._root_offset = data.get('root_offset', 0)
+        self._genotype_colors = data.get('genotype_colors', {})
         # restore processed images
         name_to_path = {p.name: p for p in self.images}
         self._processed_images = set()
@@ -446,6 +448,12 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
             pass
         return 1  # default: 2 segments = 1 mark
 
+    def _register_genotype(self, name):
+        """Return stable color index for a genotype, assigning next index if unseen."""
+        if name not in self._genotype_colors:
+            self._genotype_colors[name] = len(self._genotype_colors)
+        return self._genotype_colors[name]
+
     def _get_scale(self):
         """Get scale (px/cm) from DPI entry or auto-detect."""
         dpi_text = self.sidebar.entry_dpi.get().strip()
@@ -615,9 +623,8 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
             self.canvas._all_marks = {}
             self._current_plate_idx = 0
             self._split = self.sidebar.var_split.get()
-            self._current_group = 0
             self._split_stage = 0
-            self.canvas._current_root_group = 0
+            # _current_group set per-plate in _enter_root_click_stage via registry
         self._enter_root_click_stage()
         self.sidebar.btn_measure.configure(state="disabled")
         self.sidebar.btn_review.configure(state="disabled")
@@ -629,44 +636,37 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
         plates = self.canvas.get_plates()
         pi = self._current_plate_idx
         r1, r2, c1, c2 = plates[pi]
+
+        # resolve genotype name and register for stable color index
+        genotypes = [g.strip() for g in
+                     self.sidebar.entry_genotypes.get().split(",")
+                     if g.strip()]
+        cond_text = self.sidebar.entry_condition.get().strip()
+        conditions = [c.strip() for c in cond_text.split(",")
+                      if c.strip()] if cond_text else []
+        if self._split:
+            geno_name = (genotypes[self._split_stage]
+                         if self._split_stage < len(genotypes)
+                         else f"group_{self._split_stage}")
+        else:
+            geno_name = (genotypes[pi] if pi < len(genotypes)
+                         else genotypes[-1] if genotypes else "genotype")
+        self._current_group = self._register_genotype(geno_name)
         self.canvas._current_root_group = self._current_group
         self.canvas._current_plate_idx = self._current_plate_idx
         self.canvas.set_mode(
             ImageCanvas.MODE_CLICK_ROOTS,
             on_done=self._plate_roots_done)
         self.canvas.zoom_to_region(r1, r2, c1, c2)
-        if self._split:
-            genotypes = [g.strip() for g in
-                         self.sidebar.entry_genotypes.get().split(",")
-                         if g.strip()]
-            if self._split_stage == 0:
-                geno_name = genotypes[0] if genotypes else "A"
-                geno_label = f"{geno_name} (red)"
-            else:
-                geno_name = genotypes[1] if len(genotypes) >= 2 else "B"
-                geno_label = f"{geno_name} (blue)"
-            self.sidebar.set_status(
-                f"Plate {pi + 1}/{len(plates)} — {geno_label}\n"
-                "Click root tops. Enter=next.")
-        else:
-            genotypes = [g.strip() for g in
-                         self.sidebar.entry_genotypes.get().split(",")
-                         if g.strip()]
-            cond_text = self.sidebar.entry_condition.get().strip()
-            conditions = [c.strip() for c in cond_text.split(",")
-                          if c.strip()] if cond_text else []
-            label_parts = []
-            if genotypes and pi < len(genotypes):
-                label_parts.append(genotypes[pi])
-            if conditions and pi < len(conditions):
-                label_parts.append(conditions[pi])
-            label = " / ".join(label_parts) if label_parts else ""
-            status_prefix = f"Plate {pi + 1}/{len(plates)}"
-            if label:
-                status_prefix += f" — {label}"
-            self.sidebar.set_status(
-                f"{status_prefix}\nClick root tops. "
-                "D+Click=dead, T+Click=touching. Enter=next.")
+
+        # build status label
+        label_parts = [geno_name]
+        if not self._split and conditions and pi < len(conditions):
+            label_parts.append(conditions[pi])
+        label = " / ".join(label_parts)
+        self.sidebar.set_status(
+            f"Plate {pi + 1}/{len(plates)} — {label}\n"
+            "Click root tops. D+Click=dead, T+Click=touching. Enter=next.")
         self.lbl_bottom.configure(
             text="Click=root top  |  D+Click=dead  |  T+Click=touching  |  Right-click=undo  |  Enter=next  |  Scroll=zoom")
 
@@ -685,12 +685,10 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
         if self._split and self._split_stage == 0:
             # stay on same plate, switch to genotype B
             self._split_stage = 1
-            self._current_group += 1
             self._enter_root_click_stage()
             return
         # advance to next plate
         self._split_stage = 0
-        self._current_group += 1
         self._current_plate_idx += 1
         if self._current_plate_idx < len(plates):
             self._enter_root_click_stage()

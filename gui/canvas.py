@@ -491,20 +491,20 @@ class ImageCanvas(ctk.CTkFrame):
             # center: "Plate N"
             self.canvas.create_text(
                 cw / 2, y, text=info.get('center', ''),
-                fill="#cccccc", anchor="s",
-                font=("Helvetica", 14, "bold"))
+                fill="black", anchor="s",
+                font=("Helvetica", 16, "bold"))
             # left: genotype A + condition
             if info.get('left'):
                 self.canvas.create_text(
                     15, y, text=info['left'],
                     fill=info.get('left_color', '#cccccc'), anchor="sw",
-                    font=("Helvetica", 14, "bold"))
+                    font=("Helvetica", 16, "bold"))
             # right: genotype B + condition (split plates only)
             if info.get('right'):
                 self.canvas.create_text(
                     cw - 15, y, text=info['right'],
                     fill=info.get('right_color', '#cccccc'), anchor="se",
-                    font=("Helvetica", 14, "bold"))
+                    font=("Helvetica", 16, "bold"))
 
         # help overlay
         if self._help_visible:

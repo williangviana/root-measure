@@ -3,15 +3,20 @@ import pandas as pd
 
 
 def _build_rows(results, plate_labels, plate_offset, root_offset,
-                point_plates, num_marks, split_plate, image_name=''):
+                point_plates, num_marks, split_plate, image_name='',
+                group_to_plate=None):
     """Build list of row dicts from measurement results."""
     labels = plate_labels.values() if isinstance(plate_labels, dict) else plate_labels
     is_factorial = plate_labels and any(
         cond is not None for (geno, cond) in labels)
 
-    # Map registry color indices to local physical plate numbers (0, 1, ...)
-    unique_groups = sorted(set(point_plates)) if point_plates else []
-    group_to_local = {g: idx for idx, g in enumerate(unique_groups)}
+    # Fallback: map sorted unique groups to sequential plate numbers
+    if group_to_plate is None:
+        unique_groups = sorted(set(point_plates)) if point_plates else []
+        if split_plate:
+            group_to_plate = {g: idx // 2 for idx, g in enumerate(unique_groups)}
+        else:
+            group_to_plate = {g: idx for idx, g in enumerate(unique_groups)}
 
     group_counters = {}
     rows = []
@@ -27,10 +32,7 @@ def _build_rows(results, plate_labels, plate_offset, root_offset,
 
         if plate_labels and i < len(point_plates):
             group_idx = point_plates[i]
-            if split_plate:
-                local_plate = group_to_local.get(group_idx, 0) // 2
-            else:
-                local_plate = group_to_local.get(group_idx, 0)
+            local_plate = group_to_plate.get(group_idx, 0)
             row['Plate'] = plate_offset + local_plate + 1
             genotype, condition = plate_labels[group_idx]
             row['Genotype'] = genotype
@@ -257,7 +259,8 @@ def get_offsets_from_csv(csv_path, exclude_image=''):
 
 def append_results_to_csv(results, csv_path, plates, plate_labels, plate_offset,
                           root_offset, point_plates, num_marks=0,
-                          split_plate=False, image_name=''):
+                          split_plate=False, image_name='',
+                          group_to_plate=None):
     """Append measurements to raw_data.csv.
 
     Returns:
@@ -265,7 +268,8 @@ def append_results_to_csv(results, csv_path, plates, plate_labels, plate_offset,
     """
     rows, is_factorial = _build_rows(
         results, plate_labels, plate_offset, root_offset,
-        point_plates, num_marks, split_plate, image_name=image_name)
+        point_plates, num_marks, split_plate, image_name=image_name,
+        group_to_plate=group_to_plate)
 
     df_new = pd.DataFrame(rows)
     save_raw(df_new, csv_path, is_factorial, num_marks)

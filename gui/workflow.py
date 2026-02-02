@@ -586,10 +586,11 @@ class MeasurementMixin:
         conditions = [c.strip() for c in cond_text.split(",")
                       if c.strip()] if cond_text else []
 
-        # Build plate_labels as a dict keyed by registry color index so
-        # _build_rows can look up plate_labels[group_idx] regardless of the
-        # absolute color index assigned by the genotype registry.
+        # Build plate_labels and group_to_plate as dicts keyed by registry
+        # color index.  plate_labels maps group → (genotype, condition).
+        # group_to_plate maps group → local physical plate number (0, 1, …).
         plate_labels = {}
+        group_to_plate = {}
         if split:
             geno_a = genotypes[0]
             geno_b = genotypes[1] if len(genotypes) >= 2 else "genotype_B"
@@ -600,6 +601,8 @@ class MeasurementMixin:
                 idx_b = self._genotype_colors.get(geno_b, pi * 2 + 1)
                 plate_labels[idx_a] = (geno_a, cond)
                 plate_labels[idx_b] = (geno_b, cond)
+                group_to_plate[idx_a] = pi
+                group_to_plate[idx_b] = pi
         else:
             for pi in range(len(plates)):
                 geno = genotypes[pi] if pi < len(genotypes) else genotypes[-1]
@@ -607,6 +610,7 @@ class MeasurementMixin:
                     conditions[-1] if conditions else None)
                 idx = self._genotype_colors.get(geno, pi)
                 plate_labels[idx] = (geno, cond)
+                group_to_plate[idx] = pi
 
         try:
             new_plate_offset, new_root_offset = append_results_to_csv(
@@ -616,7 +620,8 @@ class MeasurementMixin:
                 point_plates=point_plates,
                 num_marks=self._get_num_marks(),
                 split_plate=self.sidebar.var_split.get(),
-                image_name=img_name)
+                image_name=img_name,
+                group_to_plate=group_to_plate)
             self._plate_offset = new_plate_offset
             self._root_offset = new_root_offset
             self.sidebar.set_status(

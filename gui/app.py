@@ -233,7 +233,7 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
                 # advance sidebar to workflow
                 self.sidebar.advance_to_experiment()
                 # lock CSV format if data already written
-                if (data_dir(self.folder, exp) / 'data.csv').exists():
+                if (data_dir(self.folder, exp) / 'raw_data.csv').exists():
                     self.sidebar.menu_csv_format.configure(state="disabled")
                     self.sidebar.lbl_csv_locked.pack(pady=(0, 8), padx=15, anchor="w")
                 self.sidebar.advance_to_workflow()
@@ -473,7 +473,7 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
         self.sidebar.advance_to_experiment()
         # keep CSV locked if this experiment already has data
         exp = self._experiment_name
-        if exp and self.folder and (data_dir(self.folder, exp) / 'data.csv').exists():
+        if exp and self.folder and (data_dir(self.folder, exp) / 'raw_data.csv').exists():
             self.sidebar.menu_csv_format.configure(state="disabled")
             self.sidebar.lbl_csv_locked.pack(pady=(0, 8), padx=15, anchor="w")
         else:
@@ -486,7 +486,7 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
         self._experiment_name = self.sidebar.entry_experiment.get().strip()
         exp = self._experiment_name
         if self.folder:
-            csv_path = data_dir(self.folder, exp) / 'data.csv'
+            csv_path = data_dir(self.folder, exp) / 'raw_data.csv'
             # seed offsets from existing CSV so new data continues correctly
             if csv_path.exists():
                 csv_plate_off, csv_root_off = get_offsets_from_csv(csv_path)

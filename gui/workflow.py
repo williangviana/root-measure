@@ -527,7 +527,7 @@ class MeasurementMixin:
             return
 
         exp = getattr(self, '_experiment_name', '')
-        csv_path = data_dir(folder, exp) / 'data.csv'
+        csv_path = data_dir(folder, exp) / 'raw_data.csv'
         csv_path.parent.mkdir(parents=True, exist_ok=True)
 
         # use stored group indices for each root
@@ -558,7 +558,6 @@ class MeasurementMixin:
                     conditions[0] if conditions else None)
                 plate_labels.append((genotypes[0], cond))
 
-        csv_format = self.sidebar.var_csv_format.get()
         try:
             img_name = self.image_path.name if self.image_path else ''
             new_plate_offset, new_root_offset = append_results_to_csv(
@@ -568,7 +567,6 @@ class MeasurementMixin:
                 point_plates=point_plates,
                 num_marks=self._get_num_marks(),
                 split_plate=self.sidebar.var_split.get(),
-                csv_format=csv_format,
                 image_name=img_name)
             self._plate_offset = new_plate_offset
             self._root_offset = new_root_offset
@@ -581,31 +579,36 @@ class MeasurementMixin:
                 f"\nCSV save error: {e}")
 
     def _run_plot(self):
-        """Generate plot with statistics from the saved CSV."""
+        """Generate tidy_data.csv and plot from raw_data.csv."""
+        from csv_output import generate_tidy
         folder = self.folder
         if not folder and self.image_path:
             folder = self.image_path.parent
         if not folder:
             return
         exp = getattr(self, '_experiment_name', '')
-        csv_path = data_dir(folder, exp) / 'data.csv'
-        if not csv_path.exists():
+        raw_path = data_dir(folder, exp) / 'raw_data.csv'
+        if not raw_path.exists():
             return
         try:
             self.sidebar.set_status(
                 self.sidebar.lbl_status.cget("text") +
-                "\nGenerating plot...")
+                "\nGenerating tidy data and plot...")
             self.update_idletasks()
             csv_format = self.sidebar.var_csv_format.get()
-            plot_results(csv_path,
+            tidy_path = data_dir(folder, exp) / 'tidy_data.csv'
+            generate_tidy(raw_path, tidy_path, csv_format=csv_format)
+            # plot from raw data (always tall/R format)
+            plot_results(raw_path,
                          value_col='Length_cm',
                          ylabel='Primary root length (cm)',
-                         csv_format=csv_format)
-            png_path = csv_path.with_suffix('.png')
+                         csv_format='R')
             self.sidebar.set_status(
                 self.sidebar.lbl_status.cget("text") +
-                f"\nPlot saved to {png_path.name}")
+                f"\nSaved tidy_data.csv and plot")
         except Exception as e:
             self.sidebar.set_status(
                 self.sidebar.lbl_status.cget("text") +
                 f"\nPlot error: {e}")
+            import traceback
+            traceback.print_exc()

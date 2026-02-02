@@ -595,7 +595,7 @@ class MeasurementMixin:
             geno_b = genotypes[1] if len(genotypes) >= 2 else "genotype_B"
             for pi in range(len(plates)):
                 cond = conditions[pi] if pi < len(conditions) else (
-                    conditions[0] if conditions else None)
+                    conditions[-1] if conditions else None)
                 idx_a = self._genotype_colors.get(geno_a, pi * 2)
                 idx_b = self._genotype_colors.get(geno_b, pi * 2 + 1)
                 plate_labels[idx_a] = (geno_a, cond)
@@ -604,7 +604,7 @@ class MeasurementMixin:
             for pi in range(len(plates)):
                 geno = genotypes[pi] if pi < len(genotypes) else genotypes[-1]
                 cond = conditions[pi] if pi < len(conditions) else (
-                    conditions[0] if conditions else None)
+                    conditions[-1] if conditions else None)
                 idx = self._genotype_colors.get(geno, pi)
                 plate_labels[idx] = (geno, cond)
 

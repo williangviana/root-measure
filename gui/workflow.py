@@ -163,6 +163,7 @@ class MeasurementMixin:
         msg += "\nClick a bad trace to select for retry."
         msg += "\nEnter = accept / retry selected."
         self.sidebar.set_status(msg)
+        self.sidebar.btn_continue_later_mid.pack(pady=(10, 5), padx=15, fill="x")
         self.lbl_bottom.configure(
             text="Click trace=select for retry (orange)  |  Enter=accept / retry selected  |  Scroll=zoom")
 

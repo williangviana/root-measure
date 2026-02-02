@@ -519,6 +519,7 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
         self.sidebar.btn_click_roots.configure(state="disabled")
         self.sidebar.btn_measure.configure(state="disabled")
         self.sidebar.btn_review.configure(state="disabled")
+        self.sidebar.btn_continue_later_mid.pack(pady=(10, 5), padx=15, fill="x")
         self.sidebar.set_step(1)
 
     def _plates_done(self):

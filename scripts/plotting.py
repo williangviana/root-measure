@@ -9,14 +9,14 @@ from scipy import stats
 from itertools import combinations
 
 
-# -- colors for up to 30 genotypes (publication style) --
+# -- bright colors for up to 30 genotypes (matches canvas trace colors) --
 COLORS = [
-    '#555555', '#F5DEB3', '#A9A9A9', '#FAEBD7', '#808080',
-    '#FFE4B5', '#6B8E23', '#DEB887', '#708090', '#D2B48C',
-    '#4682B4', '#BC8F8F', '#5F9EA0', '#F4A460', '#778899',
-    '#DAA520', '#8FBC8F', '#CD853F', '#B0C4DE', '#D2691E',
-    '#9ACD32', '#C0C0C0', '#6495ED', '#E6BE8A', '#2E8B57',
-    '#BDB76B', '#87CEEB', '#A0522D', '#66CDAA', '#D4A574',
+    "#FF2020", "#2060FF", "#00CC44", "#FF9900", "#CC33CC",
+    "#00CCCC", "#FF5500", "#8833FF", "#CCAA00", "#00DD77",
+    "#FF2080", "#3399FF", "#88DD00", "#FFBB00", "#6622FF",
+    "#00DDAA", "#FF3366", "#3366FF", "#66DD00", "#FF7700",
+    "#BB22FF", "#00DD55", "#FF2299", "#2299FF", "#AADD00",
+    "#FF8800", "#9922FF", "#00DD88", "#DD2222", "#2222DD",
 ]
 
 
@@ -255,7 +255,8 @@ def _read_prism_factorial(csv_path):
     return pd.DataFrame(rows)
 
 
-def plot_results(csv_path, value_col=None, ylabel=None, csv_format='R'):
+def plot_results(csv_path, value_col=None, ylabel=None, csv_format='R',
+                  genotype_colors=None):
     """Read CSV, run statistics, generate and save publication box plot.
 
     Args:
@@ -263,6 +264,7 @@ def plot_results(csv_path, value_col=None, ylabel=None, csv_format='R'):
         value_col: Column to plot (default: prompt user or 'Length_cm').
         ylabel: Y-axis label (default: prompt user or auto-generate).
         csv_format: 'R' or 'Prism'.
+        genotype_colors: Optional dict mapping genotype name -> color index.
     """
     if csv_format == 'Prism':
         # try factorial first (has condition column = first col non-numeric)
@@ -349,6 +351,11 @@ def plot_results(csv_path, value_col=None, ylabel=None, csv_format='R'):
     genotypes = df['Genotype'].unique().tolist()
     positions_map = {}
 
+    def _geno_color(geno, fallback_idx):
+        if genotype_colors and geno in genotype_colors:
+            return COLORS[genotype_colors[geno] % len(COLORS)]
+        return COLORS[fallback_idx % len(COLORS)]
+
     if is_factorial:
         conditions = df['Condition'].unique().tolist()
         n_geno = len(genotypes)
@@ -367,7 +374,7 @@ def plot_results(csv_path, value_col=None, ylabel=None, csv_format='R'):
                 bp = ax.boxplot([d], positions=[pos], widths=box_width,
                                 patch_artist=True, showfliers=False, zorder=2,
                                 medianprops=dict(color='black', linewidth=1.5),
-                                boxprops=dict(facecolor=COLORS[gi % len(COLORS)],
+                                boxprops=dict(facecolor=_geno_color(geno, gi),
                                               edgecolor='black', linewidth=1),
                                 whiskerprops=dict(color='black', linewidth=1),
                                 capprops=dict(color='black', linewidth=1))
@@ -378,14 +385,14 @@ def plot_results(csv_path, value_col=None, ylabel=None, csv_format='R'):
 
         ax.set_xticks(range(n_cond))
         ax.set_xticklabels(conditions, fontsize=12)
-        handles = [plt.Rectangle((0, 0), 1, 1, facecolor=COLORS[i % len(COLORS)],
+        handles = [plt.Rectangle((0, 0), 1, 1, facecolor=_geno_color(genotypes[i], i),
                                  edgecolor='black') for i in range(n_geno)]
         ax.legend(handles, genotypes, loc='upper left', bbox_to_anchor=(1.02, 1),
                   fontsize=11, frameon=True, edgecolor='black',
                   handlelength=1, handleheight=1)
     else:
         conditions = []
-        colors = [COLORS[i % len(COLORS)] for i in range(len(genotypes))]
+        colors = [_geno_color(g, i) for i, g in enumerate(genotypes)]
         for i, geno in enumerate(genotypes):
             d = df.loc[df['Genotype'] == geno, value_col].dropna().values
             if len(d) == 0:

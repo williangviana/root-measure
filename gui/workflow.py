@@ -13,38 +13,38 @@ from plotting import plot_results
 from canvas import ImageCanvas
 from session import data_dir, traces_dir
 
-# genotype color shades: [dark, light] for trace segments (30 entries)
+# genotype color shades: [bright, pastel] for trace segments (30 entries)
 GROUP_COLORS = [
-    ["#e63333", "#ff8080"],  # 0: red
-    ["#3333e6", "#8080ff"],  # 1: blue
-    ["#33b033", "#80d080"],  # 2: green
-    ["#e6a833", "#ffd080"],  # 3: orange
-    ["#b033b0", "#d080d0"],  # 4: purple
-    ["#33b0b0", "#80d0d0"],  # 5: teal
-    ["#e66333", "#ff9980"],  # 6: burnt orange
-    ["#8033e6", "#b080ff"],  # 7: violet
-    ["#b08033", "#d0b080"],  # 8: khaki
-    ["#33e680", "#80ffb0"],  # 9: mint
-    ["#e63380", "#ff80b0"],  # 10: pink
-    ["#3380e6", "#80b0ff"],  # 11: sky blue
-    ["#80e633", "#b0ff80"],  # 12: lime
-    ["#e6b033", "#ffd880"],  # 13: gold
-    ["#6633e6", "#9980ff"],  # 14: indigo
-    ["#33e6b0", "#80ffd0"],  # 15: aqua
-    ["#e63366", "#ff8099"],  # 16: rose
-    ["#3366e6", "#8099ff"],  # 17: cornflower
-    ["#66e633", "#99ff80"],  # 18: chartreuse
-    ["#e68033", "#ffb080"],  # 19: tangerine
-    ["#b033e6", "#d080ff"],  # 20: magenta
-    ["#33e666", "#80ff99"],  # 21: spring
-    ["#e63399", "#ff80cc"],  # 22: hot pink
-    ["#3399e6", "#80ccff"],  # 23: cerulean
-    ["#99e633", "#ccff80"],  # 24: yellow-green
-    ["#e69933", "#ffcc80"],  # 25: amber
-    ["#9933e6", "#cc80ff"],  # 26: grape
-    ["#33e699", "#80ffcc"],  # 27: seafoam
-    ["#cc3333", "#e68080"],  # 28: dark red
-    ["#3333cc", "#8080e6"],  # 29: dark blue
+    ["#FF2020", "#FFB0B0"],  # 0: red
+    ["#2060FF", "#B0C8FF"],  # 1: blue
+    ["#00CC44", "#B0F0C4"],  # 2: green
+    ["#FF9900", "#FFD9A0"],  # 3: orange
+    ["#CC33CC", "#E8B0E8"],  # 4: purple
+    ["#00CCCC", "#A0E8E8"],  # 5: teal
+    ["#FF5500", "#FFBFA0"],  # 6: burnt orange
+    ["#8833FF", "#C8B0FF"],  # 7: violet
+    ["#CCAA00", "#E8DCA0"],  # 8: gold-olive
+    ["#00DD77", "#A0F0C8"],  # 9: mint
+    ["#FF2080", "#FFB0CC"],  # 10: pink
+    ["#3399FF", "#A0C8FF"],  # 11: sky blue
+    ["#88DD00", "#CCF0A0"],  # 12: lime
+    ["#FFBB00", "#FFE0A0"],  # 13: gold
+    ["#6622FF", "#BAA0FF"],  # 14: indigo
+    ["#00DDAA", "#A0F0DA"],  # 15: aqua
+    ["#FF3366", "#FFB0BB"],  # 16: rose
+    ["#3366FF", "#A0BBFF"],  # 17: cornflower
+    ["#66DD00", "#BBF0A0"],  # 18: chartreuse
+    ["#FF7700", "#FFC8A0"],  # 19: tangerine
+    ["#BB22FF", "#DCA0FF"],  # 20: magenta
+    ["#00DD55", "#A0F0B0"],  # 21: spring
+    ["#FF2299", "#FFB0DD"],  # 22: hot pink
+    ["#2299FF", "#A0DDFF"],  # 23: cerulean
+    ["#AADD00", "#DAF0A0"],  # 24: yellow-green
+    ["#FF8800", "#FFD0A0"],  # 25: amber
+    ["#9922FF", "#CCA0FF"],  # 26: grape
+    ["#00DD88", "#A0F0CC"],  # 27: seafoam
+    ["#DD2222", "#F0B0B0"],  # 28: dark red
+    ["#2222DD", "#B0B0F0"],  # 29: dark blue
 ]
 
 
@@ -656,7 +656,8 @@ class MeasurementMixin:
             plot_results(raw_path,
                          value_col='Length_cm',
                          ylabel='Primary root length (cm)',
-                         csv_format='R')
+                         csv_format='R',
+                         genotype_colors=getattr(self, '_genotype_colors', None))
             self.sidebar.set_status(
                 self.sidebar.lbl_status.cget("text") +
                 f"\nSaved tidy_data.csv and plot")

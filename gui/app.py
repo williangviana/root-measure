@@ -47,6 +47,14 @@ def _detect_dpi(image_path):
                     dpi = int(round(dpi))
                     if dpi > 0:
                         return dpi
+        else:
+            from PIL import Image as PILImage
+            with PILImage.open(str(image_path)) as img:
+                info_dpi = img.info.get('dpi')
+                if info_dpi:
+                    dpi = int(round(info_dpi[0]))
+                    if dpi > 0:
+                        return dpi
     except Exception:
         pass
     return None

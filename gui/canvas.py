@@ -481,6 +481,31 @@ class ImageCanvas(ctk.CTkFrame):
                     font=("Helvetica", 8, "bold"))
                 self._reclick_marker_ids.extend([rid, tid])
 
+        # plate info overlay (shown when zoomed into a plate)
+        info = getattr(self, '_plate_info', None)
+        if info and self._mode in (self.MODE_CLICK_ROOTS,
+                                    self.MODE_CLICK_MARKS):
+            cw = self.canvas.winfo_width()
+            ch = self.canvas.winfo_height()
+            y = ch - 12
+            # center: "Plate N"
+            self.canvas.create_text(
+                cw / 2, y, text=info.get('center', ''),
+                fill="#cccccc", anchor="s",
+                font=("Helvetica", 14, "bold"))
+            # left: genotype A + condition
+            if info.get('left'):
+                self.canvas.create_text(
+                    15, y, text=info['left'],
+                    fill=info.get('left_color', '#cccccc'), anchor="sw",
+                    font=("Helvetica", 14, "bold"))
+            # right: genotype B + condition (split plates only)
+            if info.get('right'):
+                self.canvas.create_text(
+                    cw - 15, y, text=info['right'],
+                    fill=info.get('right_color', '#cccccc'), anchor="se",
+                    font=("Helvetica", 14, "bold"))
+
         # help overlay
         if self._help_visible:
             self._draw_help_overlay()

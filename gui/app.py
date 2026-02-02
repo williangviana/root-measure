@@ -613,6 +613,8 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
         self.canvas.clear_roots()
         self.canvas.clear_marks()
         self.canvas.clear_traces()
+        self._clear_plate_info()
+        self.canvas._fit_image()
         self._results = []
         self._trace_to_result = []
         self._binary = None

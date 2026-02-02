@@ -20,6 +20,26 @@ Mac desktop app for measuring root lengths from scanned agar plate images.
 - One logical change per commit — don't bundle unrelated changes.
 - Never copy files as backups — git is the backup system.
 
+## Pipeline-First Thinking (CRITICAL)
+
+**Before writing any code, trace the full data flow end-to-end.** Every change touches a pipeline:
+
+```
+User input → sidebar fields → app state → canvas drawing → tracing →
+results list → CSV build → raw_data.csv → tidy_data.csv → plot →
+session save → session restore → review/re-click → re-save CSV
+```
+
+For ANY change, answer these before coding:
+1. **Where does this data originate?** (sidebar field, click event, config, session file)
+2. **Where is it stored?** (app attr, canvas dict, _image_canvas_data, session JSON)
+3. **Where is it consumed?** (tracing, CSV rows, plot labels, status messages, screenshots)
+4. **What happens on re-save/review?** (rebuilt from traces? from session? from CSV?)
+5. **What happens on session restore?** (is this field saved and restored?)
+6. **Does the indexing stay consistent?** (registry indices vs sequential indices vs plate numbers)
+
+**If a change affects step N, check steps N+1 through the end.** Don't just fix the immediate symptom — follow the data all the way to CSV output, plotting, session save/restore, and review/re-click.
+
 ## Code Discipline
 
 - Match existing patterns and style in the codebase.

@@ -1,0 +1,19 @@
+Root Measure - Installation Instructions
+========================================
+
+Open the Terminal (Mac) or PowerShell (Windows) and paste the command below.
+
+
+Mac
+---
+curl -sL https://raw.githubusercontent.com/williangviana/root-measure/master/install.sh | bash
+
+
+Windows
+-------
+powershell -ExecutionPolicy Bypass -c "irm https://raw.githubusercontent.com/williangviana/root-measure/master/install.ps1 | iex"
+
+
+After installation:
+  Mac     - Open "Root Measure" from Applications or Launchpad.
+  Windows - Use the "Root Measure" shortcut on your Desktop.

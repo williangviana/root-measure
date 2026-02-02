@@ -23,24 +23,27 @@ def _sanitize_name(name):
 
 
 def data_dir(folder, experiment=''):
-    """Return path to root_measure/data/[experiment]/ inside the scan folder."""
-    base = folder / _ROOT / 'data'
+    """Return path to root_measure/[experiment]/data/ inside the scan folder."""
     safe = _sanitize_name(experiment)
-    return base / safe if safe else base
+    if safe:
+        return folder / _ROOT / safe / 'data'
+    return folder / _ROOT / 'data'
 
 
 def traces_dir(folder, experiment=''):
-    """Return path to root_measure/traces/[experiment]/ inside the scan folder."""
-    base = folder / _ROOT / 'traces'
+    """Return path to root_measure/[experiment]/traces/ inside the scan folder."""
     safe = _sanitize_name(experiment)
-    return base / safe if safe else base
+    if safe:
+        return folder / _ROOT / safe / 'traces'
+    return folder / _ROOT / 'traces'
 
 
 def session_dir(folder, experiment=''):
-    """Return path to root_measure/.session/[experiment]/ inside the scan folder."""
-    base = folder / _ROOT / '.session'
+    """Return path to root_measure/[experiment]/.session/ inside the scan folder."""
     safe = _sanitize_name(experiment)
-    return base / safe if safe else base
+    if safe:
+        return folder / _ROOT / safe / '.session'
+    return folder / _ROOT / '.session'
 
 
 def save_last_folder(folder):
@@ -92,18 +95,19 @@ def get_session_summaries(folder):
     current_image.
     """
     results = []
-    base = folder / _ROOT / '.session'
+    base = folder / _ROOT
     if not base.is_dir():
         return results
-    # scan experiment subfolders
+    # scan experiment subfolders: root_measure/<experiment>/.session/session.json
     for sub in sorted(base.iterdir()):
         if not sub.is_dir():
             continue
-        s = _load_session_summary(folder, sub / 'session.json')
+        session_file = sub / '.session' / 'session.json'
+        s = _load_session_summary(folder, session_file)
         if s:
             results.append(s)
-    # also check for legacy session.json at base level (no experiment subfolder)
-    legacy = base / 'session.json'
+    # also check for legacy session.json (no experiment subfolder)
+    legacy = base / '.session' / 'session.json'
     if legacy.exists():
         s = _load_session_summary(folder, legacy)
         if s:

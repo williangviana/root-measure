@@ -150,15 +150,20 @@ def find_root_tip(binary_image, top_point, scale=SCALE_PX_PER_CM,
                   plate_bounds=None, plate_graph=None):
     """Find the root tip (bottom endpoint) starting from a top click.
 
+    Always uses a local ROI for tip detection to isolate each root
+    from neighbours.  The plate_graph is only used for tracing.
+
     Returns (tip_row, tip_col) in full image coordinates, or None.
     """
-    if plate_graph is not None:
-        return _find_root_tip_fast(top_point, plate_graph, scale)
     return _find_root_tip_local(binary_image, top_point, scale, plate_bounds)
 
 
 def _find_root_tip_fast(top_point, pg, scale):
-    """Tip finding using a prebuilt plate graph."""
+    """Tip finding using a prebuilt plate graph.
+
+    Uses graph distance to stay on the same root rather than jumping
+    to a neighbouring root's endpoint that happens to be further down.
+    """
     sp = pg['skel_points']
     if len(sp) == 0:
         return None
@@ -176,31 +181,43 @@ def _find_root_tip_fast(top_point, pg, scale):
     endpoints = np.where(comp_mask & (pg['degrees'] == 1))[0]
     start_row = sp[start_idx][0]
 
+    # always compute graph distances — needed for scoring
+    graph_dists = dijkstra(pg['graph'], indices=start_idx)
+
     if len(endpoints) == 0:
-        dists = dijkstra(pg['graph'], indices=start_idx)
-        dists[~comp_mask] = -1
-        # only consider points at or below click row
+        graph_dists[~comp_mask] = -1
         above = sp[:, 0] < start_row
-        dists[above] = -1
-        furthest = int(np.argmax(dists))
+        graph_dists[above] = -1
+        furthest = int(np.argmax(graph_dists))
         tip_local = sp[furthest]
     else:
         below = endpoints[sp[endpoints, 0] >= start_row]
 
         if len(below) > 0:
+            # Prefer endpoints whose graph distance is close to their
+            # Euclidean distance from the start — i.e. a direct path,
+            # not one that detours through neighbouring roots.
             start_col = sp[start_idx][1]
-            scores = sp[below, 0] - 2.0 * np.abs(sp[below, 1] - start_col)
+            drop = (sp[below, 0] - start_row).astype(float)
+            lateral = np.abs(sp[below, 1] - start_col).astype(float)
+            eucl = np.sqrt(drop ** 2 + lateral ** 2)
+            eucl = np.where(eucl < 1.0, 1.0, eucl)
+            gdist = graph_dists[below]
+            gdist = np.where(gdist <= 0, 1.0, gdist)
+            # directness: 1.0 = path follows skeleton tightly, <1 = detour
+            directness = eucl / gdist
+            # score: vertical drop weighted by how direct the path is
+            scores = drop * directness
             tip_idx = below[np.argmax(scores)]
         else:
-            # all endpoints above click — pick closest below-ish by graph dist
-            dists = dijkstra(pg['graph'], indices=start_idx)
-            dists[sp[:, 0] < start_row] = np.inf
-            valid = dists[endpoints]
+            graph_dists[sp[:, 0] < start_row] = np.inf
+            valid = graph_dists[endpoints]
             if np.all(np.isinf(valid)):
-                tip_idx = endpoints[np.argmax(
-                    dijkstra(pg['graph'], indices=start_idx)[endpoints])]
+                # truly unreachable — pick furthest by graph distance
+                all_dists = dijkstra(pg['graph'], indices=start_idx)
+                tip_idx = endpoints[np.argmax(all_dists[endpoints])]
             else:
-                tip_idx = endpoints[np.argmax(valid)]
+                tip_idx = endpoints[np.argmin(valid)]
         tip_local = sp[tip_idx]
 
     return (int(tip_local[0] + off_r), int(tip_local[1] + off_c))

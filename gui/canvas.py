@@ -46,6 +46,7 @@ class ImageCanvas(ctk.CTkFrame):
         self._offset_y = 0
         self._drag_start = None
         self._zoom_settle_id = None  # after() id for deferred hi-res redraw
+        self._user_zoomed = False    # True after user scrolls/zooms/pans
         self._space_held = False     # True while spacebar held (pan mode)
         self._pil_base = None        # cached PIL Image from numpy
         self._img_id = None          # canvas id of the main image item
@@ -239,6 +240,7 @@ class ImageCanvas(ctk.CTkFrame):
         self._scale = 1.0
         self._offset_x = 0
         self._offset_y = 0
+        self._user_zoomed = False
         # cache PIL base image (avoids repeated fromarray)
         if img_np is not None:
             if len(img_np.shape) == 2:
@@ -618,7 +620,8 @@ class ImageCanvas(ctk.CTkFrame):
 
     def _on_resize(self, event):
         if self._image_np is not None:
-            self._fit_image()
+            if not self._user_zoomed:
+                self._fit_image()
             self._redraw()
 
     def _on_scroll(self, event):
@@ -640,6 +643,7 @@ class ImageCanvas(ctk.CTkFrame):
         self._offset_x = mx - factor * (mx - self._offset_x)
         self._offset_y = my - factor * (my - self._offset_y)
         self._scale *= factor
+        self._user_zoomed = True
         self._fast_redraw()
 
     def _fast_redraw(self):

@@ -372,7 +372,7 @@ def plot_results(csv_path, value_col=None, ylabel=None, csv_format='R'):
                            zorder=3, edgecolors='none')
 
         ax.set_xticks(range(n_cond))
-        ax.set_xticklabels(conditions, rotation=45, ha='right', fontsize=12)
+        ax.set_xticklabels(conditions, fontsize=12)
         handles = [plt.Rectangle((0, 0), 1, 1, facecolor=COLORS[i % len(COLORS)],
                                  edgecolor='black') for i in range(n_geno)]
         ax.legend(handles, genotypes, loc='upper left', bbox_to_anchor=(1.02, 1),
@@ -398,7 +398,7 @@ def plot_results(csv_path, value_col=None, ylabel=None, csv_format='R'):
                        zorder=3, edgecolors='none')
 
         ax.set_xticks(range(len(genotypes)))
-        ax.set_xticklabels(genotypes, rotation=45, ha='right', fontsize=12)
+        ax.set_xticklabels(genotypes, fontsize=12)
 
     ax.set_ylabel(ylabel, fontsize=14)
     ax.set_ylim(bottom=0)

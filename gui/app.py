@@ -350,6 +350,15 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
             display = _to_uint8(img)
             self.canvas.set_image(display)
 
+            # Finished image — show completed view instead of settings
+            if path in self._processed_images:
+                self.canvas._measurement_done = True
+                self._restore_completed_view()
+                self.sidebar.set_status(
+                    f"Image already measured. "
+                    f"Use workflow buttons to review.")
+                return
+
             detected = _detect_dpi(path)
             dpi = detected or 1200
             self.sidebar.advance_to_settings(path.name, dpi)

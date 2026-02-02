@@ -577,22 +577,27 @@ class MeasurementMixin:
         conditions = [c.strip() for c in cond_text.split(",")
                       if c.strip()] if cond_text else []
 
+        # Build plate_labels as a dict keyed by registry color index so
+        # _build_rows can look up plate_labels[group_idx] regardless of the
+        # absolute color index assigned by the genotype registry.
+        plate_labels = {}
         if split:
             geno_a = genotypes[0]
             geno_b = genotypes[1] if len(genotypes) >= 2 else "genotype_B"
-            plate_labels = []
             for pi in range(len(plates)):
                 cond = conditions[pi] if pi < len(conditions) else (
                     conditions[0] if conditions else None)
-                plate_labels.append((geno_a, cond))
-                plate_labels.append((geno_b, cond))
+                idx_a = self._genotype_colors.get(geno_a, pi * 2)
+                idx_b = self._genotype_colors.get(geno_b, pi * 2 + 1)
+                plate_labels[idx_a] = (geno_a, cond)
+                plate_labels[idx_b] = (geno_b, cond)
         else:
-            plate_labels = []
             for pi in range(len(plates)):
                 geno = genotypes[pi] if pi < len(genotypes) else genotypes[-1]
                 cond = conditions[pi] if pi < len(conditions) else (
                     conditions[0] if conditions else None)
-                plate_labels.append((geno, cond))
+                idx = self._genotype_colors.get(geno, pi)
+                plate_labels[idx] = (geno, cond)
 
         try:
             new_plate_offset, new_root_offset = append_results_to_csv(

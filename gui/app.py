@@ -634,6 +634,10 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
         r1, r2, c1, c2 = plates[pi]
         self.canvas._current_root_group = self._current_group
         self.canvas._current_plate_idx = self._current_plate_idx
+        print(f"[click_stage] plate_idx={pi}, group={self._current_group}, "
+              f"split_stage={self._split_stage}, "
+              f"root_groups={self.canvas._root_groups}, "
+              f"root_plates={self.canvas._root_plates}")
         self.canvas.set_mode(
             ImageCanvas.MODE_CLICK_ROOTS,
             on_done=self._plate_roots_done)

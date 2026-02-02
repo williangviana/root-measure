@@ -471,9 +471,16 @@ class MeasurementMixin:
                     length_px = float(np.sum(np.sqrt(
                         (diffs ** 2).sum(axis=1))))
                 length_cm = length_px / self._scale_val if self._scale_val else 0
+                # recompute segments from saved marks
+                mark_coords = self.canvas._all_marks.get(i, [])
+                segments = []
+                if mark_coords and len(path) >= 2:
+                    segments = _compute_segments(
+                        path, mark_coords, self._scale_val)
                 self._results.append(dict(
                     length_cm=length_cm, length_px=length_px,
-                    path=path, method='restored', warning=None, segments=[]))
+                    path=path, method='restored', warning=None,
+                    segments=segments, mark_coords=mark_coords))
                 self._trace_to_result.append(i)
                 trace_idx += 1
             else:

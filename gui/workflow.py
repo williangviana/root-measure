@@ -5,7 +5,7 @@ import numpy as np
 from datetime import datetime
 
 from image_processing import preprocess
-from root_tracing import find_root_tip, trace_root
+from root_tracing import find_root_tip, trace_root, build_plate_graph
 from utils import _compute_segments, _find_nearest_path_index
 from csv_output import append_results_to_csv, save_metadata
 from plotting import plot_results
@@ -112,6 +112,17 @@ class MeasurementMixin:
         # map trace index -> result index (skip flagged roots with no trace)
         self._trace_to_result = []
 
+        # pre-build skeleton + graph per plate (once each)
+        self._plate_graphs = {}
+        for pi, bounds in enumerate(plates):
+            self.sidebar.set_status(
+                f"Building skeleton for plate {pi + 1}/{len(plates)}...")
+            self.update()
+            self._plate_graphs[pi] = build_plate_graph(
+                self._binary, bounds, self._scale_val)
+
+        root_plates = self.canvas._root_plates
+
         num_marks = self._get_num_marks()
         if num_marks > 0:
             print(f"[marks] num_marks={num_marks}, "
@@ -134,7 +145,12 @@ class MeasurementMixin:
                 self._results.append(res)
                 continue
 
-            tip = find_root_tip(self._binary, top, scale=self._scale_val)
+            pi = root_plates[i] if i < len(root_plates) else 0
+            pb = plates[pi] if pi < len(plates) else None
+            pg = self._plate_graphs.get(pi)
+
+            tip = find_root_tip(self._binary, top, scale=self._scale_val,
+                                plate_bounds=pb, plate_graph=pg)
             if tip is None:
                 res = dict(length_cm=0, length_px=0,
                            path=np.empty((0, 2)),
@@ -143,7 +159,8 @@ class MeasurementMixin:
                 self._results.append(res)
                 continue
 
-            res = trace_root(self._binary, top, tip, self._scale_val)
+            res = trace_root(self._binary, top, tip, self._scale_val,
+                             plate_bounds=pb, plate_graph=pg)
             # compute segments if marks were collected for this root
             mark_coords = self.canvas._all_marks.get(i, [])
             if mark_coords and res['path'].size > 0:
@@ -323,6 +340,9 @@ class MeasurementMixin:
         self.sidebar.show_progress(total)
         self.update()
 
+        plates = self.canvas.get_plates()
+        plate_graphs = getattr(self, '_plate_graphs', {})
+
         for j, ri in enumerate(self._retry_result_indices):
             if j >= len(groups):
                 break
@@ -332,7 +352,16 @@ class MeasurementMixin:
             self.sidebar.set_status(f"Re-tracing root {j + 1}/{total}...")
             self.sidebar.update_progress(j + 1)
             self.update()
-            res = trace_root(self._binary, top_manual, bot_manual, self._scale_val)
+            # determine plate from click position
+            pi = None
+            for pidx, (r1, r2, c1, c2) in enumerate(plates):
+                if r1 <= top_manual[0] <= r2 and c1 <= top_manual[1] <= c2:
+                    pi = pidx
+                    break
+            pb = plates[pi] if pi is not None else None
+            pg = plate_graphs.get(pi) if pi is not None else None
+            res = trace_root(self._binary, top_manual, bot_manual,
+                             self._scale_val, plate_bounds=pb, plate_graph=pg)
             # use reclick marks if provided (clicks between top and bottom)
             if cpr > 2:
                 mark_coords = list(clicks[1:-1])

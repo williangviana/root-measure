@@ -10,7 +10,6 @@ build_options = {
         "numpy",
         "scipy",
         "skimage",
-        "networkx",
         "pandas",
         "tifffile",
         "matplotlib",

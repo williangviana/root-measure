@@ -612,7 +612,6 @@ class MeasurementMixin:
 
         # use stored group indices for each root
         split = self.sidebar.var_split.get()
-        point_plates = self.canvas.get_root_groups()
 
         # build plate_labels from sidebar genotype + condition entries
         geno_text = self.sidebar.entry_genotypes.get().strip()
@@ -622,12 +621,14 @@ class MeasurementMixin:
         conditions = [c.strip() for c in cond_text.split(",")
                       if c.strip()] if cond_text else []
 
-        # Build plate_labels and group_to_plate as dicts keyed by registry
-        # color index.  plate_labels maps group → (genotype, condition).
-        # group_to_plate maps group → local physical plate number (0, 1, …).
+        # Build plate_labels and group_to_plate.
+        # Split mode: keyed by genotype color index (groups differ per half).
+        # Non-split: keyed by plate index (avoids collision when same genotype
+        #            spans multiple plates with different conditions).
         plate_labels = {}
         group_to_plate = {}
         if split:
+            point_plates = self.canvas.get_root_groups()
             geno_a = genotypes[0]
             geno_b = genotypes[1] if len(genotypes) >= 2 else "genotype_B"
             for pi in range(len(plates)):
@@ -640,13 +641,13 @@ class MeasurementMixin:
                 group_to_plate[idx_a] = pi
                 group_to_plate[idx_b] = pi
         else:
+            point_plates = list(self.canvas._root_plates)
             for pi in range(len(plates)):
                 geno = genotypes[pi] if pi < len(genotypes) else genotypes[-1]
                 cond = conditions[pi] if pi < len(conditions) else (
                     conditions[-1] if conditions else None)
-                idx = self._genotype_colors.get(geno, pi)
-                plate_labels[idx] = (geno, cond)
-                group_to_plate[idx] = pi
+                plate_labels[pi] = (geno, cond)
+                group_to_plate[pi] = pi
 
         try:
             new_plate_offset, new_root_offset = append_results_to_csv(

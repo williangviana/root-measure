@@ -223,6 +223,27 @@ def _read_prism_factorial(csv_path, known_genotypes):
         return None
 
 
+def get_offsets_from_csv(csv_path):
+    """Read existing CSV and return (plate_offset, root_offset).
+
+    plate_offset = max Plate value found (0 if no file).
+    root_offset  = number of rows (roots) already in the file.
+    """
+    try:
+        if not csv_path.exists():
+            return 0, 0
+        df = pd.read_csv(csv_path)
+        if df.empty:
+            return 0, 0
+        plate_off = 0
+        if 'Plate' in df.columns:
+            plate_off = int(df['Plate'].max())
+        root_off = len(df)
+        return plate_off, root_off
+    except Exception:
+        return 0, 0
+
+
 def append_results_to_csv(results, csv_path, plates, plate_labels, plate_offset,
                           root_offset, point_plates, num_marks=0,
                           split_plate=False, csv_format='R'):

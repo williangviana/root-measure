@@ -482,11 +482,18 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
 
     def _on_start_workflow(self):
         """Called when user clicks Start Workflow."""
+        from csv_output import get_offsets_from_csv
         self._experiment_name = self.sidebar.entry_experiment.get().strip()
         exp = self._experiment_name
         if self.folder:
+            csv_path = data_dir(self.folder, exp) / 'data.csv'
+            # seed offsets from existing CSV so new data continues correctly
+            if csv_path.exists():
+                csv_plate_off, csv_root_off = get_offsets_from_csv(csv_path)
+                self._plate_offset = max(self._plate_offset, csv_plate_off)
+                self._root_offset = max(self._root_offset, csv_root_off)
             # check if this experiment already has data — lock CSV format
-            if (data_dir(self.folder, exp) / 'data.csv').exists():
+            if csv_path.exists():
                 saved_fmt = get_csv_format(self.folder, exp)
                 if saved_fmt:
                     self.sidebar.var_csv_format.set(saved_fmt)

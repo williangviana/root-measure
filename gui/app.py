@@ -773,16 +773,21 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
         groups = self.canvas.get_root_groups()
         current_group = self._current_group
         self._marks_plate_roots = []
+        display_numbers = []
+        position = 0
         for i, ((row, col), flag) in enumerate(zip(points, flags)):
-            if flag is not None:
-                continue
             if not (r1 <= row <= r2 and c1 <= col <= c2):
                 continue
             if self._split and i < len(groups) and groups[i] != current_group:
                 continue
+            position += 1
+            if flag is not None:
+                continue
             self._marks_plate_roots.append(i)
+            display_numbers.append(position)
         num_marks = self._get_num_marks()
         self.canvas._marks_expected = len(self._marks_plate_roots) * num_marks
+        self.canvas._marks_display_numbers = display_numbers
         self.canvas._on_click_callback = self._update_marks_status
         self._set_plate_info(pi)
         self.canvas.set_mode(
@@ -805,21 +810,29 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
         groups = self.canvas.get_root_groups()
         current_group = self._current_group
         self._marks_plate_roots = []
+        display_numbers = []
+        position = 0
         for i, ((row, col), flag) in enumerate(zip(points, flags)):
-            if flag is not None:
-                continue
             if not (r1 <= row <= r2 and c1 <= col <= c2):
                 continue
-            # in split mode, only include roots from current group
             if self._split and i < len(groups) and groups[i] != current_group:
                 continue
+            position += 1
+            if flag is not None:
+                continue
             self._marks_plate_roots.append(i)
+            display_numbers.append(position)
         if not self._marks_plate_roots:
             self._advance_to_next_stage()
             return
         num_marks = self._get_num_marks()
         self.canvas._marks_expected = len(self._marks_plate_roots) * num_marks
-        self.canvas.clear_marks()
+        self.canvas._marks_display_numbers = display_numbers
+        # Only clear temporary mark points, not _all_marks (preserves other plates)
+        for rid in self.canvas._mark_marker_ids:
+            self.canvas.canvas.delete(rid)
+        self.canvas._mark_points.clear()
+        self.canvas._mark_marker_ids.clear()
         self.canvas._on_click_callback = self._update_marks_status
         self._set_plate_info(pi)
         self.canvas.set_mode(
@@ -842,11 +855,16 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
                 f"Plate {pi + 1} — All {expected} mark(s) placed.\n"
                 "Press Enter to continue.")
         else:
-            current_root_idx = placed // num_marks + 1
+            current_root_seq = placed // num_marks
             current_mark_in_root = placed % num_marks + 1
+            display_nums = self.canvas._marks_display_numbers
+            if current_root_seq < len(display_nums):
+                root_label = str(display_nums[current_root_seq])
+            else:
+                root_label = str(current_root_seq + 1)
             self.sidebar.set_status(
                 f"Plate {pi + 1} — Marks: {placed}/{expected}.\n"
-                f"Root {current_root_idx}/{n_roots}, "
+                f"Root {root_label}/{n_roots}, "
                 f"mark {current_mark_in_root}/{num_marks}.\n"
                 "Right-click=undo. Enter when all placed.")
 

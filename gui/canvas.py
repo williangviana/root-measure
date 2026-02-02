@@ -80,6 +80,7 @@ class ImageCanvas(ctk.CTkFrame):
         self._mark_marker_ids = [] # canvas ids of mark markers
         self._marks_expected = 0   # how many marks expected (stops clicks beyond this)
         self._all_marks = {}       # {root_index: [(row,col), ...]} all collected marks
+        self._marks_display_numbers = []  # display number per mark-group (root position)
 
         # trace overlay state
         self._traces = []          # list of (path_array, color_str)
@@ -412,14 +413,21 @@ class ImageCanvas(ctk.CTkFrame):
             if self._mode == self.MODE_CLICK_MARKS:
                 current_group = getattr(self, '_current_root_group', 0)
                 color = GROUP_MARK_COLORS[current_group % len(GROUP_MARK_COLORS)]
+                num_marks = max(1, self._marks_expected // max(1, len(self._marks_display_numbers))) if self._marks_display_numbers else 1
                 for i, (row, col) in enumerate(self._mark_points):
                     cx, cy = self.image_to_canvas(col, row)
                     r = 5
                     rid = self.canvas.create_oval(
                         cx - r, cy - r, cx + r, cy + r,
                         outline="white", fill=color, width=1)
+                    # show root display number instead of sequential index
+                    group_idx = i // num_marks if num_marks > 0 else i
+                    if group_idx < len(self._marks_display_numbers):
+                        label = str(self._marks_display_numbers[group_idx])
+                    else:
+                        label = str(i + 1)
                     tid = self.canvas.create_text(
-                        cx + 10, cy - 8, text=str(i + 1),
+                        cx + 10, cy - 8, text=label,
                         fill=color, anchor="w",
                         font=("Helvetica", 8, "bold"))
                     self._mark_marker_ids.extend([rid, tid])

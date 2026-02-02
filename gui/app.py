@@ -202,96 +202,107 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
         current = data.get('current_image')
         canvas_data = data.get('canvas', {})
         if current and current in name_to_path:
-            # load the image (this triggers advance_to_settings internally)
-            self.load_image(name_to_path[current])
-            # override DPI that load_image set
-            self.sidebar.entry_dpi.delete(0, 'end')
-            self.sidebar.entry_dpi.insert(0, settings.get('dpi', ''))
-            # seed persistent settings from session if not yet saved
-            if not get_persistent_settings(self.folder, exp):
-                save_persistent_settings(self.folder, {
-                    'multi_measurement': settings.get('multi_measurement', False),
-                    'segments': settings.get('segments', ''),
-                    'split_plate': settings.get('split_plate', False),
-                }, exp)
-            # advance sidebar to workflow
-            self.sidebar.advance_to_experiment()
-            # lock CSV format if data already written
-            if (data_dir(self.folder, exp) / 'data.csv').exists():
-                self.sidebar.menu_csv_format.configure(state="disabled")
-                self.sidebar.lbl_csv_locked.pack(pady=(0, 8), padx=15, anchor="w")
-            self.sidebar.advance_to_workflow()
-            # restore canvas state (set_image cleared plates/roots, re-add)
-            if canvas_data.get('plates'):
-                self.canvas.set_plates(canvas_data['plates'])
-            if canvas_data.get('root_points'):
-                self.canvas.set_roots(
-                    canvas_data['root_points'],
-                    canvas_data.get('root_flags', []),
-                    canvas_data.get('root_groups', []),
-                    canvas_data.get('root_plates', []))
-            if canvas_data.get('all_marks'):
-                self.canvas.set_marks(canvas_data['all_marks'])
-            if canvas_data.get('traces'):
-                self.canvas.set_traces(canvas_data['traces'])
-            step = data.get('workflow_step', 1)
-            self.canvas.set_mode(ImageCanvas.MODE_VIEW)
-            self.canvas._redraw()
-            self.sidebar.set_step(step)
-            # populate image list in folder body and collapse
+            current_path = name_to_path[current]
+            # populate image list first (used in all branches)
             self.sidebar.btn_load_folder.pack_forget()
             self.sidebar._populate_image_list(
                 self.images, self._processed_images)
             self.sidebar.btn_finish_plot.pack_forget()
-            self.sidebar.sec_folder.collapse(summary=self.folder.name)
-            plates = self.canvas.get_plates()
-            points = self.canvas.get_root_points()
-            # resume into root/marks clicking if saved mid-click
-            if step == 2 and plates and points:
-                cs = data.get('click_state', {})
-                self._current_plate_idx = cs.get('plate_idx', 0)
-                self._split = cs.get('split', False)
-                self._current_group = cs.get('current_group', 0)
-                self._split_stage = cs.get('split_stage', 0)
-                self.canvas._current_root_group = self._current_group
-                # restore in-progress mark points
-                mark_pts = canvas_data.get('mark_points', [])
-                if mark_pts:
-                    self.canvas._mark_points = [tuple(p) for p in mark_pts]
-                    self._resume_marks_phase()
-                else:
-                    self.click_roots(resume=True)
+
+            # if current image is already done, go to image selection
+            if current_path in self._processed_images:
+                self.sidebar.sec_folder.collapse(summary=self.folder.name)
+                self.sidebar.advance_to_images(
+                    self.folder.name, self.images, self._processed_images)
                 self.sidebar.set_status(
-                    f"Session restored: {len(points)} root(s) on "
-                    f"{len(plates)} plate(s).\n"
-                    f"Continue where you left off.")
-            elif step >= 4 and self.canvas._traces:
-                # measurement done or in review — show action buttons
-                self.sidebar.set_step(5)
-                self.canvas._measurement_done = True
-                self.sidebar.btn_select_plates.configure(state="normal")
-                self.sidebar.btn_click_roots.configure(state="normal")
-                self.sidebar.btn_measure.configure(state="normal")
-                self.sidebar.btn_review.configure(state="normal")
-                self.sidebar.hide_action_buttons()
-                self.sidebar.btn_next_image.pack(
-                    pady=(10, 3), padx=15, fill="x")
-                self.sidebar.btn_continue_later.pack(
-                    pady=3, padx=15, fill="x")
-                self.sidebar.btn_stop.pack(pady=3, padx=15, fill="x")
-                self.sidebar.set_status(
-                    f"Session restored: {len(plates)} plate(s), "
-                    f"{len(points)} root(s).\n"
-                    f"Click Review & Save to review traces.")
+                    f"{len(self._processed_images)}/{len(self.images)} "
+                    f"scan(s) done. Select next image.")
             else:
-                self.sidebar.set_status(
-                    f"Session restored: {len(plates)} plate(s), "
-                    f"{len(points)} root(s).\n"
-                    f"Continue from where you left off.")
-                if plates:
+                # load the image (triggers advance_to_settings internally)
+                self.load_image(current_path)
+                # override DPI that load_image set
+                self.sidebar.entry_dpi.delete(0, 'end')
+                self.sidebar.entry_dpi.insert(0, settings.get('dpi', ''))
+                # seed persistent settings from session if not yet saved
+                if not get_persistent_settings(self.folder, exp):
+                    save_persistent_settings(self.folder, {
+                        'multi_measurement': settings.get('multi_measurement', False),
+                        'segments': settings.get('segments', ''),
+                        'split_plate': settings.get('split_plate', False),
+                    }, exp)
+                # advance sidebar to workflow
+                self.sidebar.advance_to_experiment()
+                # lock CSV format if data already written
+                if (data_dir(self.folder, exp) / 'data.csv').exists():
+                    self.sidebar.menu_csv_format.configure(state="disabled")
+                    self.sidebar.lbl_csv_locked.pack(pady=(0, 8), padx=15, anchor="w")
+                self.sidebar.advance_to_workflow()
+                # restore canvas state (set_image cleared plates/roots, re-add)
+                if canvas_data.get('plates'):
+                    self.canvas.set_plates(canvas_data['plates'])
+                if canvas_data.get('root_points'):
+                    self.canvas.set_roots(
+                        canvas_data['root_points'],
+                        canvas_data.get('root_flags', []),
+                        canvas_data.get('root_groups', []),
+                        canvas_data.get('root_plates', []))
+                if canvas_data.get('all_marks'):
+                    self.canvas.set_marks(canvas_data['all_marks'])
+                if canvas_data.get('traces'):
+                    self.canvas.set_traces(canvas_data['traces'])
+                step = data.get('workflow_step', 1)
+                self.canvas.set_mode(ImageCanvas.MODE_VIEW)
+                self.canvas._redraw()
+                self.sidebar.set_step(step)
+                self.sidebar.sec_folder.collapse(summary=self.folder.name)
+                plates = self.canvas.get_plates()
+                points = self.canvas.get_root_points()
+                # resume into root/marks clicking if saved mid-click
+                if step == 2 and plates and points:
+                    cs = data.get('click_state', {})
+                    self._current_plate_idx = cs.get('plate_idx', 0)
+                    self._split = cs.get('split', False)
+                    self._current_group = cs.get('current_group', 0)
+                    self._split_stage = cs.get('split_stage', 0)
+                    self.canvas._current_root_group = self._current_group
+                    # restore in-progress mark points
+                    mark_pts = canvas_data.get('mark_points', [])
+                    if mark_pts:
+                        self.canvas._mark_points = [tuple(p) for p in mark_pts]
+                        self._resume_marks_phase()
+                    else:
+                        self.click_roots(resume=True)
+                    self.sidebar.set_status(
+                        f"Session restored: {len(points)} root(s) on "
+                        f"{len(plates)} plate(s).\n"
+                        f"Continue where you left off.")
+                elif step >= 4 and self.canvas._traces:
+                    # measurement done or in review — show action buttons
+                    self.sidebar.set_step(5)
+                    self.canvas._measurement_done = True
+                    self.sidebar.btn_select_plates.configure(state="normal")
                     self.sidebar.btn_click_roots.configure(state="normal")
-                if points:
                     self.sidebar.btn_measure.configure(state="normal")
+                    self.sidebar.btn_review.configure(state="normal")
+                    self.sidebar.hide_action_buttons()
+                    self.sidebar.btn_next_image.pack(
+                        pady=(10, 3), padx=15, fill="x")
+                    self.sidebar.btn_continue_later.pack(
+                        pady=3, padx=15, fill="x")
+                    self.sidebar.btn_stop.pack(pady=3, padx=15, fill="x")
+                    self.sidebar.set_status(
+                        f"Session restored: {len(plates)} plate(s), "
+                        f"{len(points)} root(s).\n"
+                        f"Click Review & Save to review traces.")
+                else:
+                    self.sidebar.set_status(
+                        f"Session restored: {len(plates)} plate(s), "
+                        f"{len(points)} root(s).\n"
+                        f"Continue from where you left off.")
+                    if plates:
+                        self.sidebar.btn_click_roots.configure(state="normal")
+                    if points:
+                        self.sidebar.btn_measure.configure(state="normal")
         else:
             self.sidebar.advance_to_images(
                 self.folder.name, self.images, self._processed_images)
@@ -346,14 +357,9 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
                 img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
 
             self.image = img
-            # Clear overlays from previous image
             self.canvas._measurement_done = False
-            self.canvas.clear_plates()
-            self.canvas.clear_roots()
-            self.canvas.clear_marks()
-            self.canvas.clear_traces()
             display = _to_uint8(img)
-            self.canvas.set_image(display)
+            self.canvas.set_image(display)  # clears plates/roots/marks/traces
 
             # Finished image — restore its saved canvas data
             if path in self._processed_images:
@@ -494,11 +500,21 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
         """Snapshot current canvas state into per-image dict."""
         if self.image_path:
             from session import _collect_canvas
-            self._image_canvas_data[self.image_path.name] = _collect_canvas(self.canvas)
+            cd = _collect_canvas(self.canvas)
+            print(f"[stash] {self.image_path.name}: "
+                  f"{len(cd['plates'])} plates, "
+                  f"{len(cd['root_points'])} roots, "
+                  f"{len(cd['traces'])} traces")
+            self._image_canvas_data[self.image_path.name] = cd
 
     def _restore_image_canvas(self, image_name):
         """Restore canvas state from per-image dict."""
         cd = self._image_canvas_data.get(image_name, {})
+        print(f"[restore] {image_name}: "
+              f"{len(cd.get('plates', []))} plates, "
+              f"{len(cd.get('root_points', []))} roots, "
+              f"{len(cd.get('traces', []))} traces, "
+              f"keys in dict: {list(self._image_canvas_data.keys())}")
         if cd.get('plates'):
             self.canvas.set_plates(cd['plates'])
         if cd.get('root_points'):

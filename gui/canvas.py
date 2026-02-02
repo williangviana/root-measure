@@ -490,31 +490,42 @@ class ImageCanvas(ctk.CTkFrame):
             ch = self.canvas.winfo_height()
             y = ch - 6
             _fnt = ("Helvetica", 16, "bold")
-            _tag = "_plate_info_txt"
+            _bg = "#d8d8d8"
+            _pad = 3
             # center: "Plate N"
-            self.canvas.create_text(
+            tid = self.canvas.create_text(
                 cw / 2, y, text=info.get('center', ''),
-                fill="black", anchor="s", font=_fnt, tags=(_tag,))
+                fill="black", anchor="s", font=_fnt)
+            bb = self.canvas.bbox(tid)
+            if bb:
+                bg = self.canvas.create_rectangle(
+                    bb[0] - _pad, bb[1] - _pad, bb[2] + _pad, bb[3] + _pad,
+                    fill=_bg, outline=_bg)
+                self.canvas.tag_lower(bg, tid)
             # left: genotype A + condition
             if info.get('left'):
-                self.canvas.create_text(
+                tid = self.canvas.create_text(
                     15, y, text=info['left'],
                     fill=info.get('left_color', '#cccccc'), anchor="sw",
-                    font=_fnt, tags=(_tag,))
+                    font=_fnt)
+                bb = self.canvas.bbox(tid)
+                if bb:
+                    bg = self.canvas.create_rectangle(
+                        bb[0] - _pad, bb[1] - _pad, bb[2] + _pad, bb[3] + _pad,
+                        fill=_bg, outline=_bg)
+                    self.canvas.tag_lower(bg, tid)
             # right: genotype B + condition (split plates only)
             if info.get('right'):
-                self.canvas.create_text(
+                tid = self.canvas.create_text(
                     cw - 15, y, text=info['right'],
                     fill=info.get('right_color', '#cccccc'), anchor="se",
-                    font=_fnt, tags=(_tag,))
-            # draw white background sized to text
-            bb = self.canvas.bbox(_tag)
-            if bb:
-                pad = 4
-                bg = self.canvas.create_rectangle(
-                    0, bb[1] - pad, cw, ch,
-                    fill="white", outline="white")
-                self.canvas.tag_lower(bg, _tag)
+                    font=_fnt)
+                bb = self.canvas.bbox(tid)
+                if bb:
+                    bg = self.canvas.create_rectangle(
+                        bb[0] - _pad, bb[1] - _pad, bb[2] + _pad, bb[3] + _pad,
+                        fill=_bg, outline=_bg)
+                    self.canvas.tag_lower(bg, tid)
 
         # help overlay
         if self._help_visible:

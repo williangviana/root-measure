@@ -5,23 +5,24 @@ import customtkinter as ctk
 from PIL import Image, ImageTk
 
 # 30-color palettes (module-level so they're shared everywhere)
+# First 8 are Okabe-Ito (colorblind-friendly), then extended hues
 # Bright, saturated colors for root markers/traces
 GROUP_MARKER_COLORS = [
-    "#FF2020", "#2060FF", "#00CC44", "#FF9900", "#CC33CC",
-    "#00CCCC", "#FF5500", "#8833FF", "#CCAA00", "#00DD77",
-    "#FF2080", "#3399FF", "#88DD00", "#FFBB00", "#6622FF",
-    "#00DDAA", "#FF3366", "#3366FF", "#66DD00", "#FF7700",
-    "#BB22FF", "#00DD55", "#FF2299", "#2299FF", "#AADD00",
-    "#FF8800", "#9922FF", "#00DD88", "#DD2222", "#2222DD",
+    "#0072B2", "#E69F00", "#D55E00", "#56B4E9", "#009E73",  # OI 1-5
+    "#F0E442", "#CC79A7", "#555555", "#882255", "#44AA99",  # OI 6-8 + ext
+    "#AA4499", "#999933", "#6699CC", "#DD7788", "#117733",
+    "#88CCEE", "#CC6677", "#DDCC77", "#332288", "#44BB99",
+    "#EE8866", "#BBCC33", "#EEDD88", "#77AADD", "#EE6677",
+    "#66CCEE", "#AA3377", "#BBBB33", "#4477AA", "#228833",
 ]
 # Pastel versions of the same hues for segment marks
 GROUP_MARK_COLORS = [
-    "#FFB0B0", "#B0C8FF", "#B0F0C4", "#FFD9A0", "#E8B0E8",
-    "#A0E8E8", "#FFBFA0", "#C8B0FF", "#E8DCA0", "#A0F0C8",
-    "#FFB0CC", "#A0C8FF", "#CCF0A0", "#FFE0A0", "#BAA0FF",
-    "#A0F0DA", "#FFB0BB", "#A0BBFF", "#BBF0A0", "#FFC8A0",
-    "#DCA0FF", "#A0F0B0", "#FFB0DD", "#A0DDFF", "#DAF0A0",
-    "#FFD0A0", "#CCA0FF", "#A0F0CC", "#F0B0B0", "#B0B0F0",
+    "#A0D4F0", "#F5D89A", "#F0BFA0", "#B8DDF5", "#A0E8D0",  # OI 1-5
+    "#F8F2B0", "#E8C4DA", "#C0C0C0", "#D4A0C0", "#B0DDD4",  # OI 6-8 + ext
+    "#D8B0D8", "#D4D4A0", "#B8CCE0", "#F0C0CC", "#A0D4A0",
+    "#C4E8F0", "#E0B8C4", "#F0E8B8", "#B0A8D8", "#B0DDD4",
+    "#F5C8B0", "#D8E0A0", "#F5F0C0", "#C0D4F0", "#F0B8C4",
+    "#B8E8F5", "#D8A0C4", "#D8D8A0", "#B0C4E0", "#A8D8A8",
 ]
 
 

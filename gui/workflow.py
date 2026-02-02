@@ -14,37 +14,38 @@ from canvas import ImageCanvas
 from session import data_dir, traces_dir
 
 # genotype color shades: [bright, pastel] for trace segments (30 entries)
+# First 8 are Okabe-Ito (colorblind-friendly), then extended hues
 GROUP_COLORS = [
-    ["#FF2020", "#FFB0B0"],  # 0: red
-    ["#2060FF", "#B0C8FF"],  # 1: blue
-    ["#00CC44", "#B0F0C4"],  # 2: green
-    ["#FF9900", "#FFD9A0"],  # 3: orange
-    ["#CC33CC", "#E8B0E8"],  # 4: purple
-    ["#00CCCC", "#A0E8E8"],  # 5: teal
-    ["#FF5500", "#FFBFA0"],  # 6: burnt orange
-    ["#8833FF", "#C8B0FF"],  # 7: violet
-    ["#CCAA00", "#E8DCA0"],  # 8: gold-olive
-    ["#00DD77", "#A0F0C8"],  # 9: mint
-    ["#FF2080", "#FFB0CC"],  # 10: pink
-    ["#3399FF", "#A0C8FF"],  # 11: sky blue
-    ["#88DD00", "#CCF0A0"],  # 12: lime
-    ["#FFBB00", "#FFE0A0"],  # 13: gold
-    ["#6622FF", "#BAA0FF"],  # 14: indigo
-    ["#00DDAA", "#A0F0DA"],  # 15: aqua
-    ["#FF3366", "#FFB0BB"],  # 16: rose
-    ["#3366FF", "#A0BBFF"],  # 17: cornflower
-    ["#66DD00", "#BBF0A0"],  # 18: chartreuse
-    ["#FF7700", "#FFC8A0"],  # 19: tangerine
-    ["#BB22FF", "#DCA0FF"],  # 20: magenta
-    ["#00DD55", "#A0F0B0"],  # 21: spring
-    ["#FF2299", "#FFB0DD"],  # 22: hot pink
-    ["#2299FF", "#A0DDFF"],  # 23: cerulean
-    ["#AADD00", "#DAF0A0"],  # 24: yellow-green
-    ["#FF8800", "#FFD0A0"],  # 25: amber
-    ["#9922FF", "#CCA0FF"],  # 26: grape
-    ["#00DD88", "#A0F0CC"],  # 27: seafoam
-    ["#DD2222", "#F0B0B0"],  # 28: dark red
-    ["#2222DD", "#B0B0F0"],  # 29: dark blue
+    ["#0072B2", "#A0D4F0"],  # 0: blue (OI)
+    ["#E69F00", "#F5D89A"],  # 1: orange (OI)
+    ["#D55E00", "#F0BFA0"],  # 2: vermilion (OI)
+    ["#56B4E9", "#B8DDF5"],  # 3: sky blue (OI)
+    ["#009E73", "#A0E8D0"],  # 4: green (OI)
+    ["#F0E442", "#F8F2B0"],  # 5: yellow (OI)
+    ["#CC79A7", "#E8C4DA"],  # 6: pink (OI)
+    ["#555555", "#C0C0C0"],  # 7: grey (OI)
+    ["#882255", "#D4A0C0"],  # 8: wine
+    ["#44AA99", "#B0DDD4"],  # 9: teal
+    ["#AA4499", "#D8B0D8"],  # 10: magenta
+    ["#999933", "#D4D4A0"],  # 11: olive
+    ["#6699CC", "#B8CCE0"],  # 12: steel blue
+    ["#DD7788", "#F0C0CC"],  # 13: rose
+    ["#117733", "#A0D4A0"],  # 14: forest
+    ["#88CCEE", "#C4E8F0"],  # 15: light blue
+    ["#CC6677", "#E0B8C4"],  # 16: dusty rose
+    ["#DDCC77", "#F0E8B8"],  # 17: sand
+    ["#332288", "#B0A8D8"],  # 18: indigo
+    ["#44BB99", "#B0DDD4"],  # 19: mint
+    ["#EE8866", "#F5C8B0"],  # 20: salmon
+    ["#BBCC33", "#D8E0A0"],  # 21: lime
+    ["#EEDD88", "#F5F0C0"],  # 22: khaki
+    ["#77AADD", "#C0D4F0"],  # 23: periwinkle
+    ["#EE6677", "#F0B8C4"],  # 24: coral
+    ["#66CCEE", "#B8E8F5"],  # 25: cyan
+    ["#AA3377", "#D8A0C4"],  # 26: plum
+    ["#BBBB33", "#D8D8A0"],  # 27: chartreuse
+    ["#4477AA", "#B0C4E0"],  # 28: cobalt
+    ["#228833", "#A8D8A8"],  # 29: emerald
 ]
 
 

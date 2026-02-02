@@ -517,6 +517,7 @@ class MeasurementMixin:
 
     def _save_results(self, results, plates, scale):
         """Save measurement results to CSV."""
+        from csv_output import get_offsets_from_csv
         folder = self.folder
         if not folder and self.image_path:
             folder = self.image_path.parent
@@ -529,6 +530,13 @@ class MeasurementMixin:
         exp = getattr(self, '_experiment_name', '')
         csv_path = data_dir(folder, exp) / 'raw_data.csv'
         csv_path.parent.mkdir(parents=True, exist_ok=True)
+
+        # recalculate offsets excluding current image so re-saves are correct
+        img_name = self.image_path.name if self.image_path else ''
+        if csv_path.exists() and img_name:
+            plate_off, root_off = get_offsets_from_csv(csv_path, exclude_image=img_name)
+            self._plate_offset = plate_off
+            self._root_offset = root_off
 
         # use stored group indices for each root
         split = self.sidebar.var_split.get()
@@ -559,7 +567,6 @@ class MeasurementMixin:
                 plate_labels.append((genotypes[0], cond))
 
         try:
-            img_name = self.image_path.name if self.image_path else ''
             new_plate_offset, new_root_offset = append_results_to_csv(
                 results, csv_path, plates, plate_labels,
                 plate_offset=self._plate_offset,

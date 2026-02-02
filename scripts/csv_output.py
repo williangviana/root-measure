@@ -221,12 +221,20 @@ def _write_tidy_prism_factorial(df, tidy_path):
 # Offset helpers
 # ---------------------------------------------------------------------------
 
-def get_offsets_from_csv(csv_path):
-    """Read existing raw CSV and return (plate_offset, root_offset)."""
+def get_offsets_from_csv(csv_path, exclude_image=''):
+    """Read existing raw CSV and return (plate_offset, root_offset).
+
+    If exclude_image is given, ignore rows for that image (so re-saving
+    the same image produces correct offsets).
+    """
     try:
         if not csv_path.exists():
             return 0, 0
         df = pd.read_csv(csv_path)
+        if df.empty:
+            return 0, 0
+        if exclude_image and 'Image' in df.columns:
+            df = df[df['Image'] != exclude_image]
         if df.empty:
             return 0, 0
         plate_off = 0

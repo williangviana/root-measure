@@ -324,8 +324,12 @@ class ImageCanvas(ctk.CTkFrame):
 
         # root markers (hide when measurement done or in review mode)
         _GROUP_MARKER_COLORS = [
-            "#e63333", "#3333e6", "#33b033", "#e6a833",
-            "#b033b0", "#33b0b0", "#e66333", "#8033e6",
+            "#e63333", "#3333e6", "#33b033", "#e6a833", "#b033b0",
+            "#33b0b0", "#e66333", "#8033e6", "#b08033", "#33e680",
+            "#e63380", "#3380e6", "#80e633", "#e6b033", "#6633e6",
+            "#33e6b0", "#e63366", "#3366e6", "#66e633", "#e68033",
+            "#b033e6", "#33e666", "#e63399", "#3399e6", "#99e633",
+            "#e69933", "#9933e6", "#33e699", "#cc3333", "#3333cc",
         ]
         self._root_marker_ids.clear()
         hide_markers = (self._mode == self.MODE_REVIEW

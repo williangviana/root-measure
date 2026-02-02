@@ -9,10 +9,15 @@ from scipy import stats
 from itertools import combinations
 
 
-# -- colors matching user's publication style --
-COLOR_DARK = '#555555'    # dark gray
-COLOR_LIGHT = '#F5DEB3'   # wheat / light gold
-COLORS = [COLOR_DARK, COLOR_LIGHT, '#A9A9A9', '#FAEBD7', '#808080', '#FFE4B5']
+# -- colors for up to 30 genotypes (publication style) --
+COLORS = [
+    '#555555', '#F5DEB3', '#A9A9A9', '#FAEBD7', '#808080',
+    '#FFE4B5', '#6B8E23', '#DEB887', '#708090', '#D2B48C',
+    '#4682B4', '#BC8F8F', '#5F9EA0', '#F4A460', '#778899',
+    '#DAA520', '#8FBC8F', '#CD853F', '#B0C4DE', '#D2691E',
+    '#9ACD32', '#C0C0C0', '#6495ED', '#E6BE8A', '#2E8B57',
+    '#BDB76B', '#87CEEB', '#A0522D', '#66CDAA', '#D4A574',
+]
 
 
 def _compact_letter_display(group_names, pairwise_pvalues, alpha=0.05):

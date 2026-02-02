@@ -375,8 +375,9 @@ def plot_results(csv_path, value_col=None, ylabel=None, csv_format='R'):
         ax.set_xticklabels(conditions, rotation=45, ha='right', fontsize=12)
         handles = [plt.Rectangle((0, 0), 1, 1, facecolor=COLORS[i % len(COLORS)],
                                  edgecolor='black') for i in range(n_geno)]
-        ax.legend(handles, genotypes, loc='upper right', fontsize=11,
-                  frameon=True, edgecolor='black')
+        ax.legend(handles, genotypes, loc='upper left', bbox_to_anchor=(1.02, 1),
+                  fontsize=11, frameon=True, edgecolor='black',
+                  handlelength=1, handleheight=1)
     else:
         conditions = []
         colors = [COLORS[i % len(COLORS)] for i in range(len(genotypes))]
@@ -402,12 +403,12 @@ def plot_results(csv_path, value_col=None, ylabel=None, csv_format='R'):
     ax.set_ylabel(ylabel, fontsize=14)
     ax.set_ylim(bottom=0)
 
-    # styling: remove top/right spines
-    ax.spines['top'].set_visible(False)
-    ax.spines['right'].set_visible(False)
-    ax.spines['left'].set_linewidth(1.2)
-    ax.spines['bottom'].set_linewidth(1.2)
+    # styling: square frame with all four spines
+    for spine in ax.spines.values():
+        spine.set_visible(True)
+        spine.set_linewidth(1.2)
     ax.tick_params(axis='both', which='major', labelsize=11, width=1.2)
+    ax.set_box_aspect(1)  # square plot area
 
     # finalize y limits then place CLD letters
     ax.autoscale_view()

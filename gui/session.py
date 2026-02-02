@@ -309,6 +309,7 @@ def _collect_canvas(canvas):
         'all_marks': all_marks,
         'mark_points': [list(p) for p in canvas._mark_points],
         'traces': traces,
+        'trace_to_result': list(canvas._trace_to_result),
     }
 
 

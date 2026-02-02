@@ -251,7 +251,9 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
                 if canvas_data.get('all_marks'):
                     self.canvas.set_marks(canvas_data['all_marks'])
                 if canvas_data.get('traces'):
-                    self.canvas.set_traces(canvas_data['traces'])
+                    self.canvas.set_traces(
+                        canvas_data['traces'],
+                        canvas_data.get('trace_to_result'))
                 step = data.get('workflow_step', 1)
                 self.canvas.set_mode(ImageCanvas.MODE_VIEW)
                 self.canvas._redraw()
@@ -537,7 +539,8 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
         if cd.get('all_marks'):
             self.canvas.set_marks(cd['all_marks'])
         if cd.get('traces'):
-            self.canvas.set_traces(cd['traces'])
+            self.canvas.set_traces(
+                cd['traces'], cd.get('trace_to_result'))
 
     def next_image(self):
         """Return to image selection after finishing measurement."""

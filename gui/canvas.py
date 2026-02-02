@@ -79,6 +79,7 @@ class ImageCanvas(ctk.CTkFrame):
 
         # trace overlay state
         self._traces = []          # list of (path_array, color_str)
+        self._trace_to_result = []  # maps trace index → root index
 
         # review state (click to toggle retry selection)
         self._selected_for_retry = set()  # indices into _traces
@@ -172,6 +173,7 @@ class ImageCanvas(ctk.CTkFrame):
 
     def clear_traces(self):
         self._traces.clear()
+        self._trace_to_result.clear()
         self._trace_original_colors.clear()
         self._selected_for_retry.clear()
 
@@ -190,9 +192,10 @@ class ImageCanvas(ctk.CTkFrame):
         self._traces.append((path, shades, mark_indices))
         self._trace_original_colors.append(shades)
 
-    def set_traces(self, traces_data):
+    def set_traces(self, traces_data, trace_to_result=None):
         """Restore traces from saved session data."""
         self._traces.clear()
+        self._trace_to_result.clear()
         self._trace_original_colors.clear()
         for t in traces_data:
             path = t['path']
@@ -200,6 +203,8 @@ class ImageCanvas(ctk.CTkFrame):
             mark_indices = t.get('mark_indices', [])
             self._traces.append((path, shades, mark_indices))
             self._trace_original_colors.append(shades)
+        if trace_to_result:
+            self._trace_to_result = list(trace_to_result)
 
     def get_selected_for_retry(self):
         return sorted(self._selected_for_retry)
@@ -438,10 +443,11 @@ class ImageCanvas(ctk.CTkFrame):
                 self._draw_path_segment(path, shades[0], w)
 
             if self._mode == self.MODE_REVIEW and len(path) > 0:
-                plate = (self._root_plates[ti]
-                         if ti < len(self._root_plates) else 0)
-                group = (self._root_groups[ti]
-                         if ti < len(self._root_groups) else 0)
+                ri = self._trace_to_result[ti] if ti < len(self._trace_to_result) else ti
+                plate = (self._root_plates[ri]
+                         if ri < len(self._root_plates) else 0)
+                group = (self._root_groups[ri]
+                         if ri < len(self._root_groups) else 0)
                 key = (plate, group)
                 trace_plate_counters[key] = \
                     trace_plate_counters.get(key, 0) + 1

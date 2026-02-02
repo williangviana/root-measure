@@ -441,9 +441,14 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
     def _on_next_settings(self):
         """Called when user clicks Next on image settings."""
         self.sidebar.advance_to_experiment()
-        # CSV format lock is deferred to _on_start_workflow when experiment is known
-        self.sidebar.menu_csv_format.configure(state="normal")
-        self.sidebar.lbl_csv_locked.pack_forget()
+        # keep CSV locked if this experiment already has data
+        exp = self._experiment_name
+        if exp and self.folder and (data_dir(self.folder, exp) / 'data.csv').exists():
+            self.sidebar.menu_csv_format.configure(state="disabled")
+            self.sidebar.lbl_csv_locked.pack(pady=(0, 8), padx=15, anchor="w")
+        else:
+            self.sidebar.menu_csv_format.configure(state="normal")
+            self.sidebar.lbl_csv_locked.pack_forget()
 
     def _on_start_workflow(self):
         """Called when user clicks Start Workflow."""
@@ -455,6 +460,8 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
                 saved_fmt = get_csv_format(self.folder, exp)
                 if saved_fmt:
                     self.sidebar.var_csv_format.set(saved_fmt)
+                self.sidebar.menu_csv_format.configure(state="disabled")
+                self.sidebar.lbl_csv_locked.pack(pady=(0, 8), padx=15, anchor="w")
             save_experiment_name(self.folder, exp, exp)
             save_csv_format(self.folder, self.sidebar.var_csv_format.get(), exp)
             save_persistent_settings(self.folder, {

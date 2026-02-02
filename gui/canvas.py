@@ -488,28 +488,33 @@ class ImageCanvas(ctk.CTkFrame):
                                     self.MODE_CLICK_MARKS):
             cw = self.canvas.winfo_width()
             ch = self.canvas.winfo_height()
-            bar_h = 28
-            self.canvas.create_rectangle(
-                0, ch - bar_h, cw, ch,
-                fill="white", outline="white")
             y = ch - 6
+            _fnt = ("Helvetica", 16, "bold")
+            _tag = "_plate_info_txt"
             # center: "Plate N"
             self.canvas.create_text(
                 cw / 2, y, text=info.get('center', ''),
-                fill="black", anchor="s",
-                font=("Helvetica", 16, "bold"))
+                fill="black", anchor="s", font=_fnt, tags=(_tag,))
             # left: genotype A + condition
             if info.get('left'):
                 self.canvas.create_text(
                     15, y, text=info['left'],
                     fill=info.get('left_color', '#cccccc'), anchor="sw",
-                    font=("Helvetica", 16, "bold"))
+                    font=_fnt, tags=(_tag,))
             # right: genotype B + condition (split plates only)
             if info.get('right'):
                 self.canvas.create_text(
                     cw - 15, y, text=info['right'],
                     fill=info.get('right_color', '#cccccc'), anchor="se",
-                    font=("Helvetica", 16, "bold"))
+                    font=_fnt, tags=(_tag,))
+            # draw white background sized to text
+            bb = self.canvas.bbox(_tag)
+            if bb:
+                pad = 4
+                bg = self.canvas.create_rectangle(
+                    0, bb[1] - pad, cw, ch,
+                    fill="white", outline="white")
+                self.canvas.tag_lower(bg, _tag)
 
         # help overlay
         if self._help_visible:

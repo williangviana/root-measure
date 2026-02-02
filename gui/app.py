@@ -649,8 +649,23 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
                 f"Plate {pi + 1}/{len(plates)} — {geno_label}\n"
                 "Click root tops. Enter=next.")
         else:
+            genotypes = [g.strip() for g in
+                         self.sidebar.entry_genotypes.get().split(",")
+                         if g.strip()]
+            cond_text = self.sidebar.entry_condition.get().strip()
+            conditions = [c.strip() for c in cond_text.split(",")
+                          if c.strip()] if cond_text else []
+            label_parts = []
+            if genotypes and pi < len(genotypes):
+                label_parts.append(genotypes[pi])
+            if conditions and pi < len(conditions):
+                label_parts.append(conditions[pi])
+            label = " / ".join(label_parts) if label_parts else ""
+            status_prefix = f"Plate {pi + 1}/{len(plates)}"
+            if label:
+                status_prefix += f" — {label}"
             self.sidebar.set_status(
-                f"Plate {pi + 1}/{len(plates)} — Click root tops.\n"
+                f"{status_prefix}\nClick root tops. "
                 "D+Click=dead, T+Click=touching. Enter=next.")
         self.lbl_bottom.configure(
             text="Click=root top  |  D+Click=dead  |  T+Click=touching  |  Right-click=undo  |  Enter=next  |  Scroll=zoom")
@@ -675,8 +690,7 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
             return
         # advance to next plate
         self._split_stage = 0
-        if self._split:
-            self._current_group += 1
+        self._current_group += 1
         self._current_plate_idx += 1
         if self._current_plate_idx < len(plates):
             self._enter_root_click_stage()

@@ -562,9 +562,10 @@ class MeasurementMixin:
         else:
             plate_labels = []
             for pi in range(len(plates)):
+                geno = genotypes[pi] if pi < len(genotypes) else genotypes[-1]
                 cond = conditions[pi] if pi < len(conditions) else (
                     conditions[0] if conditions else None)
-                plate_labels.append((genotypes[0], cond))
+                plate_labels.append((geno, cond))
 
         try:
             new_plate_offset, new_root_offset = append_results_to_csv(

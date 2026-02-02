@@ -343,6 +343,12 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
         # Stash canvas from previous image before switching
         self._stash_canvas()
         self.image_path = path
+        # Reset workflow state from previous image
+        self._results = []
+        self._trace_to_result = []
+        self._binary = None
+        self._retry_result_indices = []
+        self._reclick_idx = 0
         try:
             ext = path.suffix.lower()
             if ext in ('.tif', '.tiff'):
@@ -562,7 +568,13 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
         self.canvas._measurement_done = False
         self.canvas.clear_plates()
         self.canvas.clear_roots()
+        self.canvas.clear_marks()
         self.canvas.clear_traces()
+        self._results = []
+        self._trace_to_result = []
+        self._binary = None
+        self._retry_result_indices = []
+        self._reclick_idx = 0
         self.canvas._app_status_callback = self.sidebar.set_status
         self.canvas.set_mode(
             ImageCanvas.MODE_SELECT_PLATES,

@@ -332,7 +332,7 @@ class ImageCanvas(ctk.CTkFrame):
                     outline="#9b59b6", width=2, dash=(6, 3))
                 self._plate_rect_ids.append(rid)
                 self.canvas.create_text(
-                    cx1 + 5, cy1 + 5, text=f"Plate {i + 1}",
+                    cx1 + 5, cy2 + 5, text=f"Plate {i + 1}",
                     fill="#9b59b6", anchor="nw",
                     font=("Helvetica", 18, "bold"))
         # pending plate (not yet confirmed)
@@ -345,7 +345,7 @@ class ImageCanvas(ctk.CTkFrame):
                 cx1, cy1, cx2, cy2,
                 outline="#c39bd3", width=2)
             self.canvas.create_text(
-                cx1 + 5, cy1 + 5, text=f"Plate {n} (press Enter)",
+                cx1 + 5, cy2 + 5, text=f"Plate {n} (press Enter)",
                 fill="#c39bd3", anchor="nw",
                 font=("Helvetica", 16, "bold"))
 

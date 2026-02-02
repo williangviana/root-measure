@@ -14,7 +14,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent / 'scripts'))
 from config import SCALE_PX_PER_CM
 from plate_detection import _to_uint8
 
-from canvas import ImageCanvas
+from canvas import ImageCanvas, GROUP_MARKER_COLORS
 from sidebar import Sidebar
 from workflow import MeasurementMixin
 from session import save_session, load_session, restore_settings, \
@@ -91,6 +91,22 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
             self.status_bar, text="Willian Viana — Dinneny Lab",
             font=ctk.CTkFont(size=12, weight="bold"), text_color="#cccccc")
         self.lbl_bottom.pack(side="left", padx=10)
+
+        # plate info bar (shown when zoomed into a plate)
+        self._plate_info_frame = ctk.CTkFrame(self.status_bar,
+                                               fg_color="transparent")
+        self._plate_info_left = ctk.CTkLabel(
+            self._plate_info_frame, text="",
+            font=ctk.CTkFont(size=12, weight="bold"), text_color="#cccccc")
+        self._plate_info_left.pack(side="left", padx=(10, 0))
+        self._plate_info_center = ctk.CTkLabel(
+            self._plate_info_frame, text="",
+            font=ctk.CTkFont(size=12, weight="bold"), text_color="#cccccc")
+        self._plate_info_center.pack(side="left", expand=True)
+        self._plate_info_right = ctk.CTkLabel(
+            self._plate_info_frame, text="",
+            font=ctk.CTkFont(size=12, weight="bold"), text_color="#cccccc")
+        self._plate_info_right.pack(side="right", padx=(0, 10))
 
         # global keyboard handler — works regardless of which widget has focus
         self.bind_all("<Key>", self._on_global_key)
@@ -434,6 +450,7 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
             f"{len(points)} root(s).\n"
             f"Click Review & Save to review traces.")
         self.lbl_bottom.configure(text="Willian Viana — Dinneny Lab")
+        self._hide_plate_info_bar()
 
     # --- Settings helpers ---
 
@@ -455,6 +472,50 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
         if name not in self._genotype_colors:
             self._genotype_colors[name] = len(self._genotype_colors)
         return self._genotype_colors[name]
+
+    def _update_plate_info_bar(self, pi):
+        """Show genotype/condition info for plate pi in the bottom bar."""
+        genotypes = [g.strip() for g in
+                     self.sidebar.entry_genotypes.get().split(",")
+                     if g.strip()]
+        cond_text = self.sidebar.entry_condition.get().strip()
+        conditions = [c.strip() for c in cond_text.split(",")
+                      if c.strip()] if cond_text else []
+        plates = self.canvas.get_plates()
+        n_plates = len(plates)
+        cond = conditions[pi] if pi < len(conditions) else (
+            conditions[-1] if conditions else "")
+
+        if self._split:
+            geno_a = genotypes[0] if genotypes else "genotype_A"
+            geno_b = genotypes[1] if len(genotypes) >= 2 else "genotype_B"
+            left_text = f"{geno_a} {cond}".strip() if cond else geno_a
+            right_text = f"{geno_b} {cond}".strip() if cond else geno_b
+            idx_a = self._genotype_colors.get(geno_a, 0)
+            idx_b = self._genotype_colors.get(geno_b, 1)
+            color_a = GROUP_MARKER_COLORS[idx_a % len(GROUP_MARKER_COLORS)]
+            color_b = GROUP_MARKER_COLORS[idx_b % len(GROUP_MARKER_COLORS)]
+            self._plate_info_left.configure(text=left_text,
+                                            text_color=color_a)
+            self._plate_info_right.configure(text=right_text,
+                                             text_color=color_b)
+        else:
+            geno = (genotypes[pi] if pi < len(genotypes)
+                    else genotypes[-1] if genotypes else "genotype")
+            left_text = f"{geno} {cond}".strip() if cond else geno
+            idx = self._genotype_colors.get(geno, pi)
+            color = GROUP_MARKER_COLORS[idx % len(GROUP_MARKER_COLORS)]
+            self._plate_info_left.configure(text=left_text,
+                                            text_color=color)
+            self._plate_info_right.configure(text="")
+
+        self._plate_info_center.configure(
+            text=f"Plate {pi + 1}", text_color="#cccccc")
+        self._plate_info_frame.pack(side="right", fill="x", expand=True)
+
+    def _hide_plate_info_bar(self):
+        """Hide the plate info bar."""
+        self._plate_info_frame.pack_forget()
 
     def _get_scale(self):
         """Get scale (px/cm) from DPI entry or auto-detect."""
@@ -592,6 +653,7 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
             "Adjust by redrawing. Enter=confirm.")
         self.lbl_bottom.configure(
             text="Drag=draw plate  |  Redraw=adjust  |  Right-click=undo  |  Enter=confirm  |  Scroll=zoom")
+        self._hide_plate_info_bar()
         self.sidebar.btn_click_roots.configure(state="disabled")
         self.sidebar.btn_measure.configure(state="disabled")
         self.sidebar.btn_review.configure(state="disabled")
@@ -608,6 +670,7 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
         self.canvas.set_mode(ImageCanvas.MODE_VIEW)
         self.sidebar.set_status(f"{len(plates)} plate(s) selected.")
         self.lbl_bottom.configure(text="Willian Viana — Dinneny Lab")
+        self._hide_plate_info_bar()
         self.sidebar.btn_click_roots.configure(state="normal")
         self.sidebar.set_step(2)
         self._auto_save()
@@ -673,6 +736,7 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
             "Click root tops. D+Click=dead, T+Click=touching. Enter=next.")
         self.lbl_bottom.configure(
             text="Click=root top  |  D+Click=dead  |  T+Click=touching  |  Right-click=undo  |  Enter=next  |  Scroll=zoom")
+        self._update_plate_info_bar(pi)
 
     def _plate_roots_done(self):
         """Called when user presses Enter after clicking roots on a plate."""
@@ -739,6 +803,7 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
         self._update_marks_status()
         self.lbl_bottom.configure(
             text="Click=place mark  |  Right-click=undo  |  Enter=done  |  Scroll=zoom")
+        self._update_plate_info_bar(pi)
 
     def _start_marks_phase(self):
         """Enter mark clicking mode for normal roots on the current plate/group."""
@@ -773,6 +838,7 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
         self._update_marks_status()
         self.lbl_bottom.configure(
             text="Click=place mark  |  Right-click=undo  |  Enter=done  |  Scroll=zoom")
+        self._update_plate_info_bar(pi)
 
     def _update_marks_status(self):
         """Update status bar with marks progress."""

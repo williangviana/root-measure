@@ -195,6 +195,7 @@ class MeasurementMixin:
         self.sidebar.btn_continue_later_mid.pack(pady=(10, 5), padx=15, fill="x")
         self.lbl_bottom.configure(
             text="Click trace=select for retry (orange)  |  Enter=accept / retry selected  |  Scroll=zoom")
+        self._hide_plate_info_bar()
 
     def _enable_review(self):
         self._review_ready = True
@@ -502,6 +503,7 @@ class MeasurementMixin:
             msg += f"Range: {min(lengths):.2f}–{max(lengths):.2f} cm"
         self.sidebar.set_status(msg)
         self.lbl_bottom.configure(text="Willian Viana — Dinneny Lab")
+        self._hide_plate_info_bar()
 
         self._save_results(self._results, plates, self._scale_val)
         self._save_trace_screenshot()

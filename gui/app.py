@@ -329,6 +329,8 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
                 and path in self._processed_images):
             self._restore_completed_view()
             return
+        # Stash canvas from previous image before switching
+        self._stash_canvas()
         self.image_path = path
         try:
             ext = path.suffix.lower()
@@ -344,8 +346,6 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
                 img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
 
             self.image = img
-            # Stash canvas from previous image before clearing
-            self._stash_canvas()
             # Clear overlays from previous image
             self.canvas._measurement_done = False
             self.canvas.clear_plates()

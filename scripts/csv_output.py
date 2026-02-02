@@ -166,7 +166,8 @@ def _write_tidy_prism(df, tidy_path):
     """Wide Prism format from raw data."""
     has_condition = ('Condition' in df.columns and
                      df['Condition'].notna().any() and
-                     (df['Condition'].astype(str).str.strip() != '').any())
+                     df['Condition'].astype(str).str.strip().replace('', np.nan)
+                     .dropna().nunique() > 1)
 
     if has_condition:
         _write_tidy_prism_factorial(df, tidy_path)

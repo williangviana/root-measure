@@ -444,7 +444,7 @@ class MeasurementMixin:
                 length_cm = length_px / self._scale_val if self._scale_val else 0
                 self._results.append(dict(
                     length_cm=length_cm, length_px=length_px,
-                    path=path, method='restored', segments=[]))
+                    path=path, method='restored', warning=None, segments=[]))
                 self._trace_to_result.append(i)
                 trace_idx += 1
             else:

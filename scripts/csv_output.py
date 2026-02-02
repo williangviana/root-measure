@@ -17,7 +17,7 @@ def _build_rows(results, plate_labels, plate_offset, root_offset,
             'Image': image_name,
             'Length_cm': round(r['length_cm'], 3) if r['length_cm'] is not None else '',
             'Length_px': round(r['length_px'], 1) if r['length_px'] is not None else '',
-            'Warning': r['warning'] or '',
+            'Warning': r.get('warning') or '',
         }
 
         if plate_labels and i < len(point_plates):

@@ -1,12 +1,26 @@
 """Session save/resume — auto-save state to JSON, load on folder open."""
 
 import json
+import os
 import re
 from pathlib import Path
 
 SESSION_VERSION = 1
-_LAST_FOLDER_FILE = Path.home() / '.root_measure_last_folder'
-_RECENT_FOLDERS_FILE = Path.home() / '.root_measure_recent_folders.json'
+
+# Cross-platform config directory
+def _get_config_dir():
+    """Return platform-appropriate config directory."""
+    if os.name == 'nt':  # Windows
+        base = Path(os.environ.get('LOCALAPPDATA', Path.home()))
+    else:  # macOS/Linux
+        base = Path.home()
+    config_dir = base / '.root_measure'
+    config_dir.mkdir(parents=True, exist_ok=True)
+    return config_dir
+
+_CONFIG_DIR = _get_config_dir()
+_LAST_FOLDER_FILE = _CONFIG_DIR / 'last_folder'
+_RECENT_FOLDERS_FILE = _CONFIG_DIR / 'recent_folders.json'
 
 # --- Output folder layout ---
 _ROOT = 'root_measure'

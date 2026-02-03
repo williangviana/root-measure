@@ -338,6 +338,8 @@ class MeasurementMixin:
         cpr = self._reclick_clicks_per_root
         groups = self.canvas.get_reclick_groups(cpr)
         self.canvas.set_mode(ImageCanvas.MODE_VIEW)
+        self.canvas.clear_reclick()
+        self.canvas._selected_for_retry.clear()
 
         total = min(len(self._retry_result_indices), len(groups))
         self.sidebar.show_progress(total)

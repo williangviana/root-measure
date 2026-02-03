@@ -718,7 +718,7 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
 
         # build status label
         label_parts = [geno_name]
-        if not self._split and conditions:
+        if conditions:
             cond = conditions[pi] if pi < len(conditions) else conditions[-1]
             label_parts.append(cond)
         label = " / ".join(label_parts)

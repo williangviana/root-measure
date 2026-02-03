@@ -128,10 +128,6 @@ class MeasurementMixin:
         root_plates = self.canvas._root_plates
 
         num_marks = self._get_num_marks()
-        if num_marks > 0:
-            print(f"[marks] num_marks={num_marks}, "
-                  f"all_marks keys={sorted(self.canvas._all_marks.keys())}")
-
         total = len(points)
         self.sidebar.show_progress(total)
         self.update()

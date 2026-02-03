@@ -199,27 +199,6 @@ def get_persistent_settings(folder, experiment=''):
     return {}
 
 
-def save_csv_format(folder, fmt, experiment=''):
-    """Persist CSV format choice in output folder."""
-    try:
-        p = session_dir(folder, experiment) / 'csv_format.txt'
-        p.parent.mkdir(parents=True, exist_ok=True)
-        p.write_text(fmt)
-    except Exception:
-        pass
-
-
-def get_csv_format(folder, experiment=''):
-    """Load saved CSV format, or empty string."""
-    try:
-        p = session_dir(folder, experiment) / 'csv_format.txt'
-        if p.exists():
-            return p.read_text().strip()
-    except Exception:
-        pass
-    return ''
-
-
 def save_session(session_path, app):
     """Collect app/sidebar/canvas state and write to JSON."""
     folder = app.folder

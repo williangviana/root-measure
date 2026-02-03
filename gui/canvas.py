@@ -207,7 +207,7 @@ class ImageCanvas(ctk.CTkFrame):
         self._traces.clear()
         self._trace_to_result.clear()
         self._trace_original_colors.clear()
-        for t in traces_data:
+        for i, t in enumerate(traces_data):
             path = t['path']
             shades = t.get('shades', ['#00ff88'])
             mark_indices = t.get('mark_indices', [])
@@ -215,6 +215,9 @@ class ImageCanvas(ctk.CTkFrame):
             self._trace_original_colors.append(shades)
         if trace_to_result:
             self._trace_to_result = list(trace_to_result)
+        else:
+            # Default: trace index maps to itself
+            self._trace_to_result = list(range(len(traces_data)))
 
     def get_selected_for_retry(self):
         return sorted(self._selected_for_retry)

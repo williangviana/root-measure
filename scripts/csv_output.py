@@ -33,15 +33,16 @@ def _build_rows(results, plate_labels, plate_offset, root_offset,
 
         if plate_labels and i < len(point_plates):
             group_idx = point_plates[i]
-            local_plate = group_to_plate.get(group_idx, 0)
-            row['Plate'] = plate_offset + local_plate + 1
-            genotype, condition = plate_labels[group_idx]
-            row['Genotype'] = genotype
-            if is_factorial:
-                row['Condition'] = condition or ''
+            if group_idx in plate_labels:
+                local_plate = group_to_plate.get(group_idx, 0)
+                row['Plate'] = plate_offset + local_plate + 1
+                genotype, condition = plate_labels[group_idx]
+                row['Genotype'] = genotype
+                if is_factorial:
+                    row['Condition'] = condition or ''
 
-            group_counters[group_idx] = group_counters.get(group_idx, 0) + 1
-            row['Plant_ID'] = group_counters[group_idx]
+                group_counters[group_idx] = group_counters.get(group_idx, 0) + 1
+                row['Plant_ID'] = group_counters[group_idx]
 
         segments = r.get('segments', [])
         if num_marks > 0:

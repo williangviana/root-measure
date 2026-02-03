@@ -1,5 +1,5 @@
 # Root Measure — One-line installer for Windows
-# Usage: powershell -ExecutionPolicy Bypass -c "irm https://raw.githubusercontent.com/williangviana/root-measure/master/install.ps1 | iex"
+# Usage: powershell -ExecutionPolicy Bypass -c "irm https://raw.githubusercontent.com/williangviana/root-measure/stable/install.ps1 | iex"
 
 $ErrorActionPreference = "Stop"
 
@@ -45,7 +45,7 @@ Write-Host "[2/6] Downloading Root Measure..."
 if (Test-Path $WorkDir) { Remove-Item $WorkDir -Recurse -Force }
 New-Item -ItemType Directory -Path $WorkDir -Force | Out-Null
 $zipPath = "$env:TEMP\root-measure.zip"
-Invoke-WebRequest -Uri "https://github.com/$Repo/archive/refs/heads/master.zip" -OutFile $zipPath
+Invoke-WebRequest -Uri "https://github.com/$Repo/archive/refs/heads/stable.zip" -OutFile $zipPath
 Expand-Archive -Path $zipPath -DestinationPath $WorkDir -Force
 Remove-Item $zipPath -Force
 # Move contents out of the nested folder

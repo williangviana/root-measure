@@ -6,12 +6,12 @@ Open the Terminal (Mac) or PowerShell (Windows) and paste the command below.
 
 Mac
 ---
-curl -sL https://raw.githubusercontent.com/williangviana/root-measure/master/install.sh | bash
+curl -sL https://raw.githubusercontent.com/williangviana/root-measure/stable/install.sh | bash
 
 
 Windows
 -------
-powershell -ExecutionPolicy Bypass -c "irm https://raw.githubusercontent.com/williangviana/root-measure/master/install.ps1 | iex"
+powershell -ExecutionPolicy Bypass -c "irm https://raw.githubusercontent.com/williangviana/root-measure/stable/install.ps1 | iex"
 
 
 After installation:

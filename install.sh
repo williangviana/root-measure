@@ -1,6 +1,6 @@
 #!/bin/bash
 # Root Measure — One-line installer
-# Usage: curl -sL https://raw.githubusercontent.com/williangviana/root-measure/master/install.sh | bash
+# Usage: curl -sL https://raw.githubusercontent.com/williangviana/root-measure/stable/install.sh | bash
 
 set -e
 
@@ -40,7 +40,7 @@ echo "[1/7] Python $PY_VERSION ✓"
 echo "[2/7] Downloading Root Measure..."
 rm -rf "$WORK_DIR"
 mkdir -p "$WORK_DIR"
-curl -sL "https://github.com/$REPO/archive/refs/heads/master.tar.gz" | tar xz -C "$WORK_DIR" --strip-components=1
+curl -sL "https://github.com/$REPO/archive/refs/heads/stable.tar.gz" | tar xz -C "$WORK_DIR" --strip-components=1
 cd "$WORK_DIR"
 echo "[2/7] Downloaded ✓"
 

@@ -629,6 +629,7 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
         self.canvas.clear_traces()
         self._clear_plate_info()
         self.canvas._fit_image()
+        self.canvas._redraw()
         self._results = []
         self._trace_to_result = []
         self._binary = None

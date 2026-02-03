@@ -447,9 +447,9 @@ class ImageCanvas(ctk.CTkFrame):
 
             if is_selected:
                 if self._mode == self.MODE_RECLICK:
-                    self._draw_path_segment(path, "#ff8c00", w, dash=(1, 2))
+                    self._draw_path_segment(path, "#ff6666", w, dash=(4, 12))
                 else:
-                    self._draw_path_segment(path, "#ff8c00", w)
+                    self._draw_path_segment(path, "#ff0000", w)
             elif mark_indices:
                 boundaries = [0] + list(mark_indices) + [len(path) - 1]
                 for j in range(len(boundaries) - 1):
@@ -474,7 +474,7 @@ class ImageCanvas(ctk.CTkFrame):
                             and self._root_groups[j] == group)
                 top_row, top_col = path[0]
                 lx, ly = self.image_to_canvas(top_col, top_row)
-                lbl_color = "#ff8c00" if is_selected else shades[0]
+                lbl_color = "#ff0000" if is_selected else shades[0]
                 self.canvas.create_text(
                     lx, ly - 10,
                     text=str(count),

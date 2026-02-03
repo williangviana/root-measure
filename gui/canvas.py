@@ -447,10 +447,9 @@ class ImageCanvas(ctk.CTkFrame):
 
             if is_selected:
                 if self._mode == self.MODE_RECLICK:
-                    self._draw_path_segment(path, "#ff0000", w, dash=(8, 8),
-                                            stipple="gray50")
+                    self._draw_path_segment(path, "#ff0000", w, dash=(8, 8))
                 else:
-                    self._draw_path_segment(path, "#ff0000", w, stipple="gray50")
+                    self._draw_path_segment(path, "#ff0000", w)
             elif mark_indices:
                 boundaries = [0] + list(mark_indices) + [len(path) - 1]
                 for j in range(len(boundaries) - 1):

@@ -48,6 +48,8 @@ class ImageCanvas(ctk.CTkFrame):
         self._offset_x = 0
         self._offset_y = 0
         self._drag_start = None
+        self._click_start = None     # deferred click position for click-or-pan
+        self._is_panning = False     # True once drag exceeds pan threshold
         self._zoom_settle_id = None  # after() id for deferred hi-res redraw
         self._user_zoomed = False    # True after user scrolls/zooms/pans
         self._space_held = False     # True while spacebar held (pan mode)
@@ -770,8 +772,17 @@ class ImageCanvas(ctk.CTkFrame):
                 self._redraw()
             col, row = self.canvas_to_image(event.x, event.y)
             self._rect_start = (row, col)
-        elif self._mode == self.MODE_CLICK_ROOTS:
-            col, row = self.canvas_to_image(event.x, event.y)
+        else:
+            # defer click — may become a pan drag
+            self._click_start = (event.x, event.y)
+            self._is_panning = False
+            self._drag_start = (event.x, event.y)
+
+    def _execute_click(self, click_pos):
+        """Execute the deferred click action at the press location."""
+        sx, sy = click_pos
+        if self._mode == self.MODE_CLICK_ROOTS:
+            col, row = self.canvas_to_image(sx, sy)
             flag = self._pending_flag
             self._pending_flag = None
             self._root_points.append((row, col))
@@ -786,10 +797,10 @@ class ImageCanvas(ctk.CTkFrame):
             if self._marks_expected > 0 and \
                len(self._mark_points) >= self._marks_expected:
                 return
-            col, row = self.canvas_to_image(event.x, event.y)
+            col, row = self.canvas_to_image(sx, sy)
             self._mark_points.append((row, col))
             # draw mark as genotype-colored circle (light shade)
-            cx, cy = event.x, event.y
+            cx, cy = sx, sy
             current_group = getattr(self, '_current_root_group', 0)
             color = GROUP_MARK_COLORS[current_group % len(GROUP_MARK_COLORS)]
             n = len(self._mark_points)
@@ -812,7 +823,7 @@ class ImageCanvas(ctk.CTkFrame):
             if self._on_click_callback:
                 self._on_click_callback()
         elif self._mode == self.MODE_REVIEW:
-            col, row = self.canvas_to_image(event.x, event.y)
+            col, row = self.canvas_to_image(sx, sy)
             threshold = 30 / self._scale if self._scale > 0 else 30
             idx = self._find_nearest_trace(col, row, threshold=max(20, threshold))
             if idx is not None:
@@ -827,16 +838,27 @@ class ImageCanvas(ctk.CTkFrame):
             if self._reclick_expected > 0 and \
                len(self._reclick_points) >= self._reclick_expected:
                 return
-            col, row = self.canvas_to_image(event.x, event.y)
+            col, row = self.canvas_to_image(sx, sy)
             self._reclick_points.append((row, col))
             self._redraw()
             if self._on_click_callback:
                 self._on_click_callback()
 
+    _PAN_THRESHOLD = 5  # pixels of drag before switching to pan
+
     def _on_left_drag(self, event):
-        if self._space_held and self._drag_start is not None:
+        if self._drag_start is not None and (self._space_held or self._is_panning
+                                             or self._mode != self.MODE_SELECT_PLATES):
             dx = event.x - self._drag_start[0]
             dy = event.y - self._drag_start[1]
+            if not self._is_panning and not self._space_held:
+                # check if drag exceeds threshold before panning
+                sx, sy = self._click_start or (event.x, event.y)
+                if abs(event.x - sx) < self._PAN_THRESHOLD and \
+                   abs(event.y - sy) < self._PAN_THRESHOLD:
+                    return
+                self._is_panning = True
+                self.canvas.configure(cursor="fleur")
             self._offset_x += dx
             self._offset_y += dy
             self._drag_start = (event.x, event.y)
@@ -855,6 +877,18 @@ class ImageCanvas(ctk.CTkFrame):
     def _on_left_release(self, event):
         if self._space_held:
             self._drag_start = None
+            return
+        # finish deferred click-or-pan for non-plate modes
+        if self._click_start is not None:
+            was_panning = self._is_panning
+            click_pos = self._click_start
+            if was_panning:
+                self.canvas.configure(cursor="")
+            self._click_start = None
+            self._is_panning = False
+            self._drag_start = None
+            if not was_panning:
+                self._execute_click(click_pos)
             return
         if self._mode == self.MODE_SELECT_PLATES and self._rect_start is not None:
             if self._rect_drag_id is not None:

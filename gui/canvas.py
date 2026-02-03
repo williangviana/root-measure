@@ -460,7 +460,8 @@ class ImageCanvas(ctk.CTkFrame):
             else:
                 self._draw_path_segment(path, shades[0], w)
 
-            if self._mode == self.MODE_REVIEW and len(path) > 0:
+            # Always show number labels when traces are visible
+            if len(path) > 0 and len(self._trace_to_result) > 0:
                 ri = self._trace_to_result[ti] if ti < len(self._trace_to_result) else ti
                 plate = (self._root_plates[ri]
                          if ri < len(self._root_plates) else 0)
@@ -480,8 +481,8 @@ class ImageCanvas(ctk.CTkFrame):
                     fill=lbl_color, anchor="s",
                     font=("Helvetica", 10, "bold"))
 
-        # dead/touching seedling markers in review mode
-        if self._mode == self.MODE_REVIEW:
+        # dead/touching seedling markers (show when traces are visible)
+        if len(self._traces) > 0:
             cross_s = 6
             for i, ((row, col), flag) in enumerate(
                     zip(self._root_points, self._root_flags)):

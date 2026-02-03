@@ -393,6 +393,9 @@ class MeasurementMixin:
 
         # back to review (skip delay to avoid double-enter)
         self._show_review(skip_delay=True)
+        # Auto-finish if no more traces selected for retry
+        if not self.canvas.get_selected_for_retry():
+            self.after(100, self._finish_measurement)
 
     def _save_trace_screenshot(self):
         """Save plate image with traced root overlays (no UI elements)."""

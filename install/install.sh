@@ -52,13 +52,13 @@ echo "[3/7] Virtual environment ✓"
 # --- 4. Install dependencies ---
 echo "[4/7] Installing dependencies..."
 pip install --upgrade pip -q
-pip install -r requirements.txt -q
+pip install -r install/requirements.txt -q
 pip install cx_Freeze -q
 echo "[4/7] Dependencies ✓"
 
 # --- 5. Build .app bundle ---
 echo "[5/7] Building app..."
-python setup.py bdist_mac 2>&1 | tail -5
+python install/setup.py bdist_mac 2>&1 | tail -5
 
 BUILT_APP=$(ls -d build/*.app 2>/dev/null | head -1)
 if [ -z "$BUILT_APP" ]; then

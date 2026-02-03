@@ -63,13 +63,13 @@ Write-Host "[3/6] Virtual environment OK"
 # --- 4. Install dependencies ---
 Write-Host "[4/6] Installing dependencies..."
 & pip install --upgrade pip -q
-& pip install -r requirements.txt -q
+& pip install -r install/requirements.txt -q
 & pip install cx_Freeze -q
 Write-Host "[4/6] Dependencies OK"
 
 # --- 5. Build executable ---
 Write-Host "[5/6] Building app..."
-& python setup.py build_exe
+& python install/setup.py build_exe
 
 $builtDir = Get-ChildItem "build" -Directory | Where-Object { $_.Name -match "exe" } | Select-Object -First 1
 if (-not $builtDir) {

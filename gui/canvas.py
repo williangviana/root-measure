@@ -447,9 +447,10 @@ class ImageCanvas(ctk.CTkFrame):
 
             if is_selected:
                 if self._mode == self.MODE_RECLICK:
-                    self._draw_path_segment(path, "#ff8c00", w, dash=(1, 2))
+                    self._draw_path_segment(path, "#ff0000", w, dash=(8, 8),
+                                            stipple="gray50")
                 else:
-                    self._draw_path_segment(path, "#ff8c00", w)
+                    self._draw_path_segment(path, "#ff0000", w, stipple="gray50")
             elif mark_indices:
                 boundaries = [0] + list(mark_indices) + [len(path) - 1]
                 for j in range(len(boundaries) - 1):
@@ -466,15 +467,17 @@ class ImageCanvas(ctk.CTkFrame):
                          if ri < len(self._root_plates) else 0)
                 group = (self._root_groups[ri]
                          if ri < len(self._root_groups) else 0)
-                key = (plate, group)
-                trace_plate_counters[key] = \
-                    trace_plate_counters.get(key, 0) + 1
+                # Count all results 0..ri with same (plate, group), including dead/touching
+                count = sum(1 for j in range(ri + 1)
+                            if j < len(self._root_plates) and j < len(self._root_groups)
+                            and self._root_plates[j] == plate
+                            and self._root_groups[j] == group)
                 top_row, top_col = path[0]
                 lx, ly = self.image_to_canvas(top_col, top_row)
-                lbl_color = "#ff8c00" if is_selected else shades[0]
+                lbl_color = "#ff0000" if is_selected else shades[0]
                 self.canvas.create_text(
                     lx, ly - 10,
-                    text=str(trace_plate_counters[key]),
+                    text=str(count),
                     fill=lbl_color, anchor="s",
                     font=("Helvetica", 10, "bold"))
 
@@ -497,8 +500,8 @@ class ImageCanvas(ctk.CTkFrame):
 
         # plate info overlay (shown when zoomed into a plate)
         info = getattr(self, '_plate_info', None)
-        if info and self._mode in (self.MODE_CLICK_ROOTS,
-                                    self.MODE_CLICK_MARKS):
+        if info and self._mode in (self.MODE_CLICK_ROOTS, self.MODE_CLICK_MARKS,
+                                    self.MODE_REVIEW, self.MODE_RECLICK):
             cw = self.canvas.winfo_width()
             ch = self.canvas.winfo_height()
             y = ch - 6

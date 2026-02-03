@@ -26,8 +26,8 @@ def _build_rows(results, plate_labels, plate_offset, root_offset,
         row = {
             'Root_ID': root_num,
             'Image': image_name,
-            'Length_cm': round(r['length_cm'], 3) if r['length_cm'] is not None else '',
-            'Length_px': round(r['length_px'], 1) if r['length_px'] is not None else '',
+            'Length_cm': round(r['length_cm'], 3) if r['length_cm'] is not None else 'NA',
+            'Length_px': round(r['length_px'], 1) if r['length_px'] is not None else 'NA',
             'Warning': r.get('warning') or '',
         }
 

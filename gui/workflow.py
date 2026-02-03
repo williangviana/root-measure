@@ -399,7 +399,15 @@ class MeasurementMixin:
             img_bgr = cv2.cvtColor(img, cv2.COLOR_GRAY2BGR)
         else:
             img_bgr = img
-        for path, shades, mark_indices in self.canvas._traces:
+        scale = self._scale_val
+        font = cv2.FONT_HERSHEY_SIMPLEX
+        font_scale = max(0.4, scale / 1000)
+        font_thick = max(1, int(scale / 500))
+        root_plates = list(self.canvas._root_plates)
+        root_groups = list(self.canvas._root_groups)
+        trace_to_result = list(self._trace_to_result)
+
+        for ti, (path, shades, mark_indices) in enumerate(self.canvas._traces):
             if len(path) < 2:
                 continue
             if mark_indices:
@@ -415,8 +423,20 @@ class MeasurementMixin:
                 bgr = self._hex_to_bgr(shades[0])
                 pts = path[:, [1, 0]].astype(np.int32)
                 cv2.polylines(img_bgr, [pts], False, bgr, thickness=3)
+            # Add number label including dead/touching seedlings
+            ri = trace_to_result[ti] if ti < len(trace_to_result) else ti
+            plate = root_plates[ri] if ri < len(root_plates) else 0
+            group = root_groups[ri] if ri < len(root_groups) else 0
+            count = sum(1 for j in range(ri + 1)
+                        if j < len(root_plates) and j < len(root_groups)
+                        and root_plates[j] == plate and root_groups[j] == group)
+            top_row, top_col = path[0]
+            tx, ty = int(top_col), int(top_row) - 5
+            cv2.putText(img_bgr, str(count), (tx, ty), font, font_scale,
+                        (0, 0, 0), font_thick + 2, cv2.LINE_AA)
+            cv2.putText(img_bgr, str(count), (tx, ty), font, font_scale,
+                        self._hex_to_bgr(shades[0]), font_thick, cv2.LINE_AA)
         # draw scale bar in bottom-right corner
-        scale = self._scale_val  # px/cm
         bar_cm = 1.0
         bar_px = int(bar_cm * scale)
         h, w = img_bgr.shape[:2]

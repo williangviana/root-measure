@@ -621,14 +621,16 @@ class MeasurementMixin:
         conditions = [c.strip() for c in cond_text.split(",")
                       if c.strip()] if cond_text else []
 
-        # Build plate_labels and group_to_plate.
-        # Split mode: keyed by genotype color index (groups differ per half).
-        # Non-split: keyed by plate index (avoids collision when same genotype
-        #            spans multiple plates with different conditions).
+        # Build plate_labels, group_to_plate, and point_plates.
+        # Keys must be unique per (plate, genotype) combination so that
+        # different conditions on different plates don't overwrite each other.
+        # Non-split: key = plate index (one genotype per plate).
+        # Split:     key = (plate_index, geno_color_index) tuple.
         plate_labels = {}
         group_to_plate = {}
+        root_plates_list = list(self.canvas._root_plates)
+        root_groups_list = self.canvas.get_root_groups()
         if split:
-            point_plates = self.canvas.get_root_groups()
             geno_a = genotypes[0]
             geno_b = genotypes[1] if len(genotypes) >= 2 else "genotype_B"
             for pi in range(len(plates)):
@@ -636,12 +638,18 @@ class MeasurementMixin:
                     conditions[-1] if conditions else None)
                 idx_a = self._genotype_colors.get(geno_a, pi * 2)
                 idx_b = self._genotype_colors.get(geno_b, pi * 2 + 1)
-                plate_labels[idx_a] = (geno_a, cond)
-                plate_labels[idx_b] = (geno_b, cond)
-                group_to_plate[idx_a] = pi
-                group_to_plate[idx_b] = pi
+                plate_labels[(pi, idx_a)] = (geno_a, cond)
+                plate_labels[(pi, idx_b)] = (geno_b, cond)
+                group_to_plate[(pi, idx_a)] = pi
+                group_to_plate[(pi, idx_b)] = pi
+            # build point_plates with matching (plate, group) tuple keys
+            point_plates = []
+            for i in range(len(root_groups_list)):
+                pi = root_plates_list[i] if i < len(root_plates_list) else 0
+                gi = root_groups_list[i]
+                point_plates.append((pi, gi))
         else:
-            point_plates = list(self.canvas._root_plates)
+            point_plates = root_plates_list
             for pi in range(len(plates)):
                 geno = genotypes[pi] if pi < len(genotypes) else genotypes[-1]
                 cond = conditions[pi] if pi < len(conditions) else (

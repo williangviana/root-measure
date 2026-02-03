@@ -596,6 +596,7 @@ class MeasurementMixin:
 
         self.sidebar.set_step(5)  # marks all 4 steps as done (green)
         self.canvas._measurement_done = True
+        self.canvas._redraw()
         self.sidebar.btn_select_plates.configure(state="normal")
         self.sidebar.btn_click_roots.configure(state="normal")
         self.sidebar.btn_measure.configure(state="normal")

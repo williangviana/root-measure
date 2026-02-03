@@ -436,6 +436,36 @@ class MeasurementMixin:
                         (0, 0, 0), font_thick + 2, cv2.LINE_AA)
             cv2.putText(img_bgr, str(count), (tx, ty), font, font_scale,
                         self._hex_to_bgr(shades[0]), font_thick, cv2.LINE_AA)
+
+        # Draw dead/touching seedling markers
+        from canvas import GROUP_MARKER_COLORS
+        root_points = list(self.canvas._root_points)
+        root_flags = list(self.canvas._root_flags)
+        cross_size = max(8, int(scale / 50))
+        for i, ((row, col), flag) in enumerate(zip(root_points, root_flags)):
+            if flag is None:
+                continue
+            group = root_groups[i] if i < len(root_groups) else 0
+            plate = root_plates[i] if i < len(root_plates) else 0
+            count = sum(1 for j in range(i + 1)
+                        if j < len(root_plates) and j < len(root_groups)
+                        and root_plates[j] == plate and root_groups[j] == group)
+            cx, cy = int(col), int(row)
+            marker_color = GROUP_MARKER_COLORS[group % len(GROUP_MARKER_COLORS)]
+            bgr = self._hex_to_bgr(marker_color)
+            label = "DEAD" if flag == 'dead' else "TOUCH"
+            # Draw X marker
+            cv2.line(img_bgr, (cx - cross_size, cy - cross_size),
+                     (cx + cross_size, cy + cross_size), bgr, 2)
+            cv2.line(img_bgr, (cx - cross_size, cy + cross_size),
+                     (cx + cross_size, cy - cross_size), bgr, 2)
+            # Draw label
+            tx, ty = cx + cross_size + 5, cy - 5
+            cv2.putText(img_bgr, f"{count} {label}", (tx, ty), font, font_scale,
+                        (0, 0, 0), font_thick + 2, cv2.LINE_AA)
+            cv2.putText(img_bgr, f"{count} {label}", (tx, ty), font, font_scale,
+                        bgr, font_thick, cv2.LINE_AA)
+
         # draw scale bar in bottom-right corner
         bar_cm = 1.0
         bar_px = int(bar_cm * scale)

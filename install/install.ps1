@@ -1,5 +1,5 @@
 # Root Measure — One-line installer for Windows
-# Usage: powershell -ExecutionPolicy Bypass -c "irm https://raw.githubusercontent.com/williangviana/root-measure/stable/install.ps1 | iex"
+# Usage: powershell -ExecutionPolicy Bypass -c "irm https://raw.githubusercontent.com/williangviana/root-measure/stable/install/install.ps1 | iex"
 
 $ErrorActionPreference = "Stop"
 

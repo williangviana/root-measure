@@ -63,3 +63,14 @@ def roi_pad_px(scale):
 def max_click_distance_px(scale):
     """Max click-to-skeleton distance in pixels, computed from scale (px/cm)."""
     return int(MAX_CLICK_DISTANCE_CM * scale)
+
+
+# Wild-type genotype names (case-insensitive) — always plotted first (leftmost)
+WT_NAMES = {'wt', 'col-0', 'col0', 'a10.1', 'me034v'}
+
+
+def sort_genotypes_wt_first(genotypes):
+    """Sort genotypes so wild-type names come first, others keep original order."""
+    wt = [g for g in genotypes if g.lower() in WT_NAMES]
+    non_wt = [g for g in genotypes if g.lower() not in WT_NAMES]
+    return wt + non_wt

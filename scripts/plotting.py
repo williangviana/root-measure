@@ -7,6 +7,7 @@ matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 from scipy import stats
 from itertools import combinations
+from config import sort_genotypes_wt_first
 
 
 # -- bright colors for up to 30 genotypes (matches canvas trace colors) --
@@ -105,7 +106,7 @@ def _run_statistics_simple(df, value_col):
     Returns:
         dict of genotype -> CLD letter string
     """
-    genotypes = df['Genotype'].unique().tolist()
+    genotypes = sort_genotypes_wt_first(df['Genotype'].unique().tolist())
     groups = [df.loc[df['Genotype'] == g, value_col].dropna().values
               for g in genotypes]
 
@@ -138,7 +139,7 @@ def _run_statistics_factorial(df, value_col):
     Returns:
         dict of (genotype, condition) -> CLD letter string
     """
-    genotypes = df['Genotype'].unique().tolist()
+    genotypes = sort_genotypes_wt_first(df['Genotype'].unique().tolist())
     conditions = df['Condition'].unique().tolist()
 
     # build all group combinations that exist in data
@@ -348,7 +349,7 @@ def plot_results(csv_path, value_col=None, ylabel=None, csv_format='R',
     fig, ax = plt.subplots(figsize=(3.5 + (1.5 if is_factorial else 1) *
                                     len(df['Genotype'].unique()), 5))
 
-    genotypes = df['Genotype'].unique().tolist()
+    genotypes = sort_genotypes_wt_first(df['Genotype'].unique().tolist())
     positions_map = {}
 
     def _geno_color(geno, fallback_idx):

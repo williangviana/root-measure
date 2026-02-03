@@ -1,5 +1,6 @@
 import numpy as np
 import pandas as pd
+from config import sort_genotypes_wt_first
 
 
 def _build_rows(results, plate_labels, plate_offset, root_offset,
@@ -187,7 +188,7 @@ def _write_tidy_prism_simple(df, tidy_path):
         df.to_csv(tidy_path, index=False)
         return
 
-    genotypes = df['Genotype'].unique().tolist()
+    genotypes = sort_genotypes_wt_first(df['Genotype'].unique().tolist())
     data = {}
     for geno in genotypes:
         data[geno] = df.loc[df['Genotype'] == geno, 'Length_cm'].tolist()
@@ -219,7 +220,7 @@ def _write_tidy_prism_by_condition(df, tidy_path):
 
 def _write_tidy_prism_factorial(df, tidy_path):
     """Prism factorial: rows=conditions, blocks of columns per genotype."""
-    genotypes = df['Genotype'].unique().tolist()
+    genotypes = sort_genotypes_wt_first(df['Genotype'].unique().tolist())
     conditions = df['Condition'].unique().tolist()
 
     max_reps = {}

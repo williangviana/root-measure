@@ -447,7 +447,7 @@ class ImageCanvas(ctk.CTkFrame):
 
             if is_selected:
                 if self._mode == self.MODE_RECLICK:
-                    self._draw_path_segment(path, "#ff0000", w, dash=(8, 8))
+                    self._draw_path_segment(path, "#ff6666", w, dash=(4, 12))
                 else:
                     self._draw_path_segment(path, "#ff0000", w)
             elif mark_indices:

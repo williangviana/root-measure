@@ -112,6 +112,9 @@ class ImageCanvas(ctk.CTkFrame):
         self.canvas.bind("<ButtonPress-3>", self._on_right_click)
         self.canvas.bind("<MouseWheel>", self._on_scroll)
         self.canvas.bind("<Shift-MouseWheel>", self._on_scroll_h)
+        # macOS: pinch-to-zoom generates Control-MouseWheel
+        self.canvas.bind("<Control-MouseWheel>", self._on_pinch_zoom)
+        self.canvas.bind("<Option-MouseWheel>", self._on_pinch_zoom)
         # keyboard — bound at window level via bind_all in RootMeasureApp
         self.canvas.focus_set()
 
@@ -683,13 +686,26 @@ class ImageCanvas(ctk.CTkFrame):
             self._redraw()
 
     def _on_scroll(self, event):
-        """Scroll/pinch = zoom centered on cursor."""
+        """Two-finger scroll = pan vertically."""
         if self._image_np is None:
             return
-        self._do_zoom(event)
+        # macOS delta is ±1..±N per tick; multiply for smooth pan speed
+        dy = event.delta * 3
+        self._offset_y += dy
+        self._user_zoomed = True
+        self._fast_redraw()
 
     def _on_scroll_h(self, event):
-        """Horizontal scroll (Shift+MouseWheel on macOS trackpad)."""
+        """Shift + scroll = pan horizontally."""
+        if self._image_np is None:
+            return
+        dx = event.delta * 3
+        self._offset_x += dx
+        self._user_zoomed = True
+        self._fast_redraw()
+
+    def _on_pinch_zoom(self, event):
+        """Pinch-to-zoom (macOS: Ctrl+MouseWheel / Opt+MouseWheel)."""
         if self._image_np is None:
             return
         self._do_zoom(event)

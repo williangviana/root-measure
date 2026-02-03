@@ -183,18 +183,22 @@ class MeasurementMixin:
         # enter review mode
         self._show_review()
 
-    def _show_review(self):
+    def _show_review(self, skip_delay=False):
         """Show traced results and let user click bad traces to retry."""
         self.sidebar.hide_progress()
         self.sidebar.set_step(4)
         # sync trace-to-result mapping so canvas review numbering is correct
         self.canvas._trace_to_result = list(self._trace_to_result)
         # Block Enter for 500ms to prevent leftover keypresses from skipping review
-        self._review_ready = False
+        # (skip delay when returning from retrace to avoid double-enter)
+        if skip_delay:
+            self._review_ready = True
+        else:
+            self._review_ready = False
+            self.after(500, self._enable_review)
         self.canvas.set_mode(
             ImageCanvas.MODE_REVIEW,
             on_done=self._review_done)
-        self.after(500, self._enable_review)
         # Set plate info for review mode (use last plate that was measured)
         pi = getattr(self, '_current_plate_idx', 0)
         self._set_plate_info(pi)
@@ -387,8 +391,8 @@ class MeasurementMixin:
                 self._add_root_trace(i, res)
                 self._trace_to_result.append(i)
 
-        # back to review
-        self._show_review()
+        # back to review (skip delay to avoid double-enter)
+        self._show_review(skip_delay=True)
 
     def _save_trace_screenshot(self):
         """Save plate image with traced root overlays (no UI elements)."""

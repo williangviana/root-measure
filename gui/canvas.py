@@ -480,6 +480,34 @@ class ImageCanvas(ctk.CTkFrame):
                     fill=lbl_color, anchor="s",
                     font=("Helvetica", 10, "bold"))
 
+        # dead/touching seedling markers in review mode
+        if self._mode == self.MODE_REVIEW:
+            cross_s = 6
+            for i, ((row, col), flag) in enumerate(
+                    zip(self._root_points, self._root_flags)):
+                if flag is None:
+                    continue
+                group = self._root_groups[i] if i < len(self._root_groups) else 0
+                plate = self._root_plates[i] if i < len(self._root_plates) else 0
+                # Count all results 0..i with same (plate, group)
+                count = sum(1 for j in range(i + 1)
+                            if j < len(self._root_plates) and j < len(self._root_groups)
+                            and self._root_plates[j] == plate
+                            and self._root_groups[j] == group)
+                cx, cy = self.image_to_canvas(col, row)
+                marker_color = GROUP_MARKER_COLORS[group % len(GROUP_MARKER_COLORS)]
+                label = "DEAD" if flag == 'dead' else "TOUCH"
+                self.canvas.create_line(
+                    cx - cross_s, cy - cross_s, cx + cross_s, cy + cross_s,
+                    fill=marker_color, width=2)
+                self.canvas.create_line(
+                    cx - cross_s, cy + cross_s, cx + cross_s, cy - cross_s,
+                    fill=marker_color, width=2)
+                self.canvas.create_text(
+                    cx + 10, cy - 10, text=f"{count} {label}",
+                    fill=marker_color, anchor="w",
+                    font=("Helvetica", 9, "bold"))
+
         # reclick markers
         if self._mode == self.MODE_RECLICK and self._reclick_points:
             cpr = getattr(self, '_reclick_clicks_per_root', 2)

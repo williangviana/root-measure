@@ -636,7 +636,7 @@ class MeasurementMixin:
             experiment=experiment,
             genotypes=genotypes,
             conditions=conditions,
-            csv_format=self.sidebar.var_csv_format.get(),
+            csv_format='R',
             split_plate=self.sidebar.var_split.get(),
             num_marks=self._get_num_marks(),
             timestamp=datetime.now().isoformat(timespec='seconds'),

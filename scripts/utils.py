@@ -16,42 +16,6 @@ def list_images_in_folder(folder):
     return sorted(images, key=lambda p: p.name.lower())
 
 
-def select_image_from_list(images, processed=None):
-    """Display numbered list of images and let user select one.
-
-    Args:
-        images: list of Path objects
-        processed: set of Path objects that have been processed (shown with checkmark)
-
-    Returns the selected Path, or None if user wants to quit.
-    """
-    if processed is None:
-        processed = set()
-
-    done_count = len(processed)
-    total_count = len(images)
-
-    print("\n" + "=" * 50)
-    print(f"  IMAGES ({done_count}/{total_count} done)")
-    for i, img in enumerate(images, 1):
-        status = "   DONE" if img in processed else ""
-        print(f"  {i:2d}.  {img.name:<25}{status}")
-    print("  Enter number to process, or 'q' to quit")
-
-    while True:
-        choice = input("\n  Select: ").strip().lower()
-        if choice == 'q':
-            return None
-        try:
-            idx = int(choice)
-            if 1 <= idx <= len(images):
-                return images[idx - 1]
-            else:
-                print(f"  Please enter a number between 1 and {len(images)}")
-        except ValueError:
-            print("  Invalid input. Enter a number or 'q' to quit.")
-
-
 def _find_nearest_path_index(path, point):
     """Find the index of the path point closest to a given (row, col) point."""
     dists = np.sqrt(((path - np.array(point)) ** 2).sum(axis=1))

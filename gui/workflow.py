@@ -731,6 +731,8 @@ class MeasurementMixin:
             self.sidebar.set_status(
                 self.sidebar.lbl_status.cget("text") +
                 f"\nCSV save error: {e}")
+            import traceback
+            traceback.print_exc()
 
     def _run_plot(self):
         """Generate tidy_data.csv and plot from raw_data.csv."""
@@ -749,9 +751,8 @@ class MeasurementMixin:
                 self.sidebar.lbl_status.cget("text") +
                 "\nGenerating tidy data and plot...")
             self.update_idletasks()
-            csv_format = self.sidebar.var_csv_format.get()
             tidy_path = data_dir(folder, exp) / 'tidy_data.csv'
-            generate_tidy(raw_path, tidy_path, csv_format=csv_format)
+            generate_tidy(raw_path, tidy_path, csv_format='R')
             # plot from raw data (always tall/R format)
             plot_results(raw_path,
                          value_col='Length_cm',

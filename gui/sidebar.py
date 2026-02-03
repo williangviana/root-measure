@@ -269,23 +269,6 @@ class Sidebar(ctk.CTkScrollableFrame):
                      font=ctk.CTkFont(size=9),
                      text_color="gray50").pack(padx=15, anchor="w")
 
-        _label_with_tip(b, "CSV format:",
-                        "R = tidy/long format (one row per root).\n"
-                        "Prism = wide format (columns per genotype).\n"
-                        "Choose based on your analysis tool.",
-                        font=ctk.CTkFont(size=11)).pack(
-            padx=15, pady=(8, 0), anchor="w")
-        self.var_csv_format = ctk.StringVar(value="R")
-        self.menu_csv_format = ctk.CTkSegmentedButton(
-            b, values=["R", "Prism"],
-            variable=self.var_csv_format)
-        self.menu_csv_format.pack(pady=(2, 2), padx=15, fill="x")
-        self.lbl_csv_locked = ctk.CTkLabel(
-            b, text="Format locked to match existing data file",
-            font=ctk.CTkFont(size=10, slant="italic"), text_color="gray")
-        # label is packed/forgotten dynamically — reserve its slot before button
-        self._csv_locked_frame = b  # parent for re-packing
-
         self.var_plot = ctk.BooleanVar(value=True)
 
         self.btn_start_workflow = ctk.CTkButton(

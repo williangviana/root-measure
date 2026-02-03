@@ -280,7 +280,6 @@ def _collect_settings(sidebar):
         'experiment': sidebar.entry_experiment.get().strip(),
         'genotypes': sidebar.entry_genotypes.get().strip(),
         'conditions': sidebar.entry_condition.get().strip(),
-        'csv_format': sidebar.var_csv_format.get(),
         'plot': sidebar.var_plot.get(),
     }
 
@@ -350,5 +349,4 @@ def restore_settings(sidebar, settings):
     sidebar.entry_genotypes.insert(0, settings.get('genotypes', ''))
     sidebar.entry_condition.delete(0, 'end')
     sidebar.entry_condition.insert(0, settings.get('conditions', ''))
-    sidebar.var_csv_format.set(settings.get('csv_format', 'R'))
     sidebar.var_plot.set(settings.get('plot', True))

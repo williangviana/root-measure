@@ -19,8 +19,7 @@ from sidebar import Sidebar
 from workflow import MeasurementMixin
 from session import save_session, load_session, restore_settings, \
     save_last_folder, get_last_folder, save_experiment_name, \
-    get_experiment_name, save_csv_format, get_csv_format, \
-    save_persistent_settings, get_persistent_settings, \
+    get_experiment_name, save_persistent_settings, get_persistent_settings, \
     get_recent_folders, get_session_summaries, \
     session_dir, data_dir
 
@@ -242,10 +241,6 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
                     }, exp)
                 # advance sidebar to workflow
                 self.sidebar.advance_to_experiment()
-                # lock CSV format if data already written
-                if (data_dir(self.folder, exp) / 'raw_data.csv').exists():
-                    self.sidebar.menu_csv_format.configure(state="disabled")
-                    self.sidebar.lbl_csv_locked.pack(pady=(0, 8), padx=15, anchor="w")
                 self.sidebar.advance_to_workflow()
                 # restore canvas state (set_image cleared plates/roots, re-add)
                 if canvas_data.get('plates'):
@@ -524,14 +519,6 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
     def _on_next_settings(self):
         """Called when user clicks Next on image settings."""
         self.sidebar.advance_to_experiment()
-        # keep CSV locked if this experiment already has data
-        exp = self._experiment_name
-        if exp and self.folder and (data_dir(self.folder, exp) / 'raw_data.csv').exists():
-            self.sidebar.menu_csv_format.configure(state="disabled")
-            self.sidebar.lbl_csv_locked.pack(pady=(0, 8), padx=15, anchor="w")
-        else:
-            self.sidebar.menu_csv_format.configure(state="normal")
-            self.sidebar.lbl_csv_locked.pack_forget()
 
     def _on_start_workflow(self):
         """Called when user clicks Start Workflow."""
@@ -545,15 +532,7 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
                 csv_plate_off, csv_root_off = get_offsets_from_csv(csv_path)
                 self._plate_offset = max(self._plate_offset, csv_plate_off)
                 self._root_offset = max(self._root_offset, csv_root_off)
-            # check if this experiment already has data — lock CSV format
-            if csv_path.exists():
-                saved_fmt = get_csv_format(self.folder, exp)
-                if saved_fmt:
-                    self.sidebar.var_csv_format.set(saved_fmt)
-                self.sidebar.menu_csv_format.configure(state="disabled")
-                self.sidebar.lbl_csv_locked.pack(pady=(0, 8), padx=15, anchor="w")
             save_experiment_name(self.folder, exp, exp)
-            save_csv_format(self.folder, self.sidebar.var_csv_format.get(), exp)
             save_persistent_settings(self.folder, {
                 'multi_measurement': self.sidebar.var_multi.get(),
                 'segments': self.sidebar.entry_segments.get().strip(),

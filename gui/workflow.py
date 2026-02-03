@@ -195,6 +195,9 @@ class MeasurementMixin:
             ImageCanvas.MODE_REVIEW,
             on_done=self._review_done)
         self.after(500, self._enable_review)
+        # Set plate info for review mode (use last plate that was measured)
+        pi = getattr(self, '_current_plate_idx', 0)
+        self._set_plate_info(pi)
         self.canvas._fit_image()
         self.canvas._redraw()
 

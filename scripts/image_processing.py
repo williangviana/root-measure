@@ -10,8 +10,11 @@ def preprocess(image, scale=SCALE_PX_PER_CM, sensitivity='thick'):
     Automatically handles 8-bit and 16-bit images.
     Blur and threshold scale with DPI and sensitivity preset.
     """
-    max_val = 65535 if image.dtype == np.uint16 else 255
-    threshold = int(max_val * THRESHOLD_FRAC)
+    if image.dtype == np.uint16:
+        threshold = int(65535 * THRESHOLD_FRAC)
+    else:
+        # 8-bit images: roots are darker than background but not as dark as 16-bit
+        threshold = 140
     binary = (image < threshold).astype(np.uint8) * 255
     sigma = gaussian_sigma(scale, sensitivity)
     thresh = threshold_8bit(scale, sensitivity)

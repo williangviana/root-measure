@@ -342,6 +342,14 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
 
     def load_image(self, path):
         """Load and display a single image."""
+        # Exit preview mode if active
+        if getattr(self, '_preview_active', False) and path == self.image_path:
+            self._preview_active = False
+            display = _to_uint8(self.image)
+            self.canvas.set_image(display)
+            self.sidebar.set_status("Preview exited")
+            return
+        self._preview_active = False
         # If clicking the same image that's already done, restore completed view
         if (path == self.image_path and self.canvas._measurement_done
                 and path in self._processed_images):
@@ -513,6 +521,23 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
         self.sidebar.entry_dpi.delete(0, "end")
         self.sidebar.entry_dpi.insert(0, "1200")
         return SCALE_PX_PER_CM
+
+    def _preview_preprocessing(self):
+        """Show preprocessed binary image for current settings."""
+        if self.image is None:
+            self.sidebar.set_status("Load an image first")
+            return
+        from image_processing import preprocess
+        scale = self._get_scale()
+        sensitivity = self.sidebar.var_sensitivity.get()
+        threshold = self.sidebar.get_threshold()
+        binary = preprocess(self.image, scale=scale, sensitivity=sensitivity,
+                            threshold=threshold)
+        # Convert to displayable format (white roots on black)
+        display = (binary.astype(np.uint8) * 255)
+        self.canvas.set_image(display)
+        self._preview_active = True
+        self.sidebar.set_status("Preview mode - adjust settings and preview again, or click an image to exit")
 
     # --- Sidebar phase callbacks ---
 

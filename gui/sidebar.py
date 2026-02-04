@@ -212,6 +212,12 @@ class Sidebar(ctk.CTkScrollableFrame):
         self.lbl_thresh_val.pack(side="left")
         self.slider_thresh.configure(command=self._on_thresh_change)
 
+        self.btn_preview = ctk.CTkButton(
+            b, text="Preview", width=80, height=28,
+            fg_color="#555555",
+            command=lambda: app._preview_preprocessing())
+        self.btn_preview.pack(pady=(5, 8), padx=15, anchor="w")
+
         self.var_multi = ctk.BooleanVar(value=False)
         _row_multi = ctk.CTkFrame(b, fg_color="transparent")
         _row_multi.pack(pady=5, padx=15, anchor="w")

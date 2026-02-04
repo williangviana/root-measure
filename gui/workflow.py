@@ -104,8 +104,10 @@ class MeasurementMixin:
         self.sidebar.set_step(3)
         self.update()
 
+        self._threshold = self.sidebar.get_threshold()
         self._binary = preprocess(self.image, scale=self._scale_val,
-                                  sensitivity=self._sensitivity)
+                                  sensitivity=self._sensitivity,
+                                  threshold=self._threshold)
 
         self.canvas.clear_traces()
         self._results = []
@@ -337,8 +339,10 @@ class MeasurementMixin:
         if not hasattr(self, '_binary') or self._binary is None:
             self.sidebar.set_status("Preprocessing...")
             self.update()
+            self._threshold = self.sidebar.get_threshold()
             self._binary = preprocess(self.image, scale=self._scale_val,
-                                      sensitivity=self._sensitivity)
+                                      sensitivity=self._sensitivity,
+                                      threshold=self._threshold)
         cpr = self._reclick_clicks_per_root
         groups = self.canvas.get_reclick_groups(cpr)
         self.canvas.set_mode(ImageCanvas.MODE_VIEW)

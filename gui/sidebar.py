@@ -185,6 +185,33 @@ class Sidebar(ctk.CTkScrollableFrame):
             variable=self.var_sensitivity)
         self.menu_sensitivity.pack(pady=(2, 8), padx=15, fill="x")
 
+        _label_with_tip(b, "Threshold:",
+                        "Controls root detection sensitivity.\n"
+                        "Auto = automatic detection (recommended).\n"
+                        "Drag slider to adjust manually if roots\n"
+                        "are missing or background noise appears.",
+                        font=ctk.CTkFont(size=11)).pack(padx=15, anchor="w")
+        self._thresh_frame = ctk.CTkFrame(b, fg_color="transparent")
+        self._thresh_frame.pack(pady=(2, 8), padx=15, fill="x")
+        self.var_auto_thresh = ctk.BooleanVar(value=True)
+        self.chk_auto_thresh = ctk.CTkCheckBox(
+            self._thresh_frame, text="Auto", width=60,
+            variable=self.var_auto_thresh,
+            command=self._toggle_threshold,
+            font=ctk.CTkFont(size=11))
+        self.chk_auto_thresh.pack(side="left")
+        self.slider_thresh = ctk.CTkSlider(
+            self._thresh_frame, from_=50, to=200, number_of_steps=150,
+            width=120)
+        self.slider_thresh.set(140)
+        self.slider_thresh.pack(side="left", padx=(5, 5))
+        self.slider_thresh.configure(state="disabled")
+        self.lbl_thresh_val = ctk.CTkLabel(
+            self._thresh_frame, text="140", width=30,
+            font=ctk.CTkFont(size=11))
+        self.lbl_thresh_val.pack(side="left")
+        self.slider_thresh.configure(command=self._on_thresh_change)
+
         self.var_multi = ctk.BooleanVar(value=False)
         _row_multi = ctk.CTkFrame(b, fg_color="transparent")
         _row_multi.pack(pady=5, padx=15, anchor="w")
@@ -371,6 +398,23 @@ class Sidebar(ctk.CTkScrollableFrame):
             self.frame_segments.pack(pady=(0, 8), fill="x")
         else:
             self.frame_segments.pack_forget()
+
+    def _toggle_threshold(self):
+        if self.var_auto_thresh.get():
+            self.slider_thresh.configure(state="disabled")
+            self.lbl_thresh_val.configure(text_color="gray50")
+        else:
+            self.slider_thresh.configure(state="normal")
+            self.lbl_thresh_val.configure(text_color=("gray10", "gray90"))
+
+    def _on_thresh_change(self, val):
+        self.lbl_thresh_val.configure(text=str(int(val)))
+
+    def get_threshold(self):
+        """Return threshold value or None for auto-detect."""
+        if self.var_auto_thresh.get():
+            return None
+        return int(self.slider_thresh.get())
 
     def set_status(self, text):
         self.lbl_status.configure(text=text)

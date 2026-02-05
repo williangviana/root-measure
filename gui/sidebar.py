@@ -119,42 +119,32 @@ class _Section:
         self.frame.pack_forget()
 
 
-class Sidebar(ctk.CTkFrame):
-    """Left sidebar with fixed header and scrollable content."""
+class Sidebar(ctk.CTkScrollableFrame):
+    """Left sidebar with progressive, collapsible sections."""
 
     def __init__(self, parent, app, **kwargs):
-        super().__init__(parent, width=280, **kwargs)
+        # Make scrollbar subtle - blend with background until hovered
+        super().__init__(parent, width=280,
+                         scrollbar_button_color="gray20",
+                         scrollbar_button_hover_color="gray40",
+                         **kwargs)
         self.app = app
 
-        # --- Fixed Header ---
-        self._header = ctk.CTkFrame(self, fg_color="transparent")
-        self._header.pack(fill="x")
-        ctk.CTkLabel(self._header, text="Root Measuring Tool",
+        # --- Header ---
+        ctk.CTkLabel(self, text="Root Measuring Tool",
                      font=ctk.CTkFont(size=18, weight="bold")).pack(
             pady=(15, 0), padx=15, anchor="w")
-        ctk.CTkLabel(self._header, text="Willian Viana — Dinneny Lab",
+        ctk.CTkLabel(self, text="Willian Viana — Dinneny Lab",
                      font=ctk.CTkFont(size=11, weight="bold"),
                      text_color="gray").pack(padx=15, pady=(2, 0), anchor="w")
-        ctk.CTkLabel(self._header, text="Contact: williangviana@outlook.com",
+        ctk.CTkLabel(self, text="Contact: williangviana@outlook.com",
                      font=ctk.CTkFont(size=11),
                      text_color="gray50").pack(padx=15, anchor="w")
-        ctk.CTkFrame(self._header, height=1, fg_color="gray30").pack(
-            fill="x", padx=15, pady=8)
 
-        # --- Scrollable Content ---
-        self._content = ctk.CTkScrollableFrame(
-            self, width=280,
-            scrollbar_button_color="gray20",
-            scrollbar_button_hover_color="gray40",
-            fg_color="transparent")
-        self._content.pack(fill="both", expand=True)
-
-        # Enable scrolling anywhere in content area
-        self._content.bind("<Enter>", self._bind_scroll)
-        self._content.bind("<Leave>", self._unbind_scroll)
+        self._add_separator()
 
         # ===== SECTION: FOLDER =====
-        self.sec_folder = _Section(self._content, "FOLDER")
+        self.sec_folder = _Section(self, "FOLDER")
         self.sec_folder.show()
         b = self.sec_folder.body
         self.btn_load_folder = ctk.CTkButton(
@@ -162,12 +152,12 @@ class Sidebar(ctk.CTkFrame):
         self.btn_load_folder.pack(pady=5, padx=15, fill="x")
 
         # ===== SECTION: SAVED SESSIONS =====
-        self.sec_sessions = _Section(self._content, "SAVED SESSIONS")
+        self.sec_sessions = _Section(self, "SAVED SESSIONS")
         # hidden until populated
         self._session_buttons = []
 
         # ===== SECTION: IMAGES =====
-        self.sec_images = _Section(self._content, "SCANNED PLATES")
+        self.sec_images = _Section(self, "SCANNED PLATES")
         # hidden until folder loaded
         self._image_list_frame = None
         self.btn_finish_plot = ctk.CTkButton(
@@ -177,7 +167,7 @@ class Sidebar(ctk.CTkFrame):
         # hidden until at least one image is processed
 
         # ===== SECTION: IMAGE SETTINGS =====
-        self.sec_settings = _Section(self._content, "SCAN SETTINGS")
+        self.sec_settings = _Section(self, "SCAN SETTINGS")
         b = self.sec_settings.body
 
         # Row 1: Plates > Genotypes > Segments
@@ -290,7 +280,7 @@ class Sidebar(ctk.CTkFrame):
         self.btn_next_settings.pack(pady=(10, 5), padx=15, fill="x")
 
         # ===== SECTION: EXPERIMENT =====
-        self.sec_experiment = _Section(self._content, "EXPERIMENT")
+        self.sec_experiment = _Section(self, "EXPERIMENT")
         b = self.sec_experiment.body
 
         _label_with_tip(b, "Experiment name:",
@@ -334,7 +324,7 @@ class Sidebar(ctk.CTkFrame):
         self.btn_start_workflow.pack(pady=(10, 5), padx=15, fill="x")
 
         # ===== SECTION: WORKFLOW =====
-        self.sec_workflow = _Section(self._content, "WORKFLOW")
+        self.sec_workflow = _Section(self, "WORKFLOW")
         b = self.sec_workflow.body
 
         # step button style constants
@@ -370,7 +360,7 @@ class Sidebar(ctk.CTkFrame):
         ]
 
         # --- Status area (always visible at bottom of sidebar) ---
-        self._status_frame = ctk.CTkFrame(self._content, fg_color="transparent")
+        self._status_frame = ctk.CTkFrame(self, fg_color="transparent")
         self._status_frame.pack(fill="x", pady=(15, 5))
 
         self.lbl_status = ctk.CTkLabel(
@@ -400,35 +390,8 @@ class Sidebar(ctk.CTkFrame):
 
     # --- helpers ---
 
-    def _bind_scroll(self, event=None):
-        """Bind mousewheel when entering sidebar."""
-        self.bind_all("<MouseWheel>", self._on_mousewheel)
-        self.bind_all("<Button-4>", self._on_mousewheel)
-        self.bind_all("<Button-5>", self._on_mousewheel)
-
-    def _unbind_scroll(self, event=None):
-        """Unbind mousewheel when leaving sidebar."""
-        self.unbind_all("<MouseWheel>")
-        self.unbind_all("<Button-4>")
-        self.unbind_all("<Button-5>")
-
-    def _on_mousewheel(self, event):
-        """Handle mousewheel scroll anywhere in sidebar."""
-        # Get the canvas from CTkScrollableFrame
-        if hasattr(self._content, '_parent_canvas'):
-            canvas = self._content._parent_canvas
-        else:
-            return
-        # macOS uses event.delta, Linux uses event.num
-        if event.delta:
-            canvas.yview_scroll(int(-event.delta / 2), "units")
-        elif event.num == 4:
-            canvas.yview_scroll(-1, "units")
-        elif event.num == 5:
-            canvas.yview_scroll(1, "units")
-
     def _add_separator(self):
-        ctk.CTkFrame(self._content, height=1, fg_color="gray30").pack(
+        ctk.CTkFrame(self, height=1, fg_color="gray30").pack(
             fill="x", padx=15, pady=8)
 
     def _toggle_segments(self):

@@ -18,7 +18,8 @@
       "Bash(git config:*)",
       "Bash(ls:*)",
       "Bash(grep:*)",
-      "Bash(python:*)"
+      "Bash(python:*)",
+      "Bash(git revert:*)"
     ]
   }
 }

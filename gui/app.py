@@ -439,22 +439,23 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
             # restore settings from previous scan
             if self.folder:
                 ps = get_persistent_settings(self.folder, self._experiment_name)
-                if ps.get('multi_measurement'):
-                    self.sidebar.var_multi.set(True)
-                    self.sidebar._toggle_segments()
-                    segs = ps.get('segments', '')
-                    # Only insert if > 1, else leave placeholder
-                    if segs and segs != '1':
-                        self.sidebar.entry_segments.delete(0, 'end')
-                        self.sidebar.entry_segments.insert(0, segs)
-                geno_per_plate = ps.get('genotypes_per_plate', 2 if ps.get('split_plate') else 1)
-                if geno_per_plate > 1:
-                    self.sidebar.entry_genotypes_per_plate.delete(0, 'end')
-                    self.sidebar.entry_genotypes_per_plate.insert(0, str(geno_per_plate))
-                num_plates = ps.get('num_plates')
-                if num_plates and num_plates > 1:
+                if ps:
+                    # Restore all three fields with their saved values
+                    num_plates = ps.get('num_plates', 1)
                     self.sidebar.entry_num_plates.delete(0, 'end')
                     self.sidebar.entry_num_plates.insert(0, str(num_plates))
+
+                    geno_per_plate = ps.get('genotypes_per_plate', 1)
+                    self.sidebar.entry_genotypes_per_plate.delete(0, 'end')
+                    self.sidebar.entry_genotypes_per_plate.insert(0, str(geno_per_plate))
+
+                    segs = ps.get('segments', '1') or '1'
+                    self.sidebar.entry_segments.delete(0, 'end')
+                    self.sidebar.entry_segments.insert(0, segs)
+
+                    if ps.get('multi_measurement'):
+                        self.sidebar.var_multi.set(True)
+                        self.sidebar._toggle_segments()
 
             dpi_src = "detected" if detected else "default"
             self.sidebar.set_status(

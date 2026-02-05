@@ -721,7 +721,7 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
         if getattr(self, '_results', None):
             plates = self.canvas.get_plates()
             self._save_results(self._results, plates, self._scale_val, silent=True)
-            self._save_trace_screenshot()
+            self._save_trace_screenshot(silent=True)
             self._save_metadata()
         if self.image_path:
             self._processed_images.add(self.image_path)

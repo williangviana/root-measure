@@ -428,7 +428,7 @@ class MeasurementMixin:
         self.canvas.set_mode(ImageCanvas.MODE_VIEW)
         self._finish_measurement()
 
-    def _save_trace_screenshot(self):
+    def _save_trace_screenshot(self, silent=False):
         """Save plate image with traced root overlays (no UI elements)."""
         folder = self.folder
         if not folder and self.image_path:
@@ -543,9 +543,10 @@ class MeasurementMixin:
         out_path = traces_dir(folder, exp) / f'{self.image_path.stem}_traces.png'
         out_path.parent.mkdir(parents=True, exist_ok=True)
         cv2.imwrite(str(out_path), img_bgr)
-        self.sidebar.set_status(
-            self.sidebar.lbl_status.cget("text") +
-            f"\nScreenshot: {out_path.name}")
+        if not silent:
+            self.sidebar.set_status(
+                self.sidebar.lbl_status.cget("text") +
+                f"\nScreenshot: {out_path.name}")
 
     @staticmethod
     def _hex_to_bgr(hex_color):

@@ -346,16 +346,16 @@ def plot_results(csv_path, value_col=None, ylabel=None, csv_format='R',
     print("\n  Letters:", cld)
 
     # generate plot - dynamic width based on number of groups
-    # Each box should be ~0.8 inches wide for publication quality
+    # Narrow boxes for publication quality
     n_genotypes = len(df['Genotype'].unique())
     if is_factorial:
         n_conditions = len(df['Condition'].unique())
-        n_boxes = n_conditions  # boxes grouped by condition
-        fig_width = 1.5 + n_boxes * 1.2 + 1.0  # margin + boxes + legend space
+        n_boxes = n_conditions
+        fig_width = 1.2 + n_boxes * 0.8 + 0.8  # margin + boxes + legend space
     else:
         n_boxes = n_genotypes
-        fig_width = 1.0 + n_boxes * 0.9  # margin + boxes (no legend needed)
-    fig_width = max(fig_width, 3.0)  # minimum width
+        fig_width = 0.8 + n_boxes * 0.6  # margin + boxes
+    fig_width = max(fig_width, 2.5)  # minimum width
     fig, ax = plt.subplots(figsize=(fig_width, 5))
 
     genotypes = sort_genotypes_wt_first(df['Genotype'].unique().tolist())

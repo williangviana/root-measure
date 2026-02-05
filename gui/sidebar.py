@@ -400,6 +400,11 @@ class Sidebar(ctk.CTkScrollableFrame):
         self.btn_stop.pack_forget()
         self.btn_continue_later_mid.pack_forget()
 
+    def _ensure_action_frame_at_bottom(self):
+        """Re-pack action frame to ensure it stays at the very bottom."""
+        self._action_frame.pack_forget()
+        self._action_frame.pack(fill="x", pady=(5, 10))
+
     def _add_separator(self):
         ctk.CTkFrame(self, height=1, fg_color="gray30").pack(
             fill="x", padx=15, pady=8)

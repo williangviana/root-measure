@@ -625,9 +625,15 @@ class Sidebar(ctk.CTkScrollableFrame):
         self.sec_experiment.collapse(summary=summary)
         self.sec_workflow.show()
         self.sec_workflow.expand()
-        self.btn_select_plates.configure(state="normal")
+        # Update button text based on number of plates
+        try:
+            num_plates = int(self.entry_num_plates.get().strip() or "1")
+        except (ValueError, TypeError):
+            num_plates = 1
+        plate_word = "Plate" if num_plates == 1 else "Plates"
+        self.btn_select_plates.configure(state="normal", text=f"1. Select {plate_word}")
         self.btn_click_roots.configure(state="disabled")
         self.btn_measure.configure(state="disabled")
         self.btn_review.configure(state="disabled")
         self.set_step(1)
-        self.set_status("Ready. Select plates to begin.")
+        self.set_status(f"Ready. Select {plate_word.lower()} to begin.")

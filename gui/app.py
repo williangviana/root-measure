@@ -778,11 +778,11 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
 
     def _on_plate_added(self):
         """Show Done button when first plate is drawn, auto-advance if expected count reached."""
-        plates = self.canvas.get_plates()
-        num_plates = len(plates)
-        if self.canvas._pending_plate:
-            num_plates += 1
-        if num_plates > 0:
+        confirmed_plates = self.canvas.get_plates()
+        num_confirmed = len(confirmed_plates)
+        num_with_pending = num_confirmed + (1 if self.canvas._pending_plate else 0)
+
+        if num_with_pending > 0:
             # Check expected number of plates
             try:
                 expected = int(self.sidebar.entry_num_plates.get().strip() or "1")
@@ -793,13 +793,16 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
             if expected == 1:
                 # Single plate - show confirm button
                 btn_text = "Confirm Plate"
-            elif num_plates < expected:
+            elif num_with_pending < expected:
                 # Multiple plates - show progress
-                btn_text = f"Plate {num_plates}/{expected}"
-            else:
-                # All plates drawn - auto-advance
+                btn_text = f"Plate {num_with_pending}/{expected}"
+            elif num_confirmed >= expected:
+                # All plates CONFIRMED (not just drawn) - auto-advance
                 self.after(100, self._plates_done)
                 return
+            else:
+                # All plates drawn but pending not yet confirmed
+                btn_text = f"Confirm Plate {num_with_pending}/{expected}"
 
             self.sidebar.btn_done.configure(text=btn_text)
             self.sidebar.btn_done.pack_forget()

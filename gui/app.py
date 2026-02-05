@@ -484,6 +484,14 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
 
     # --- Settings helpers ---
 
+    def _ordinal(self, n):
+        """Return ordinal string for n (1st, 2nd, 3rd, etc.)."""
+        if 11 <= n % 100 <= 13:
+            suffix = "th"
+        else:
+            suffix = {1: "st", 2: "nd", 3: "rd"}.get(n % 10, "th")
+        return f"{n}{suffix}"
+
     def _get_num_marks(self):
         """Get number of marks per root from sidebar (0 if multi-measurement off)."""
         if not self.sidebar.var_multi.get():
@@ -862,7 +870,7 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
         is_last = (pi == len(plates) - 1) and (not self._split or self._split_stage == 1)
         num_marks = self._get_num_marks()
         if num_marks > 0:
-            btn_text = "Click Segments"
+            btn_text = "Click 1st Segments"
         elif is_last:
             btn_text = "Start Trace"
         else:
@@ -939,10 +947,6 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
         self.canvas.zoom_to_region(r1, r2, c1, c2)
         self._hide_action_buttons()
         self._show_action_frame()
-        # Determine button text based on what's next
-        is_last = (pi == len(plates) - 1) and (not self._split or self._split_stage == 1)
-        btn_text = "Start Trace" if is_last else "Next Plate"
-        self.sidebar.btn_done.configure(text=btn_text)
         self.sidebar.btn_done.pack(pady=(5, 0), padx=15, fill="x")
         self.btn_continue_later_mid.pack(pady=(10, 5), padx=15, fill="x")
         self.sidebar.set_step(2)
@@ -989,11 +993,6 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
             ImageCanvas.MODE_CLICK_MARKS,
             on_done=self._plate_marks_done)
         self.canvas.zoom_to_region(r1, r2, c1, c2)
-        # Determine button text based on what's next
-        plates = self.canvas.get_plates()
-        is_last = (pi == len(plates) - 1) and (not self._split or self._split_stage == 1)
-        btn_text = "Start Trace" if is_last else "Next Plate"
-        self.sidebar.btn_done.configure(text=btn_text)
         self.sidebar.btn_done.pack_forget()
         self.sidebar.btn_done.pack(pady=(5, 0), padx=15, fill="x")
         self._update_marks_status()
@@ -1001,16 +1000,19 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
             text="Click=place mark  |  Right-click=undo  |  Scroll=zoom")
 
     def _update_marks_status(self):
-        """Update status bar with marks progress."""
+        """Update status bar and button with marks progress."""
         pi = self._current_plate_idx
+        plates = self.canvas.get_plates()
         num_marks = self._get_num_marks()
         n_roots = len(self._marks_plate_roots)
         expected = self.canvas._marks_expected
         placed = len(self.canvas.get_mark_points())
+        is_last_plate = (pi == len(plates) - 1) and (not self._split or self._split_stage == 1)
         if placed >= expected:
             self.sidebar.set_status(
                 f"Plate {pi + 1} — All {expected} mark(s) placed.\n"
                 "Press Enter to continue.")
+            btn_text = "Start Trace" if is_last_plate else "Next Plate"
         else:
             current_root_seq = placed // num_marks
             current_mark_in_root = placed % num_marks + 1
@@ -1024,6 +1026,10 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
                 f"Root {root_label}/{n_roots}, "
                 f"mark {current_mark_in_root}/{num_marks}.\n"
                 "Right-click=undo. Enter when all placed.")
+            # Mark number + 1 because roots are "1st segments"
+            ordinal = self._ordinal(current_mark_in_root + 1)
+            btn_text = f"Click {ordinal} Segments"
+        self.sidebar.btn_done.configure(text=btn_text)
 
     def _plate_marks_done(self):
         """Called when user presses Enter after clicking marks for a plate."""

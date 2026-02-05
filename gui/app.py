@@ -717,10 +717,10 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
 
     def next_image(self):
         """Return to image selection after finishing measurement."""
-        # re-save CSV/screenshot/metadata in case retrace changed results
+        # re-save CSV/screenshot/metadata in case retrace changed results (silent to avoid duplicate status)
         if getattr(self, '_results', None):
             plates = self.canvas.get_plates()
-            self._save_results(self._results, plates, self._scale_val)
+            self._save_results(self._results, plates, self._scale_val, silent=True)
             self._save_trace_screenshot()
             self._save_metadata()
         if self.image_path:

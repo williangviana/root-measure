@@ -677,16 +677,17 @@ class MeasurementMixin:
             timestamp=datetime.now().isoformat(timespec='seconds'),
         )
 
-    def _save_results(self, results, plates, scale):
-        """Save measurement results to CSV."""
+    def _save_results(self, results, plates, scale, silent=False):
+        """Save measurement results to CSV. If silent=True, don't update status."""
         from csv_output import get_offsets_from_csv
         folder = self.folder
         if not folder and self.image_path:
             folder = self.image_path.parent
         if not folder:
-            self.sidebar.set_status(
-                self.sidebar.lbl_status.cget("text") +
-                "\nNo folder set — could not save CSV.")
+            if not silent:
+                self.sidebar.set_status(
+                    self.sidebar.lbl_status.cget("text") +
+                    "\nNo folder set — could not save CSV.")
             return
 
         exp = getattr(self, '_experiment_name', '')
@@ -759,13 +760,15 @@ class MeasurementMixin:
                 group_to_plate=group_to_plate)
             self._plate_offset = new_plate_offset
             self._root_offset = new_root_offset
-            self.sidebar.set_status(
-                self.sidebar.lbl_status.cget("text") +
-                f"\nSaved to {csv_path}")
+            if not silent:
+                self.sidebar.set_status(
+                    self.sidebar.lbl_status.cget("text") +
+                    f"\nSaved to {csv_path}")
         except Exception as e:
-            self.sidebar.set_status(
-                self.sidebar.lbl_status.cget("text") +
-                f"\nCSV save error: {e}")
+            if not silent:
+                self.sidebar.set_status(
+                    self.sidebar.lbl_status.cget("text") +
+                    f"\nCSV save error: {e}")
             import traceback
             traceback.print_exc()
 

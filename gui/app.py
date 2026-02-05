@@ -563,9 +563,9 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
             # Adjust based on sensitivity: thin roots need higher threshold
             sensitivity = self.sidebar.var_sensitivity.get()
             if sensitivity == 'thin':
-                otsu_thresh = min(255, otsu_thresh + 30)
+                otsu_thresh = min(255, otsu_thresh + 45)
             elif sensitivity == 'medium':
-                otsu_thresh = min(255, otsu_thresh + 15)
+                otsu_thresh = min(255, otsu_thresh + 25)
             # thick: use Otsu value as-is
 
             self.sidebar.set_auto_threshold_value(int(otsu_thresh))

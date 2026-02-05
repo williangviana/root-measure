@@ -190,7 +190,7 @@ class Sidebar(ctk.CTkScrollableFrame):
             command=self._on_sensitivity_change)
         self.menu_sensitivity.pack(pady=(2, 8), padx=15, fill="x")
 
-        _label_with_tip(b, "Detection:",
+        _label_with_tip(b, "Root detection:",
                         "Click Preview to see detected roots.\n"
                         "Adjust slider until the full root is visible.\n"
                         "Lower = detect more (may add noise).\n"

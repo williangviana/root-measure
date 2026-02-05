@@ -223,10 +223,11 @@ class MeasurementMixin:
         if n_with_segs:
             msg += f"\n{n_with_segs} root(s) with segments."
         msg += "\nClick a bad trace to select for retry."
-        msg += "\nDone = accept / retry selected."
         self.sidebar.set_status(msg)
         self._hide_action_buttons()
         self._show_action_frame()
+        self.sidebar.btn_done.configure(text="Accept All")
+        self.canvas._on_click_callback = self._update_review_button
         self.sidebar.btn_done.pack(pady=(5, 0), padx=15, fill="x")
         self.btn_continue_later_mid.pack(pady=(10, 5), padx=15, fill="x")
         self.lbl_bottom.configure(
@@ -235,6 +236,14 @@ class MeasurementMixin:
 
     def _enable_review(self):
         self._review_ready = True
+
+    def _update_review_button(self):
+        """Update review button text based on selection."""
+        selected = self.canvas.get_selected_for_retry()
+        if selected:
+            self.sidebar.btn_done.configure(text=f"Retry {len(selected)} Selected")
+        else:
+            self.sidebar.btn_done.configure(text="Accept All")
 
     def _review_done(self):
         """Called when user presses Enter in review mode."""
@@ -289,6 +298,11 @@ class MeasurementMixin:
         self._show_reclick_status()
         self._hide_action_buttons()
         self._show_action_frame()
+        # Update button text based on progress
+        n = len(self._retry_result_indices)
+        is_last = self._reclick_idx >= n - 1
+        btn_text = "Finish" if is_last else "Next Root"
+        self.sidebar.btn_done.configure(text=btn_text)
         self.sidebar.btn_done.pack(pady=(5, 0), padx=15, fill="x")
         self.btn_continue_later_mid.pack(pady=(10, 5), padx=15, fill="x")
 
@@ -305,10 +319,13 @@ class MeasurementMixin:
             click_desc = f"click {nums} (top to bottom)"
             bottom_text = f"Click {nums} (top to bottom)"
         self.sidebar.set_status(
-            f"Re-click root {pi}/{n}: click {click_desc}.\n"
-            "Right-click=undo. Enter=confirm.")
+            f"Re-click root {pi}/{n}: {click_desc}.")
         self.lbl_bottom.configure(
-            text=f"{bottom_text}  |  Right-click=undo  |  Enter=confirm  |  Scroll=zoom")
+            text=f"{bottom_text}  |  Right-click=undo  |  Scroll=zoom")
+        # Update button text
+        is_last = self._reclick_idx >= n - 1
+        btn_text = "Finish" if is_last else "Next Root"
+        self.sidebar.btn_done.configure(text=btn_text)
 
     def _reclick_enter(self):
         """Called when user presses Enter during reclick."""

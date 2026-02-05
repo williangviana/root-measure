@@ -768,6 +768,7 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
     def _on_plate_added(self):
         """Show Done button when first plate is drawn."""
         if self.canvas.get_plates() or self.canvas._pending_plate:
+            self.sidebar.btn_done.configure(text="Confirm Plates")
             self.sidebar.btn_done.pack_forget()
             self.sidebar.btn_done.pack(pady=(5, 0), padx=15, fill="x")
 
@@ -859,7 +860,10 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
             "Click root tops. D+Click=dead, T+Click=touching.")
         self.lbl_bottom.configure(
             text="Click=root top  |  D+Click=dead  |  T+Click=touching  |  Right-click=undo  |  Scroll=zoom")
-        # Always show Done button in root click stage (user can advance even with 0 roots)
+        # Determine button text based on what's next
+        is_last = (pi == len(plates) - 1) and (not self._split or self._split_stage == 1)
+        btn_text = "Start Trace" if is_last else "Next Plate"
+        self.sidebar.btn_done.configure(text=btn_text)
         self.sidebar.btn_done.pack_forget()
         self.sidebar.btn_done.pack(pady=(5, 0), padx=15, fill="x")
 
@@ -931,6 +935,10 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
         self.canvas.zoom_to_region(r1, r2, c1, c2)
         self._hide_action_buttons()
         self._show_action_frame()
+        # Determine button text based on what's next
+        is_last = (pi == len(plates) - 1) and (not self._split or self._split_stage == 1)
+        btn_text = "Start Trace" if is_last else "Next Plate"
+        self.sidebar.btn_done.configure(text=btn_text)
         self.sidebar.btn_done.pack(pady=(5, 0), padx=15, fill="x")
         self.btn_continue_later_mid.pack(pady=(10, 5), padx=15, fill="x")
         self.sidebar.set_step(2)
@@ -977,7 +985,11 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
             ImageCanvas.MODE_CLICK_MARKS,
             on_done=self._plate_marks_done)
         self.canvas.zoom_to_region(r1, r2, c1, c2)
-        # Ensure Done button is shown
+        # Determine button text based on what's next
+        plates = self.canvas.get_plates()
+        is_last = (pi == len(plates) - 1) and (not self._split or self._split_stage == 1)
+        btn_text = "Start Trace" if is_last else "Next Plate"
+        self.sidebar.btn_done.configure(text=btn_text)
         self.sidebar.btn_done.pack_forget()
         self.sidebar.btn_done.pack(pady=(5, 0), padx=15, fill="x")
         self._update_marks_status()

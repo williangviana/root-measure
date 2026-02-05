@@ -264,6 +264,10 @@ def load_session(session_path):
 
 
 def _collect_settings(sidebar):
+    try:
+        num_plates = int(sidebar.entry_num_plates.get().strip() or "1")
+    except (ValueError, TypeError):
+        num_plates = 1
     return {
         'dpi': sidebar.entry_dpi.get().strip(),
         'sensitivity': sidebar.var_sensitivity.get(),
@@ -271,6 +275,7 @@ def _collect_settings(sidebar):
         'segments': sidebar.entry_segments.get().strip(),
         'split_plate': sidebar.is_split_plate(),
         'genotypes_per_plate': sidebar.get_genotypes_per_plate(),
+        'num_plates': num_plates,
         'experiment': sidebar.entry_experiment.get().strip(),
         'genotypes': sidebar.entry_genotypes.get().strip(),
         'conditions': sidebar.entry_condition.get().strip(),
@@ -329,12 +334,21 @@ def restore_settings(sidebar, settings):
     sidebar.entry_dpi.insert(0, settings.get('dpi', ''))
     sidebar.var_sensitivity.set(settings.get('sensitivity', 'medium'))
     sidebar.var_multi.set(settings.get('multi_measurement', False))
+    # Restore segments (only if > 1, else leave placeholder)
     sidebar.entry_segments.delete(0, 'end')
-    sidebar.entry_segments.insert(0, settings.get('segments', ''))
-    # Restore genotypes per plate
+    segs = settings.get('segments', '')
+    if segs and segs != '1':
+        sidebar.entry_segments.insert(0, segs)
+    # Restore genotypes per plate (only if > 1, else leave placeholder)
     geno_per_plate = settings.get('genotypes_per_plate', 2 if settings.get('split_plate') else 1)
     sidebar.entry_genotypes_per_plate.delete(0, 'end')
-    sidebar.entry_genotypes_per_plate.insert(0, str(geno_per_plate))
+    if geno_per_plate > 1:
+        sidebar.entry_genotypes_per_plate.insert(0, str(geno_per_plate))
+    # Restore number of plates (only if > 1, else leave placeholder)
+    num_plates = settings.get('num_plates', 1)
+    sidebar.entry_num_plates.delete(0, 'end')
+    if num_plates > 1:
+        sidebar.entry_num_plates.insert(0, str(num_plates))
     sidebar.entry_experiment.delete(0, 'end')
     sidebar.entry_experiment.insert(0, settings.get('experiment', ''))
     # restore genotypes and conditions so re-save after review works

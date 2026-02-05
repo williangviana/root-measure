@@ -358,8 +358,13 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
             self.sidebar.set_status(f"No scans found in {self.folder.name}")
             return
 
+        # Reset all experiment state for new folder
         self._experiment_name = ''
-        self._genotype_colors = {}  # reset color registry for new folder
+        self._genotype_colors = {}
+        self._processed_images = set()
+        self._plate_offset = 0
+        self._root_offset = 0
+        self._image_canvas_data = {}
         self.sidebar.advance_to_images(self.folder.name, self.images)
         # show this folder's sessions (if any) so user can click to resume
         sessions = get_session_summaries(self.folder)
@@ -438,7 +443,8 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
                     self.sidebar.var_multi.set(True)
                     self.sidebar._toggle_segments()
                     segs = ps.get('segments', '')
-                    if segs:
+                    # Only insert if > 1, else leave placeholder
+                    if segs and segs != '1':
                         self.sidebar.entry_segments.delete(0, 'end')
                         self.sidebar.entry_segments.insert(0, segs)
                 geno_per_plate = ps.get('genotypes_per_plate', 2 if ps.get('split_plate') else 1)

@@ -566,7 +566,7 @@ class Sidebar(ctk.CTkScrollableFrame):
         self.sec_settings.hide()
         self.sec_experiment.hide()
         self.sec_workflow.hide()
-        self.hide_action_buttons()
+        self.app._hide_action_buttons()
         n_done = len(processed)
         n_total = len(images)
         if n_done > 0:

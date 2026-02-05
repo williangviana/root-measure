@@ -709,7 +709,7 @@ class MeasurementMixin:
                      if g.strip()] if geno_text else ["genotype"]
         cond_text = self.sidebar.entry_condition.get().strip()
         conditions = [c.strip() for c in cond_text.split(",")
-                      if c.strip()] if cond_text else []
+                      if c.strip()] if cond_text else ["Control"]
 
         # Build plate_labels, group_to_plate, and point_plates.
         # Keys must be unique per (plate, genotype) combination so that

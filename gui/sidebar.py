@@ -255,7 +255,8 @@ class Sidebar(ctk.CTkScrollableFrame):
         self.chk_split = ctk.CTkCheckBox(
             _row_split, text="Split plate",
             variable=self.var_split,
-            font=ctk.CTkFont(size=11))
+            font=ctk.CTkFont(size=11),
+            width=0)
         self.chk_split.pack(side="left")
         _q2 = ctk.CTkLabel(_row_split, text="(?)", font=ctk.CTkFont(size=10),
                            text_color="gray50", cursor="hand2")
@@ -293,10 +294,10 @@ class Sidebar(ctk.CTkScrollableFrame):
                      font=ctk.CTkFont(size=9),
                      text_color="gray50").pack(padx=15, anchor="w")
 
-        _label_with_tip(b, "Conditions (optional):",
+        _label_with_tip(b, "Conditions:",
                         "Treatment labels (e.g. 'control, salt, drought').\n"
-                        "Assigned to plates in order. Leave empty if\n"
-                        "you only have genotypes without treatments.",
+                        "Assigned to plates in order.\n"
+                        "If empty, 'Control' is used for all plates.",
                         font=ctk.CTkFont(size=11)).pack(
             padx=15, pady=(6, 0), anchor="w")
         self.entry_condition = ctk.CTkEntry(

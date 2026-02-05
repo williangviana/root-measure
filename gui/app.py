@@ -316,7 +316,7 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
                     self.sidebar.btn_measure.configure(state="normal")
                     self.sidebar.btn_review.configure(state="normal")
                     self._hide_action_buttons()
-                    self._action_frame.grid()
+                    self._show_action_frame()
                     self.btn_next_image.pack(
                         pady=(10, 3), padx=15, fill="x")
                     self.btn_continue_later.pack(
@@ -464,7 +464,7 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
         self.sidebar.btn_click_roots.configure(state="normal")
         self.sidebar.btn_measure.configure(state="normal")
         self.sidebar.btn_review.configure(state="normal")
-        self._action_frame.grid()
+        self._show_action_frame()
         self.btn_next_image.pack(pady=(10, 3), padx=15, fill="x")
         self.btn_continue_later.pack(pady=3, padx=15, fill="x")
         self.btn_stop.pack(pady=3, padx=15, fill="x")
@@ -533,12 +533,16 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
         self.canvas._plate_info = None
 
     def _hide_action_buttons(self):
-        """Hide all action buttons."""
+        """Hide all action buttons and the frame."""
         self.btn_next_image.pack_forget()
         self.btn_continue_later.pack_forget()
         self.btn_stop.pack_forget()
         self.btn_continue_later_mid.pack_forget()
         self._action_frame.grid_remove()
+
+    def _show_action_frame(self):
+        """Ensure action button frame is visible."""
+        self._action_frame.grid()
 
     def _get_scale(self):
         """Get scale (px/cm) from DPI entry or auto-detect."""
@@ -743,6 +747,7 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
         self.sidebar.btn_click_roots.configure(state="disabled")
         self.sidebar.btn_measure.configure(state="disabled")
         self.sidebar.btn_review.configure(state="disabled")
+        self._show_action_frame()
         self.btn_continue_later_mid.pack(pady=(10, 5), padx=15, fill="x")
         self.sidebar.set_step(1)
 
@@ -781,6 +786,7 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
         self._enter_root_click_stage()
         self.sidebar.btn_measure.configure(state="disabled")
         self.sidebar.btn_review.configure(state="disabled")
+        self._show_action_frame()
         self.btn_continue_later_mid.pack(pady=(10, 5), padx=15, fill="x")
         self.sidebar.set_step(2)
 
@@ -891,6 +897,7 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
             ImageCanvas.MODE_CLICK_MARKS,
             on_done=self._plate_marks_done)
         self.canvas.zoom_to_region(r1, r2, c1, c2)
+        self._show_action_frame()
         self.btn_continue_later_mid.pack(pady=(10, 5), padx=15, fill="x")
         self.sidebar.set_step(2)
         self._update_marks_status()

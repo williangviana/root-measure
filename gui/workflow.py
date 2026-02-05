@@ -220,6 +220,7 @@ class MeasurementMixin:
         msg += "\nClick a bad trace to select for retry."
         msg += "\nEnter = accept / retry selected."
         self.sidebar.set_status(msg)
+        self._show_action_frame()
         self.btn_continue_later_mid.pack(pady=(10, 5), padx=15, fill="x")
         self.lbl_bottom.configure(
             text="Click trace=select for retry (orange)  |  Enter=accept / retry selected  |  Scroll=zoom")
@@ -279,6 +280,7 @@ class MeasurementMixin:
         elif self.canvas.get_plates():
             self.canvas.zoom_to_region(*self.canvas.get_plates()[0])
         self._show_reclick_status()
+        self._show_action_frame()
         self.btn_continue_later_mid.pack(pady=3, padx=15, fill="x")
 
     def _show_reclick_status(self):
@@ -616,7 +618,7 @@ class MeasurementMixin:
 
         self._auto_save()
         self._hide_action_buttons()
-        self._action_frame.grid()
+        self._show_action_frame()
         self.btn_next_image.pack(pady=(10, 3), padx=15, fill="x")
         self.btn_continue_later.pack(pady=3, padx=15, fill="x")
         self.btn_stop.pack(pady=3, padx=15, fill="x")

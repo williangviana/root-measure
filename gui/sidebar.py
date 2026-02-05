@@ -409,18 +409,28 @@ class Sidebar(ctk.CTkScrollableFrame):
         if self.var_auto_thresh.get():
             self.slider_thresh.configure(state="disabled")
             self.lbl_thresh_val.configure(text_color="gray50")
+            # Show auto-detected value
+            self.app._update_auto_threshold()
         else:
             self.slider_thresh.configure(state="normal")
             self.lbl_thresh_val.configure(text_color=("gray10", "gray90"))
 
     def _on_thresh_change(self, val):
         self.lbl_thresh_val.configure(text=str(int(val)))
+        # Auto-update preview when slider changes
+        if getattr(self.app, '_preview_active', False):
+            self.app._preview_preprocessing()
 
     def get_threshold(self):
         """Return threshold value or None for auto-detect."""
         if self.var_auto_thresh.get():
             return None
         return int(self.slider_thresh.get())
+
+    def set_auto_threshold_value(self, val):
+        """Update slider and label to show auto-detected threshold."""
+        self.slider_thresh.set(val)
+        self.lbl_thresh_val.configure(text=str(int(val)))
 
     def set_status(self, text):
         self.lbl_status.configure(text=text)

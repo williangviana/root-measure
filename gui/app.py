@@ -6,6 +6,7 @@ from pathlib import Path
 
 import customtkinter as ctk
 import cv2
+import numpy as np
 import tifffile
 
 # allow importing from scripts/
@@ -397,6 +398,10 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
             dpi = detected or 1200
             self.sidebar.advance_to_settings(path.name, dpi)
 
+            # Update auto-threshold display for new image
+            if self.sidebar.var_auto_thresh.get():
+                self._update_auto_threshold()
+
             # restore multi-measurement / segments from previous scan
             if self.folder:
                 ps = get_persistent_settings(self.folder, self._experiment_name)
@@ -527,17 +532,43 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
         if self.image is None:
             self.sidebar.set_status("Load an image first")
             return
-        from image_processing import preprocess
-        scale = self._get_scale()
-        sensitivity = self.sidebar.var_sensitivity.get()
-        threshold = self.sidebar.get_threshold()
-        binary = preprocess(self.image, scale=scale, sensitivity=sensitivity,
-                            threshold=threshold)
-        # Convert to displayable format (white roots on black)
-        display = (binary.astype(np.uint8) * 255)
-        self.canvas.set_image(display)
-        self._preview_active = True
-        self.sidebar.set_status("Preview mode - adjust settings and preview again, or click an image to exit")
+        try:
+            from image_processing import preprocess
+            scale = self._get_scale()
+            sensitivity = self.sidebar.var_sensitivity.get()
+            threshold = self.sidebar.get_threshold()
+            binary = preprocess(self.image, scale=scale, sensitivity=sensitivity,
+                                threshold=threshold)
+            # Convert to displayable format (white roots on black)
+            display = (binary.astype(np.uint8) * 255)
+            self.canvas.set_image(display)
+            self._preview_active = True
+            self.sidebar.set_status("Preview - click image in list to exit")
+        except Exception as e:
+            self.sidebar.set_status(f"Preview error: {e}")
+
+    def _update_auto_threshold(self):
+        """Calculate and display auto-detected threshold value."""
+        if self.image is None:
+            return
+        try:
+            if self.image.dtype == np.uint16:
+                img8 = (self.image / 256).astype(np.uint8)
+                otsu_thresh, _ = cv2.threshold(img8, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+                # Show as 8-bit equivalent for slider
+                self.sidebar.set_auto_threshold_value(int(otsu_thresh))
+            else:
+                otsu_thresh, _ = cv2.threshold(self.image, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+                self.sidebar.set_auto_threshold_value(int(otsu_thresh))
+        except Exception:
+            pass
+
+    def _exit_preview(self):
+        """Exit preview mode and restore original image."""
+        if getattr(self, '_preview_active', False) and self.image is not None:
+            self._preview_active = False
+            display = _to_uint8(self.image)
+            self.canvas.set_image(display)
 
     # --- Sidebar phase callbacks ---
 
@@ -625,6 +656,7 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
 
     def select_plates(self):
         """Enter plate selection mode on canvas."""
+        self._exit_preview()
         self.sidebar.hide_action_buttons()
         self.canvas._measurement_done = False
         self.canvas.clear_plates()
@@ -673,6 +705,7 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
 
     def click_roots(self, resume=False):
         """Enter root clicking mode on canvas."""
+        self._exit_preview()
         self.sidebar.hide_action_buttons()
         plates = self.canvas.get_plates()
         if not plates:

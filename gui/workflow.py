@@ -84,6 +84,7 @@ class MeasurementMixin:
 
     def measure(self):
         """Run preprocessing, tracing, and show results for review."""
+        self._exit_preview()
         points = self.canvas.get_root_points()
         flags = self.canvas.get_root_flags()
         plates = self.canvas.get_plates()

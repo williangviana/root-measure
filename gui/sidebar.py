@@ -214,15 +214,14 @@ class Sidebar(ctk.CTkScrollableFrame):
             self._thresh_frame, text="140", width=30,
             font=ctk.CTkFont(size=11))
         self.lbl_thresh_val.pack(side="left")
+        self.btn_preview = ctk.CTkButton(
+            self._thresh_frame, text="Preview", width=60, height=24,
+            fg_color="#555555",
+            command=lambda: app._preview_preprocessing())
+        self.btn_preview.pack(side="left", padx=(8, 0))
         self.slider_thresh.configure(command=self._on_thresh_change)
         # Bind click on slider to disable auto mode
         self.slider_thresh.bind("<Button-1>", self._on_slider_click)
-
-        self.btn_preview = ctk.CTkButton(
-            b, text="Preview", width=80, height=28,
-            fg_color="#555555",
-            command=lambda: app._preview_preprocessing())
-        self.btn_preview.pack(pady=(5, 8), padx=15, anchor="w")
 
         self.var_multi = ctk.BooleanVar(value=False)
         _row_multi = ctk.CTkFrame(b, fg_color="transparent")

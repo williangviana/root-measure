@@ -407,14 +407,14 @@ def plot_results(csv_path, value_col=None, ylabel=None, csv_format='R',
             if len(d) == 0:
                 continue
             positions_map[geno] = i
-            bp = ax.boxplot([d], positions=[i], widths=0.5, patch_artist=True,
+            bp = ax.boxplot([d], positions=[i], widths=0.35, patch_artist=True,
                             showfliers=False, zorder=2,
                             medianprops=dict(color='black', linewidth=1.5),
                             boxprops=dict(facecolor=colors[i], edgecolor='black',
                                           linewidth=1),
                             whiskerprops=dict(color='black', linewidth=1),
                             capprops=dict(color='black', linewidth=1))
-            jitter = np.random.default_rng(42).uniform(-0.15, 0.15, size=len(d))
+            jitter = np.random.default_rng(42).uniform(-0.1, 0.1, size=len(d))
             ax.scatter(i + jitter, d, color='black', s=15, alpha=0.6,
                        zorder=3, edgecolors='none')
 

@@ -223,6 +223,16 @@ class Sidebar(ctk.CTkScrollableFrame):
         # Bind click on slider to disable auto mode
         self.slider_thresh.bind("<Button-1>", self._on_slider_click)
 
+        _row_plates = ctk.CTkFrame(b, fg_color="transparent")
+        _row_plates.pack(pady=(8, 5), padx=15, anchor="w")
+        _label_with_tip(_row_plates, "Number of plates:",
+                        "How many plates are in this image.\n"
+                        "Auto-advances after selecting this many.",
+                        font=ctk.CTkFont(size=11)).pack(side="left")
+        self.entry_num_plates = ctk.CTkEntry(_row_plates, width=50,
+                                              placeholder_text="1")
+        self.entry_num_plates.pack(side="left", padx=(10, 0))
+
         self.var_multi = ctk.BooleanVar(value=False)
         _row_multi = ctk.CTkFrame(b, fg_color="transparent")
         _row_multi.pack(pady=5, padx=15, anchor="w")

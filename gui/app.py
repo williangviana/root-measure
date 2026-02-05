@@ -263,6 +263,7 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
                         'multi_measurement': settings.get('multi_measurement', False),
                         'segments': settings.get('segments', ''),
                         'split_plate': settings.get('split_plate', False),
+                        'num_plates': settings.get('num_plates', 1),
                     }, exp)
                 # advance sidebar to workflow
                 self.sidebar.advance_to_experiment()
@@ -429,7 +430,7 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
             if self.sidebar.var_auto_thresh.get():
                 self._update_auto_threshold()
 
-            # restore multi-measurement / segments from previous scan
+            # restore settings from previous scan
             if self.folder:
                 ps = get_persistent_settings(self.folder, self._experiment_name)
                 if ps.get('multi_measurement'):
@@ -443,6 +444,10 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
                 if geno_per_plate > 1:
                     self.sidebar.entry_genotypes_per_plate.delete(0, 'end')
                     self.sidebar.entry_genotypes_per_plate.insert(0, str(geno_per_plate))
+                num_plates = ps.get('num_plates')
+                if num_plates and num_plates > 1:
+                    self.sidebar.entry_num_plates.delete(0, 'end')
+                    self.sidebar.entry_num_plates.insert(0, str(num_plates))
 
             dpi_src = "detected" if detected else "default"
             self.sidebar.set_status(
@@ -673,11 +678,16 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
                 self._plate_offset = max(self._plate_offset, csv_plate_off)
                 self._root_offset = max(self._root_offset, csv_root_off)
             save_experiment_name(self.folder, exp, exp)
+            try:
+                num_plates = int(self.sidebar.entry_num_plates.get().strip() or "1")
+            except (ValueError, TypeError):
+                num_plates = 1
             save_persistent_settings(self.folder, {
                 'multi_measurement': self.sidebar.var_multi.get(),
                 'segments': self.sidebar.entry_segments.get().strip(),
                 'split_plate': self.sidebar.is_split_plate(),
                 'genotypes_per_plate': self.sidebar.get_genotypes_per_plate(),
+                'num_plates': num_plates,
             }, exp)
         self.sidebar.advance_to_workflow()
         self.select_plates()

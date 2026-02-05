@@ -616,6 +616,7 @@ class MeasurementMixin:
 
         self._auto_save()
         self._hide_action_buttons()
+        self._action_frame.grid()
         self.btn_next_image.pack(pady=(10, 3), padx=15, fill="x")
         self.btn_continue_later.pack(pady=3, padx=15, fill="x")
         self.btn_stop.pack(pady=3, padx=15, fill="x")

@@ -93,9 +93,10 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
         self.sidebar = Sidebar(self._left_frame, app=self)
         self.sidebar.grid(row=0, column=0, sticky="nsew", padx=0, pady=0)
 
-        # Action buttons frame - fixed at bottom of left column
+        # Action buttons frame - fixed at bottom of left column (hidden initially)
         self._action_frame = ctk.CTkFrame(self._left_frame, fg_color="gray17")
         self._action_frame.grid(row=1, column=0, sticky="ew", padx=0, pady=0)
+        self._action_frame.grid_remove()
 
         self.btn_next_image = ctk.CTkButton(
             self._action_frame, text="Next Image", fg_color="#2b5797",
@@ -315,6 +316,7 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
                     self.sidebar.btn_measure.configure(state="normal")
                     self.sidebar.btn_review.configure(state="normal")
                     self._hide_action_buttons()
+                    self._action_frame.grid()
                     self.btn_next_image.pack(
                         pady=(10, 3), padx=15, fill="x")
                     self.btn_continue_later.pack(
@@ -462,6 +464,7 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
         self.sidebar.btn_click_roots.configure(state="normal")
         self.sidebar.btn_measure.configure(state="normal")
         self.sidebar.btn_review.configure(state="normal")
+        self._action_frame.grid()
         self.btn_next_image.pack(pady=(10, 3), padx=15, fill="x")
         self.btn_continue_later.pack(pady=3, padx=15, fill="x")
         self.btn_stop.pack(pady=3, padx=15, fill="x")
@@ -535,6 +538,7 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
         self.btn_continue_later.pack_forget()
         self.btn_stop.pack_forget()
         self.btn_continue_later_mid.pack_forget()
+        self._action_frame.grid_remove()
 
     def _get_scale(self):
         """Get scale (px/cm) from DPI entry or auto-detect."""

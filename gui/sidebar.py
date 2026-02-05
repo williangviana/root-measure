@@ -361,6 +361,12 @@ class Sidebar(ctk.CTkScrollableFrame):
             text_color="gray", wraplength=250)
         self.lbl_status.pack(pady=(0, 5), padx=15, anchor="w")
 
+        # Done button (hidden by default, shown during interactive steps)
+        self.btn_done = ctk.CTkButton(
+            self._status_frame, text="Done", fg_color="#2b5797",
+            command=lambda: app.canvas._trigger_done())
+        # starts hidden
+
         # progress bar inside status area
         self._progress_frame = ctk.CTkFrame(self._status_frame,
                                              fg_color="transparent")

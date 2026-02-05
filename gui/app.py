@@ -85,8 +85,30 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
         self.grid_columnconfigure(1, weight=1)
         self.grid_rowconfigure(0, weight=1)
 
-        self.sidebar = Sidebar(self, app=self)
-        self.sidebar.grid(row=0, column=0, sticky="nsw", padx=0, pady=0)
+        # Left column: sidebar + action buttons at bottom
+        self._left_frame = ctk.CTkFrame(self, fg_color="transparent")
+        self._left_frame.grid(row=0, column=0, sticky="nsw", padx=0, pady=0)
+        self._left_frame.grid_rowconfigure(0, weight=1)
+
+        self.sidebar = Sidebar(self._left_frame, app=self)
+        self.sidebar.grid(row=0, column=0, sticky="nsew", padx=0, pady=0)
+
+        # Action buttons frame - fixed at bottom of left column
+        self._action_frame = ctk.CTkFrame(self._left_frame, fg_color="gray17")
+        self._action_frame.grid(row=1, column=0, sticky="ew", padx=0, pady=0)
+
+        self.btn_next_image = ctk.CTkButton(
+            self._action_frame, text="Next Image", fg_color="#2b5797",
+            command=self.next_image)
+        self.btn_continue_later = ctk.CTkButton(
+            self._action_frame, text="Continue Later", fg_color="#555555",
+            command=lambda: self.continue_later())
+        self.btn_stop = ctk.CTkButton(
+            self._action_frame, text="Finish & Plot", fg_color="#217346",
+            command=lambda: self.finish_and_plot())
+        self.btn_continue_later_mid = ctk.CTkButton(
+            self._action_frame, text="Continue Later", fg_color="#555555",
+            command=lambda: self.continue_later())
 
         self.canvas = ImageCanvas(self)
         self.canvas.grid(row=0, column=1, sticky="nsew", padx=(2, 0), pady=0)
@@ -292,12 +314,12 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
                     self.sidebar.btn_click_roots.configure(state="normal")
                     self.sidebar.btn_measure.configure(state="normal")
                     self.sidebar.btn_review.configure(state="normal")
-                    self.sidebar.hide_action_buttons()
-                    self.sidebar.btn_next_image.pack(
+                    self._hide_action_buttons()
+                    self.btn_next_image.pack(
                         pady=(10, 3), padx=15, fill="x")
-                    self.sidebar.btn_continue_later.pack(
+                    self.btn_continue_later.pack(
                         pady=3, padx=15, fill="x")
-                    self.sidebar.btn_stop.pack(pady=3, padx=15, fill="x")
+                    self.btn_stop.pack(pady=3, padx=15, fill="x")
                     self.sidebar.set_status(
                         f"Session restored: {len(plates)} plate(s), "
                         f"{len(points)} root(s).\n"
@@ -424,7 +446,7 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
 
     def _restore_completed_view(self):
         """Show completed measurement view for the current image."""
-        self.sidebar.hide_action_buttons()
+        self._hide_action_buttons()
         self.sidebar.sec_sessions.hide()
         self.sidebar.sec_folder.collapse(summary=self.folder.name if self.folder else "")
         self.sidebar.sec_settings.show()
@@ -440,9 +462,9 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
         self.sidebar.btn_click_roots.configure(state="normal")
         self.sidebar.btn_measure.configure(state="normal")
         self.sidebar.btn_review.configure(state="normal")
-        self.sidebar.btn_next_image.pack(pady=(10, 3), padx=15, fill="x")
-        self.sidebar.btn_continue_later.pack(pady=3, padx=15, fill="x")
-        self.sidebar.btn_stop.pack(pady=3, padx=15, fill="x")
+        self.btn_next_image.pack(pady=(10, 3), padx=15, fill="x")
+        self.btn_continue_later.pack(pady=3, padx=15, fill="x")
+        self.btn_stop.pack(pady=3, padx=15, fill="x")
         plates = self.canvas.get_plates()
         points = self.canvas.get_root_points()
         self.sidebar.set_status(
@@ -506,6 +528,13 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
     def _clear_plate_info(self):
         """Clear plate info overlay from the canvas."""
         self.canvas._plate_info = None
+
+    def _hide_action_buttons(self):
+        """Hide all action buttons."""
+        self.btn_next_image.pack_forget()
+        self.btn_continue_later.pack_forget()
+        self.btn_stop.pack_forget()
+        self.btn_continue_later_mid.pack_forget()
 
     def _get_scale(self):
         """Get scale (px/cm) from DPI entry or auto-detect."""
@@ -669,7 +698,7 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
     def select_plates(self):
         """Enter plate selection mode on canvas."""
         self._exit_preview()
-        self.sidebar.hide_action_buttons()
+        self._hide_action_buttons()
         self.canvas._measurement_done = False
         self.canvas.clear_plates()
         self.canvas.clear_roots()
@@ -696,8 +725,7 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
         self.sidebar.btn_click_roots.configure(state="disabled")
         self.sidebar.btn_measure.configure(state="disabled")
         self.sidebar.btn_review.configure(state="disabled")
-        self.sidebar._ensure_action_frame_at_bottom()
-        self.sidebar.btn_continue_later_mid.pack(pady=(10, 5), padx=15, fill="x")
+        self.btn_continue_later_mid.pack(pady=(10, 5), padx=15, fill="x")
         self.sidebar.set_step(1)
 
     def _plates_done(self):
@@ -719,7 +747,7 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
     def click_roots(self, resume=False):
         """Enter root clicking mode on canvas."""
         self._exit_preview()
-        self.sidebar.hide_action_buttons()
+        self._hide_action_buttons()
         plates = self.canvas.get_plates()
         if not plates:
             self.sidebar.set_status("Select plates first.")
@@ -735,8 +763,7 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
         self._enter_root_click_stage()
         self.sidebar.btn_measure.configure(state="disabled")
         self.sidebar.btn_review.configure(state="disabled")
-        self.sidebar._ensure_action_frame_at_bottom()
-        self.sidebar.btn_continue_later_mid.pack(pady=(10, 5), padx=15, fill="x")
+        self.btn_continue_later_mid.pack(pady=(10, 5), padx=15, fill="x")
         self.sidebar.set_step(2)
 
     def _enter_root_click_stage(self):
@@ -846,8 +873,7 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
             ImageCanvas.MODE_CLICK_MARKS,
             on_done=self._plate_marks_done)
         self.canvas.zoom_to_region(r1, r2, c1, c2)
-        self.sidebar._ensure_action_frame_at_bottom()
-        self.sidebar.btn_continue_later_mid.pack(pady=(10, 5), padx=15, fill="x")
+        self.btn_continue_later_mid.pack(pady=(10, 5), padx=15, fill="x")
         self.sidebar.set_step(2)
         self._update_marks_status()
         self.lbl_bottom.configure(

@@ -370,40 +370,7 @@ class Sidebar(ctk.CTkScrollableFrame):
         self._progress_frame.pack(fill="x")
         self._progress_frame.pack_forget()
 
-        # Action buttons (at bottom of sidebar, below status)
-        self._action_frame = ctk.CTkFrame(self, fg_color="transparent")
-        self._action_frame.pack(fill="x", pady=(5, 10))
-
-        self.btn_next_image = ctk.CTkButton(
-            self._action_frame, text="Next Image", fg_color="#2b5797",
-            command=app.next_image)
-
-        self.btn_continue_later = ctk.CTkButton(
-            self._action_frame, text="Continue Later", fg_color="#555555",
-            command=lambda: app.continue_later())
-
-        self.btn_stop = ctk.CTkButton(
-            self._action_frame, text="Finish & Plot", fg_color="#217346",
-            command=lambda: app.finish_and_plot())
-
-        # Mid-workflow continue later (child of status area, hidden by default)
-        self.btn_continue_later_mid = ctk.CTkButton(
-            self._action_frame, text="Continue Later", fg_color="#555555",
-            command=lambda: app.continue_later())
-
     # --- helpers ---
-
-    def hide_action_buttons(self):
-        """Hide all post-measurement and mid-workflow action buttons."""
-        self.btn_next_image.pack_forget()
-        self.btn_continue_later.pack_forget()
-        self.btn_stop.pack_forget()
-        self.btn_continue_later_mid.pack_forget()
-
-    def _ensure_action_frame_at_bottom(self):
-        """Re-pack action frame to ensure it stays at the very bottom."""
-        self._action_frame.pack_forget()
-        self._action_frame.pack(fill="x", pady=(5, 10))
 
     def _add_separator(self):
         ctk.CTkFrame(self, height=1, fg_color="gray30").pack(
@@ -527,9 +494,6 @@ class Sidebar(ctk.CTkScrollableFrame):
 
         self.sec_sessions.show()
         self.sec_sessions.expand()
-        # Keep action buttons at bottom
-        self._action_frame.pack_forget()
-        self._action_frame.pack(fill="x", pady=(5, 10))
 
     # --- phase transitions ---
 

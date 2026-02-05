@@ -765,14 +765,20 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
         self.canvas.clear_roots()
         self.canvas.clear_marks()
         self.canvas.clear_traces()
+        self.canvas.clear_review()  # clear any review selection highlights
         self._clear_plate_info()
         self.canvas._fit_image()
         self.canvas._redraw()
+        # Reset all workflow state
         self._results = []
         self._trace_to_result = []
         self._binary = None
         self._retry_result_indices = []
         self._reclick_idx = 0
+        self._current_plate_idx = 0
+        self._split_stage = 0
+        # Clear callbacks before setting new ones
+        self.canvas._on_click_callback = None
         self.canvas._app_status_callback = self.sidebar.set_status
         self.canvas._on_click_callback = self._on_plate_added
         self.canvas.set_mode(
@@ -853,10 +859,13 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
         if not plates:
             self.sidebar.set_status("Select plates first.")
             return
+        # Clear callbacks before setting new ones
+        self.canvas._on_click_callback = None
         if not resume:
             self.canvas.clear_roots()
             self.canvas.clear_marks()
             self.canvas.clear_traces()
+            self.canvas.clear_review()  # clear any review selection highlights
             self._current_plate_idx = 0
             self._split = self.sidebar.is_split_plate()
             self._split_stage = 0
@@ -984,6 +993,8 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
         num_marks = self._get_num_marks()
         self.canvas._marks_expected = len(self._marks_plate_roots) * num_marks
         self.canvas._marks_display_numbers = display_numbers
+        # Clear callback before setting new one
+        self.canvas._on_click_callback = None
         self.canvas._on_click_callback = self._update_marks_status
         self._set_plate_info(pi)
         self.canvas.set_mode(
@@ -1032,6 +1043,8 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
             self.canvas.canvas.delete(rid)
         self.canvas._mark_points.clear()
         self.canvas._mark_marker_ids.clear()
+        # Clear callback before setting new one
+        self.canvas._on_click_callback = None
         self.canvas._on_click_callback = self._update_marks_status
         self._set_plate_info(pi)
         self.canvas.set_mode(

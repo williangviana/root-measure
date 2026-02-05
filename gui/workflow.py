@@ -227,6 +227,8 @@ class MeasurementMixin:
         self._hide_action_buttons()
         self._show_action_frame()
         self.sidebar.btn_done.configure(text="Accept All")
+        # Clear callback before setting new one
+        self.canvas._on_click_callback = None
         self.canvas._on_click_callback = self._update_review_button
         self.sidebar.btn_done.pack(pady=(5, 0), padx=15, fill="x")
         self.btn_continue_later_mid.pack(pady=(10, 5), padx=15, fill="x")

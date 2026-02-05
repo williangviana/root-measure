@@ -268,6 +268,18 @@ class ImageCanvas(ctk.CTkFrame):
         self._fit_image()
         self._redraw()
 
+    def set_image_preview(self, img_np):
+        """Set image for preview without clearing overlays or resetting zoom."""
+        self._image_np = img_np
+        if img_np is not None:
+            if len(img_np.shape) == 2:
+                self._pil_base = Image.fromarray(img_np, mode='L')
+            else:
+                self._pil_base = Image.fromarray(img_np)
+        else:
+            self._pil_base = None
+        self._redraw()
+
     def _fit_image(self):
         """Scale image to fit canvas."""
         if self._image_np is None:

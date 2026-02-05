@@ -11,29 +11,32 @@ def preprocess(image, scale=SCALE_PX_PER_CM, sensitivity='thick', threshold=None
     Blur and threshold scale with DPI and sensitivity preset.
 
     Args:
-        threshold: Manual threshold value (0-255 for 8-bit, 0-65535 for 16-bit).
+        threshold: Manual threshold value in 8-bit range (0-255).
                    If None, uses Otsu's method for auto-detection.
     """
+    is_16bit = image.dtype == np.uint16
+
     if threshold is None:
         # Auto-detect using Otsu's method
-        if image.dtype == np.uint16:
+        if is_16bit:
             img8 = (image / 256).astype(np.uint8)
             otsu_thresh, _ = cv2.threshold(img8, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
-            # Adjust for sensitivity: thin roots need higher threshold
-            if sensitivity == 'thin':
-                otsu_thresh = min(255, otsu_thresh + 30)
-            elif sensitivity == 'medium':
-                otsu_thresh = min(255, otsu_thresh + 15)
-            threshold = int(otsu_thresh * 256)
         else:
             otsu_thresh, _ = cv2.threshold(image, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
-            # Adjust for sensitivity: thin roots need higher threshold
-            if sensitivity == 'thin':
-                otsu_thresh = min(200, otsu_thresh + 30)
-            elif sensitivity == 'medium':
-                otsu_thresh = min(200, otsu_thresh + 15)
-            threshold = int(otsu_thresh)
-    binary = (image < threshold).astype(np.uint8) * 255
+        # Adjust for sensitivity: thin roots need higher threshold
+        if sensitivity == 'thin':
+            otsu_thresh = min(255, otsu_thresh + 30)
+        elif sensitivity == 'medium':
+            otsu_thresh = min(255, otsu_thresh + 15)
+        threshold = int(otsu_thresh)
+
+    # Scale threshold to image bit depth
+    if is_16bit:
+        threshold_scaled = threshold * 256
+    else:
+        threshold_scaled = threshold
+
+    binary = (image < threshold_scaled).astype(np.uint8) * 255
     sigma = gaussian_sigma(scale, sensitivity)
     thresh = threshold_8bit(scale, sensitivity)
     blurred = cv2.GaussianBlur(binary, (0, 0), sigma)

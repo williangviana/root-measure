@@ -343,11 +343,11 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
 
     def load_image(self, path):
         """Load and display a single image."""
-        # Exit preview mode if active
+        # Exit preview mode if active (clicking same image exits preview)
         if getattr(self, '_preview_active', False) and path == self.image_path:
             self._preview_active = False
             display = _to_uint8(self.image)
-            self.canvas.set_image(display)
+            self.canvas.set_image_preview(display)
             self.sidebar.set_status("Preview exited")
             return
         self._preview_active = False
@@ -541,7 +541,8 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
                                 threshold=threshold)
             # Convert to displayable format (white roots on black)
             display = (binary.astype(np.uint8) * 255)
-            self.canvas.set_image(display)
+            # Use preview method to preserve overlays and zoom
+            self.canvas.set_image_preview(display)
             self._preview_active = True
             self.sidebar.set_status("Preview - click image in list to exit")
         except Exception as e:
@@ -552,7 +553,7 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
         if self.image is None:
             return
         try:
-            # Get base Otsu threshold
+            # Get base Otsu threshold (always in 8-bit range)
             if self.image.dtype == np.uint16:
                 img8 = (self.image / 256).astype(np.uint8)
                 otsu_thresh, _ = cv2.threshold(img8, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
@@ -562,9 +563,9 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
             # Adjust based on sensitivity: thin roots need higher threshold
             sensitivity = self.sidebar.var_sensitivity.get()
             if sensitivity == 'thin':
-                otsu_thresh = min(200, otsu_thresh + 30)
+                otsu_thresh = min(255, otsu_thresh + 30)
             elif sensitivity == 'medium':
-                otsu_thresh = min(200, otsu_thresh + 15)
+                otsu_thresh = min(255, otsu_thresh + 15)
             # thick: use Otsu value as-is
 
             self.sidebar.set_auto_threshold_value(int(otsu_thresh))
@@ -576,16 +577,19 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
         if getattr(self, '_preview_active', False) and self.image is not None:
             self._preview_active = False
             display = _to_uint8(self.image)
-            self.canvas.set_image(display)
+            # Use preview method to preserve overlays and zoom
+            self.canvas.set_image_preview(display)
 
     # --- Sidebar phase callbacks ---
 
     def _on_next_settings(self):
         """Called when user clicks Next on image settings."""
+        self._exit_preview()
         self.sidebar.advance_to_experiment()
 
     def _on_start_workflow(self):
         """Called when user clicks Start Workflow."""
+        self._exit_preview()
         from csv_output import get_offsets_from_csv
         self._experiment_name = self.sidebar.entry_experiment.get().strip()
         exp = self._experiment_name

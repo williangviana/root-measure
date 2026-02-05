@@ -269,7 +269,8 @@ def _collect_settings(sidebar):
         'sensitivity': sidebar.var_sensitivity.get(),
         'multi_measurement': sidebar.var_multi.get(),
         'segments': sidebar.entry_segments.get().strip(),
-        'split_plate': sidebar.var_split.get(),
+        'split_plate': sidebar.is_split_plate(),
+        'genotypes_per_plate': sidebar.get_genotypes_per_plate(),
         'experiment': sidebar.entry_experiment.get().strip(),
         'genotypes': sidebar.entry_genotypes.get().strip(),
         'conditions': sidebar.entry_condition.get().strip(),
@@ -330,11 +331,10 @@ def restore_settings(sidebar, settings):
     sidebar.var_multi.set(settings.get('multi_measurement', False))
     sidebar.entry_segments.delete(0, 'end')
     sidebar.entry_segments.insert(0, settings.get('segments', ''))
-    if sidebar.var_multi.get():
-        sidebar.frame_segments.pack(pady=(0, 8), fill='x')
-    else:
-        sidebar.frame_segments.pack_forget()
-    sidebar.var_split.set(settings.get('split_plate', False))
+    # Restore genotypes per plate
+    geno_per_plate = settings.get('genotypes_per_plate', 2 if settings.get('split_plate') else 1)
+    sidebar.entry_genotypes_per_plate.delete(0, 'end')
+    sidebar.entry_genotypes_per_plate.insert(0, str(geno_per_plate))
     sidebar.entry_experiment.delete(0, 'end')
     sidebar.entry_experiment.insert(0, settings.get('experiment', ''))
     # restore genotypes and conditions so re-save after review works

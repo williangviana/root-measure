@@ -256,22 +256,21 @@ class Sidebar(ctk.CTkScrollableFrame):
                                             placeholder_text="1")
         self.entry_segments.insert(0, "1")
         self.entry_segments.pack(anchor="center", pady=(2, 0))
-        # Split plate checkbox
-        _split_frame = ctk.CTkFrame(_options_row, fg_color="transparent")
-        _split_frame.grid(row=0, column=2, sticky="e")
-        ctk.CTkLabel(_split_frame, text="", height=17).pack()  # spacer to align with labels
+        # Genotypes per plate
+        _geno_frame = ctk.CTkFrame(_options_row, fg_color="transparent")
+        _geno_frame.grid(row=0, column=2, sticky="e")
+        _label_with_tip(_geno_frame, "Genotypes:",
+                        "Genotypes per plate (default 1).\n"
+                        "Use 2 if plate has two genotypes side by side.\n"
+                        "You'll click roots for each genotype separately.",
+                        font=ctk.CTkFont(size=11)).pack(anchor="e")
+        self.entry_genotypes_per_plate = ctk.CTkEntry(_geno_frame, width=45,
+                                                       placeholder_text="1")
+        self.entry_genotypes_per_plate.insert(0, "1")
+        self.entry_genotypes_per_plate.pack(anchor="e", pady=(2, 0))
+        # Keep var_split for compatibility - derived from genotypes_per_plate
         self.var_split = ctk.BooleanVar(value=False)
-        _split_row = ctk.CTkFrame(_split_frame, fg_color="transparent")
-        _split_row.pack(pady=(2, 0))
-        self.chk_split = ctk.CTkCheckBox(
-            _split_row, text="Split",
-            variable=self.var_split,
-            font=ctk.CTkFont(size=11),
-            width=0)
-        self.chk_split.pack(side="left")
-        _q2 = ctk.CTkLabel(_split_row, text="(?)", font=ctk.CTkFont(size=10),
-                           text_color="gray50", cursor="hand2")
-        _q2.pack(side="left", padx=(2, 0))
+        self.chk_split = None  # No longer used
         _Tooltip(_q2, "Two genotypes per plate (left/right).\n"
                       "You'll click roots for each genotype\n"
                       "separately. Genotypes assigned in pairs.")
@@ -402,6 +401,20 @@ class Sidebar(ctk.CTkScrollableFrame):
     def _toggle_segments(self):
         """Legacy method - segments now always visible."""
         pass
+
+    def is_split_plate(self):
+        """Return True if genotypes per plate > 1."""
+        try:
+            return int(self.entry_genotypes_per_plate.get().strip() or "1") > 1
+        except (ValueError, TypeError):
+            return False
+
+    def get_genotypes_per_plate(self):
+        """Return number of genotypes per plate (default 1)."""
+        try:
+            return max(1, int(self.entry_genotypes_per_plate.get().strip() or "1"))
+        except (ValueError, TypeError):
+            return 1
 
     def _on_sensitivity_change(self, val):
         """Update auto threshold when sensitivity changes."""
@@ -589,8 +602,9 @@ class Sidebar(ctk.CTkScrollableFrame):
             dpi_display = f"{dpi} DPI"
         sens = self.var_sensitivity.get()
         parts = [dpi_display, sens]
-        if self.var_split.get():
-            parts.append("split")
+        geno_per_plate = self.get_genotypes_per_plate()
+        if geno_per_plate > 1:
+            parts.append(f"{geno_per_plate} geno/plate")
         segs = self.entry_segments.get().strip() or "1"
         try:
             if int(segs) > 1:

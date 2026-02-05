@@ -439,8 +439,10 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
                     if segs:
                         self.sidebar.entry_segments.delete(0, 'end')
                         self.sidebar.entry_segments.insert(0, segs)
-                if ps.get('split_plate'):
-                    self.sidebar.var_split.set(True)
+                geno_per_plate = ps.get('genotypes_per_plate', 2 if ps.get('split_plate') else 1)
+                if geno_per_plate > 1:
+                    self.sidebar.entry_genotypes_per_plate.delete(0, 'end')
+                    self.sidebar.entry_genotypes_per_plate.insert(0, str(geno_per_plate))
 
             dpi_src = "detected" if detected else "default"
             self.sidebar.set_status(
@@ -674,7 +676,8 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
             save_persistent_settings(self.folder, {
                 'multi_measurement': self.sidebar.var_multi.get(),
                 'segments': self.sidebar.entry_segments.get().strip(),
-                'split_plate': self.sidebar.var_split.get(),
+                'split_plate': self.sidebar.is_split_plate(),
+                'genotypes_per_plate': self.sidebar.get_genotypes_per_plate(),
             }, exp)
         self.sidebar.advance_to_workflow()
         self.select_plates()
@@ -826,7 +829,7 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
             self.canvas.clear_marks()
             self.canvas.clear_traces()
             self._current_plate_idx = 0
-            self._split = self.sidebar.var_split.get()
+            self._split = self.sidebar.is_split_plate()
             self._split_stage = 0
             # _current_group set per-plate in _enter_root_click_stage via registry
         self.sidebar.btn_measure.configure(state="disabled")

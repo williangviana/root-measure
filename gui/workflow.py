@@ -672,7 +672,7 @@ class MeasurementMixin:
             genotypes=genotypes,
             conditions=conditions,
             csv_format='R',
-            split_plate=self.sidebar.var_split.get(),
+            split_plate=self.sidebar.is_split_plate(),
             num_marks=self._get_num_marks(),
             timestamp=datetime.now().isoformat(timespec='seconds'),
         )
@@ -701,7 +701,7 @@ class MeasurementMixin:
             self._root_offset = root_off
 
         # use stored group indices for each root
-        split = self.sidebar.var_split.get()
+        split = self.sidebar.is_split_plate()
 
         # build plate_labels from sidebar genotype + condition entries
         geno_text = self.sidebar.entry_genotypes.get().strip()
@@ -754,7 +754,7 @@ class MeasurementMixin:
                 root_offset=self._root_offset,
                 point_plates=point_plates,
                 num_marks=self._get_num_marks(),
-                split_plate=self.sidebar.var_split.get(),
+                split_plate=self.sidebar.is_split_plate(),
                 image_name=img_name,
                 group_to_plate=group_to_plate)
             self._plate_offset = new_plate_offset

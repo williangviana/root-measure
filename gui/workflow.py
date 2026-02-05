@@ -243,7 +243,7 @@ class MeasurementMixin:
         self.sidebar.btn_done.pack(pady=(5, 0), padx=15, fill="x")
         self.btn_continue_later_mid.pack(pady=(10, 5), padx=15, fill="x")
         self.lbl_bottom.configure(
-            text="Click trace=select for retry (orange)  |  Scroll=zoom")
+            text="Click trace=select for retry (red)  |  Scroll=zoom")
 
 
     def _enable_review(self):

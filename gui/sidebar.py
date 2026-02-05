@@ -169,13 +169,31 @@ class Sidebar(ctk.CTkScrollableFrame):
         # ===== SECTION: IMAGE SETTINGS =====
         self.sec_settings = _Section(self, "SCAN SETTINGS")
         b = self.sec_settings.body
-        _label_with_tip(b, "DPI:",
-                        "Scanner resolution (dots per inch).\n"
+
+        # Top row: Number of plates (left) and Resolution (right)
+        _top_row = ctk.CTkFrame(b, fg_color="transparent")
+        _top_row.pack(pady=(0, 8), padx=15, fill="x")
+        # Left side: Plates
+        _left = ctk.CTkFrame(_top_row, fg_color="transparent")
+        _left.pack(side="left")
+        _label_with_tip(_left, "Plates:",
+                        "How many plates are in this image.\n"
+                        "Auto-advances after selecting this many.",
+                        font=ctk.CTkFont(size=11)).pack(anchor="w")
+        self.entry_num_plates = ctk.CTkEntry(_left, width=50,
+                                              placeholder_text="1")
+        self.entry_num_plates.pack(anchor="w", pady=(2, 0))
+        # Right side: Resolution
+        _right = ctk.CTkFrame(_top_row, fg_color="transparent")
+        _right.pack(side="right")
+        _label_with_tip(_right, "Resolution:",
+                        "Scanner DPI (dots per inch).\n"
                         "Used to convert pixels to millimeters.\n"
                         "Auto-detected from image. Edit if incorrect.",
-                        font=ctk.CTkFont(size=11)).pack(padx=15, anchor="w")
-        self.entry_dpi = ctk.CTkEntry(b, placeholder_text="auto-detect")
-        self.entry_dpi.pack(pady=(2, 8), padx=15, fill="x")
+                        font=ctk.CTkFont(size=11)).pack(anchor="e")
+        self.entry_dpi = ctk.CTkEntry(_right, width=70,
+                                       placeholder_text="auto")
+        self.entry_dpi.pack(anchor="e", pady=(2, 0))
 
         _label_with_tip(b, "Root thickness:",
                         "Match this to your root age/type:\n"
@@ -222,16 +240,6 @@ class Sidebar(ctk.CTkScrollableFrame):
         self.slider_thresh.configure(command=self._on_thresh_change)
         # Bind click on slider to disable auto mode
         self.slider_thresh.bind("<Button-1>", self._on_slider_click)
-
-        _row_plates = ctk.CTkFrame(b, fg_color="transparent")
-        _row_plates.pack(pady=(8, 5), padx=15, anchor="w")
-        _label_with_tip(_row_plates, "Number of plates:",
-                        "How many plates are in this image.\n"
-                        "Auto-advances after selecting this many.",
-                        font=ctk.CTkFont(size=11)).pack(side="left")
-        self.entry_num_plates = ctk.CTkEntry(_row_plates, width=50,
-                                              placeholder_text="1")
-        self.entry_num_plates.pack(side="left", padx=(10, 0))
 
         self.var_multi = ctk.BooleanVar(value=False)
         _row_multi = ctk.CTkFrame(b, fg_color="transparent")
@@ -580,8 +588,13 @@ class Sidebar(ctk.CTkScrollableFrame):
     def advance_to_experiment(self):
         """Phase 3: settings confirmed — show experiment, collapse settings."""
         dpi = self.entry_dpi.get().strip() or "auto"
+        # Don't duplicate "dpi" if already in the value
+        if "dpi" in dpi.lower():
+            dpi_display = dpi
+        else:
+            dpi_display = f"{dpi} DPI"
         sens = self.var_sensitivity.get()
-        parts = [f"{dpi} DPI", sens]
+        parts = [dpi_display, sens]
         if self.var_split.get():
             parts.append("split")
         if self.var_multi.get():

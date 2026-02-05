@@ -567,8 +567,10 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
         """Get scale (px/cm) from DPI entry or auto-detect."""
         dpi_text = self.sidebar.entry_dpi.get().strip()
         if dpi_text:
+            # Handle "800 dpi" format - extract just the number
+            dpi_num = dpi_text.lower().replace("dpi", "").strip()
             try:
-                dpi = int(dpi_text)
+                dpi = int(dpi_num)
                 if dpi > 0:
                     return dpi / 2.54
             except ValueError:
@@ -577,10 +579,10 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
             detected = _detect_dpi(self.image_path)
             if detected:
                 self.sidebar.entry_dpi.delete(0, "end")
-                self.sidebar.entry_dpi.insert(0, str(detected))
+                self.sidebar.entry_dpi.insert(0, f"{detected} dpi")
                 return detected / 2.54
         self.sidebar.entry_dpi.delete(0, "end")
-        self.sidebar.entry_dpi.insert(0, "1200")
+        self.sidebar.entry_dpi.insert(0, "1200 dpi")
         return SCALE_PX_PER_CM
 
     def _preview_preprocessing(self, force_show=False):

@@ -190,11 +190,11 @@ class Sidebar(ctk.CTkScrollableFrame):
             command=self._on_sensitivity_change)
         self.menu_sensitivity.pack(pady=(2, 8), padx=15, fill="x")
 
-        _label_with_tip(b, "Threshold:",
-                        "Controls root detection sensitivity.\n"
-                        "Auto = automatic detection (recommended).\n"
-                        "Drag slider to adjust manually if roots\n"
-                        "are missing or background noise appears.",
+        _label_with_tip(b, "Detection:",
+                        "Click Preview to see detected roots.\n"
+                        "Adjust slider until the full root is visible.\n"
+                        "Lower = detect more (may add noise).\n"
+                        "Higher = detect less (may miss thin roots).",
                         font=ctk.CTkFont(size=11)).pack(padx=15, anchor="w")
         self._thresh_frame = ctk.CTkFrame(b, fg_color="transparent")
         self._thresh_frame.pack(pady=(2, 8), padx=15, fill="x")

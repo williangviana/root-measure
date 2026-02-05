@@ -426,9 +426,11 @@ class MeasurementMixin:
                 self._add_root_trace(i, res)
                 self._trace_to_result.append(i)
 
-        # Auto-finish directly (no review step needed after retrace)
-        self.canvas.set_mode(ImageCanvas.MODE_VIEW)
-        self._finish_measurement()
+        self.sidebar.hide_progress()
+        self.canvas._redraw()
+
+        # Go back to review mode so user can verify retrace worked
+        self._show_review(skip_delay=True)
 
     def _save_trace_screenshot(self, silent=False):
         """Save plate image with traced root overlays (no UI elements)."""

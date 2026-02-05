@@ -207,7 +207,7 @@ class Sidebar(ctk.CTkScrollableFrame):
         self.chk_auto_thresh.pack(side="left")
         self.slider_thresh = ctk.CTkSlider(
             self._thresh_frame, from_=30, to=230, number_of_steps=200,
-            width=120)
+            width=90)
         self.slider_thresh.set(140)
         self.slider_thresh.pack(side="left", padx=(5, 5))
         self.lbl_thresh_val = ctk.CTkLabel(

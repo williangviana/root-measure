@@ -170,32 +170,17 @@ class Sidebar(ctk.CTkScrollableFrame):
         self.sec_settings = _Section(self, "SCAN SETTINGS")
         b = self.sec_settings.body
 
-        # Top row: Number of plates (left) and Resolution (right)
-        _top_row = ctk.CTkFrame(b, fg_color="transparent")
-        _top_row.pack(pady=(0, 8), padx=15, fill="x")
-        _top_row.columnconfigure(0, weight=1)
-        _top_row.columnconfigure(1, weight=1)
-        # Left side: Plates
-        _left = ctk.CTkFrame(_top_row, fg_color="transparent")
-        _left.grid(row=0, column=0, sticky="w")
-        _label_with_tip(_left, "Plates:",
-                        "How many plates are in this image.\n"
-                        "Auto-advances after selecting this many.",
-                        font=ctk.CTkFont(size=11)).pack(anchor="w")
-        self.entry_num_plates = ctk.CTkEntry(_left, width=60,
-                                              placeholder_text="1")
-        self.entry_num_plates.pack(anchor="w", pady=(2, 0))
-        # Right side: Resolution
-        _right = ctk.CTkFrame(_top_row, fg_color="transparent")
-        _right.grid(row=0, column=1, sticky="e")
-        _label_with_tip(_right, "Resolution:",
+        # Resolution row
+        _res_row = ctk.CTkFrame(b, fg_color="transparent")
+        _res_row.pack(pady=(0, 8), padx=15, fill="x")
+        _label_with_tip(_res_row, "Resolution:",
                         "Scanner DPI (dots per inch).\n"
                         "Used to convert pixels to millimeters.\n"
                         "Auto-detected from image. Edit if incorrect.",
-                        font=ctk.CTkFont(size=11)).pack(anchor="e")
-        self.entry_dpi = ctk.CTkEntry(_right, width=80,
+                        font=ctk.CTkFont(size=11)).pack(side="left")
+        self.entry_dpi = ctk.CTkEntry(_res_row, width=80,
                                        placeholder_text="auto")
-        self.entry_dpi.pack(anchor="e", pady=(2, 0))
+        self.entry_dpi.pack(side="left", padx=(10, 0))
 
         _label_with_tip(b, "Root thickness:",
                         "Match this to your root age/type:\n"
@@ -243,47 +228,56 @@ class Sidebar(ctk.CTkScrollableFrame):
         # Bind click on slider to disable auto mode
         self.slider_thresh.bind("<Button-1>", self._on_slider_click)
 
-        self.var_multi = ctk.BooleanVar(value=False)
-        _row_multi = ctk.CTkFrame(b, fg_color="transparent")
-        _row_multi.pack(pady=5, padx=15, anchor="w")
-        self.chk_multi = ctk.CTkCheckBox(
-            _row_multi, text="Segment mode",
-            variable=self.var_multi,
-            command=self._toggle_segments,
-            font=ctk.CTkFont(size=11))
-        self.chk_multi.pack(side="left")
-        _q = ctk.CTkLabel(_row_multi, text="(?)", font=ctk.CTkFont(size=10),
-                          text_color="gray50", cursor="hand2")
-        _q.pack(side="left", padx=(4, 0))
-        _Tooltip(_q, "Measure root in segments (e.g. tip, middle, base).\n"
-                     "After clicking root tops, you'll click points\n"
-                     "along each root to divide it into parts.")
-
-        self.frame_segments = ctk.CTkFrame(b, fg_color="transparent")
-        _label_with_tip(self.frame_segments, "Number of segments:",
-                        "How many parts to divide each root into.\n"
-                        "Example: 2 segments = 1 click per root,\n"
-                        "3 segments = 2 clicks per root.",
-                        font=ctk.CTkFont(size=11)).pack(side="left", padx=(15, 5))
-        self.entry_segments = ctk.CTkEntry(self.frame_segments, width=50,
-                                            placeholder_text="2")
-        self.entry_segments.pack(side="left")
-
+        # Row: Plates, Segments, Split plate
+        _options_row = ctk.CTkFrame(b, fg_color="transparent")
+        _options_row.pack(pady=(8, 5), padx=15, fill="x")
+        _options_row.columnconfigure(0, weight=1)
+        _options_row.columnconfigure(1, weight=1)
+        _options_row.columnconfigure(2, weight=1)
+        # Plates
+        _plates_frame = ctk.CTkFrame(_options_row, fg_color="transparent")
+        _plates_frame.grid(row=0, column=0, sticky="w")
+        _label_with_tip(_plates_frame, "Plates:",
+                        "How many plates are in this image.\n"
+                        "Auto-advances after selecting this many.",
+                        font=ctk.CTkFont(size=11)).pack(anchor="w")
+        self.entry_num_plates = ctk.CTkEntry(_plates_frame, width=45,
+                                              placeholder_text="1")
+        self.entry_num_plates.pack(anchor="w", pady=(2, 0))
+        # Segments
+        _seg_frame = ctk.CTkFrame(_options_row, fg_color="transparent")
+        _seg_frame.grid(row=0, column=1)
+        _label_with_tip(_seg_frame, "Segments:",
+                        "Number of segments per root (default 1 = whole root).\n"
+                        "Use 2+ to measure root in parts (tip, middle, base).\n"
+                        "You'll click segment boundaries after root tops.",
+                        font=ctk.CTkFont(size=11)).pack(anchor="center")
+        self.entry_segments = ctk.CTkEntry(_seg_frame, width=45,
+                                            placeholder_text="1")
+        self.entry_segments.insert(0, "1")
+        self.entry_segments.pack(anchor="center", pady=(2, 0))
+        # Split plate checkbox
+        _split_frame = ctk.CTkFrame(_options_row, fg_color="transparent")
+        _split_frame.grid(row=0, column=2, sticky="e")
+        ctk.CTkLabel(_split_frame, text="", height=17).pack()  # spacer to align with labels
         self.var_split = ctk.BooleanVar(value=False)
-        _row_split = ctk.CTkFrame(b, fg_color="transparent")
-        _row_split.pack(pady=5, padx=15, anchor="w")
+        _split_row = ctk.CTkFrame(_split_frame, fg_color="transparent")
+        _split_row.pack(pady=(2, 0))
         self.chk_split = ctk.CTkCheckBox(
-            _row_split, text="Split plate",
+            _split_row, text="Split",
             variable=self.var_split,
             font=ctk.CTkFont(size=11),
             width=0)
         self.chk_split.pack(side="left")
-        _q2 = ctk.CTkLabel(_row_split, text="(?)", font=ctk.CTkFont(size=10),
+        _q2 = ctk.CTkLabel(_split_row, text="(?)", font=ctk.CTkFont(size=10),
                            text_color="gray50", cursor="hand2")
-        _q2.pack(side="left", padx=(4, 0))
+        _q2.pack(side="left", padx=(2, 0))
         _Tooltip(_q2, "Two genotypes per plate (left/right).\n"
                       "You'll click roots for each genotype\n"
                       "separately. Genotypes assigned in pairs.")
+        # Keep var_multi for compatibility but it's now derived from segments
+        self.var_multi = ctk.BooleanVar(value=False)
+        self.frame_segments = None  # No longer used
 
         self.btn_next_settings = ctk.CTkButton(
             b, text="Next", fg_color="#2b5797",
@@ -406,10 +400,8 @@ class Sidebar(ctk.CTkScrollableFrame):
             fill="x", padx=15, pady=8)
 
     def _toggle_segments(self):
-        if self.var_multi.get():
-            self.frame_segments.pack(pady=(0, 8), fill="x")
-        else:
-            self.frame_segments.pack_forget()
+        """Legacy method - segments now always visible."""
+        pass
 
     def _on_sensitivity_change(self, val):
         """Update auto threshold when sensitivity changes."""
@@ -599,9 +591,12 @@ class Sidebar(ctk.CTkScrollableFrame):
         parts = [dpi_display, sens]
         if self.var_split.get():
             parts.append("split")
-        if self.var_multi.get():
-            segs = self.entry_segments.get().strip() or "2"
-            parts.append(f"{segs} seg")
+        segs = self.entry_segments.get().strip() or "1"
+        try:
+            if int(segs) > 1:
+                parts.append(f"{segs} seg")
+        except ValueError:
+            pass
         self.sec_settings.collapse(summary=", ".join(parts))
         self.sec_experiment.show()
         self.sec_experiment.expand()

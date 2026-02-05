@@ -493,9 +493,7 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
         return f"{n}{suffix}"
 
     def _get_num_marks(self):
-        """Get number of marks per root from sidebar (0 if multi-measurement off)."""
-        if not self.sidebar.var_multi.get():
-            return 0
+        """Get number of marks per root from sidebar (0 if single segment)."""
         text = self.sidebar.entry_segments.get().strip()
         try:
             segments = int(text)
@@ -503,7 +501,7 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
                 return segments - 1  # N segments = N-1 marks
         except (ValueError, TypeError):
             pass
-        return 1  # default: 2 segments = 1 mark
+        return 0  # default: 1 segment = no marks needed
 
     def _register_genotype(self, name):
         """Return stable color index for a genotype, assigning next index if unseen."""

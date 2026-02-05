@@ -590,11 +590,16 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
                 otsu_thresh, _ = cv2.threshold(self.image, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
 
             # Adjust based on sensitivity: thin roots need higher threshold
+            # Higher DPI (>=500, ~197 px/cm) needs less adjustment
+            scale = self._get_scale()
+            high_res = scale >= 197
             sensitivity = self.sidebar.var_sensitivity.get()
             if sensitivity == 'thin':
-                otsu_thresh = min(255, otsu_thresh + 45)
+                adj = 30 if high_res else 45
+                otsu_thresh = min(255, otsu_thresh + adj)
             elif sensitivity == 'medium':
-                otsu_thresh = min(255, otsu_thresh + 25)
+                adj = 15 if high_res else 25
+                otsu_thresh = min(255, otsu_thresh + adj)
             # thick: use Otsu value as-is
 
             self.sidebar.set_auto_threshold_value(int(otsu_thresh))

@@ -24,10 +24,14 @@ def preprocess(image, scale=SCALE_PX_PER_CM, sensitivity='thick', threshold=None
         else:
             otsu_thresh, _ = cv2.threshold(image, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
         # Adjust for sensitivity: thin roots need higher threshold
+        # Higher DPI (>=500, ~197 px/cm) needs less adjustment
+        high_res = scale >= 197
         if sensitivity == 'thin':
-            otsu_thresh = min(255, otsu_thresh + 45)
+            adj = 30 if high_res else 45
+            otsu_thresh = min(255, otsu_thresh + adj)
         elif sensitivity == 'medium':
-            otsu_thresh = min(255, otsu_thresh + 25)
+            adj = 15 if high_res else 25
+            otsu_thresh = min(255, otsu_thresh + adj)
         threshold = int(otsu_thresh)
 
     # Scale threshold to image bit depth

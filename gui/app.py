@@ -783,16 +783,25 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
         if self.canvas._pending_plate:
             num_plates += 1
         if num_plates > 0:
-            # Check if we've reached expected number of plates
+            # Check expected number of plates
             try:
-                expected = int(self.sidebar.entry_num_plates.get().strip())
+                expected = int(self.sidebar.entry_num_plates.get().strip() or "1")
             except (ValueError, TypeError):
-                expected = 0
-            if expected > 0 and num_plates >= expected:
-                # Auto-advance to next step
+                expected = 1
+            expected = max(1, expected)
+
+            if expected == 1:
+                # Single plate - show confirm button
+                btn_text = "Confirm Plate"
+            elif num_plates < expected:
+                # Multiple plates - show progress
+                btn_text = f"Plate {num_plates}/{expected}"
+            else:
+                # All plates drawn - auto-advance
                 self.after(100, self._plates_done)
                 return
-            self.sidebar.btn_done.configure(text="Confirm Plates")
+
+            self.sidebar.btn_done.configure(text=btn_text)
             self.sidebar.btn_done.pack_forget()
             self.sidebar.btn_done.pack(pady=(5, 0), padx=15, fill="x")
 

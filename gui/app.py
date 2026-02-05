@@ -552,14 +552,22 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
         if self.image is None:
             return
         try:
+            # Get base Otsu threshold
             if self.image.dtype == np.uint16:
                 img8 = (self.image / 256).astype(np.uint8)
                 otsu_thresh, _ = cv2.threshold(img8, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
-                # Show as 8-bit equivalent for slider
-                self.sidebar.set_auto_threshold_value(int(otsu_thresh))
             else:
                 otsu_thresh, _ = cv2.threshold(self.image, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
-                self.sidebar.set_auto_threshold_value(int(otsu_thresh))
+
+            # Adjust based on sensitivity: thin roots need higher threshold
+            sensitivity = self.sidebar.var_sensitivity.get()
+            if sensitivity == 'thin':
+                otsu_thresh = min(200, otsu_thresh + 30)
+            elif sensitivity == 'medium':
+                otsu_thresh = min(200, otsu_thresh + 15)
+            # thick: use Otsu value as-is
+
+            self.sidebar.set_auto_threshold_value(int(otsu_thresh))
         except Exception:
             pass
 

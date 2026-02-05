@@ -182,7 +182,8 @@ class Sidebar(ctk.CTkScrollableFrame):
         self.var_sensitivity = ctk.StringVar(value="medium")
         self.menu_sensitivity = ctk.CTkSegmentedButton(
             b, values=["thick", "medium", "thin"],
-            variable=self.var_sensitivity)
+            variable=self.var_sensitivity,
+            command=self._on_sensitivity_change)
         self.menu_sensitivity.pack(pady=(2, 8), padx=15, fill="x")
 
         _label_with_tip(b, "Threshold:",
@@ -405,6 +406,14 @@ class Sidebar(ctk.CTkScrollableFrame):
             self.frame_segments.pack(pady=(0, 8), fill="x")
         else:
             self.frame_segments.pack_forget()
+
+    def _on_sensitivity_change(self, val):
+        """Update auto threshold when sensitivity changes."""
+        if self.var_auto_thresh.get():
+            self.app._update_auto_threshold()
+        # Update preview if active
+        if getattr(self.app, '_preview_active', False):
+            self.app._preview_preprocessing()
 
     def _toggle_threshold(self):
         if self.var_auto_thresh.get():

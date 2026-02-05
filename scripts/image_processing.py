@@ -19,9 +19,19 @@ def preprocess(image, scale=SCALE_PX_PER_CM, sensitivity='thick', threshold=None
         if image.dtype == np.uint16:
             img8 = (image / 256).astype(np.uint8)
             otsu_thresh, _ = cv2.threshold(img8, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+            # Adjust for sensitivity: thin roots need higher threshold
+            if sensitivity == 'thin':
+                otsu_thresh = min(255, otsu_thresh + 30)
+            elif sensitivity == 'medium':
+                otsu_thresh = min(255, otsu_thresh + 15)
             threshold = int(otsu_thresh * 256)
         else:
             otsu_thresh, _ = cv2.threshold(image, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+            # Adjust for sensitivity: thin roots need higher threshold
+            if sensitivity == 'thin':
+                otsu_thresh = min(200, otsu_thresh + 30)
+            elif sensitivity == 'medium':
+                otsu_thresh = min(200, otsu_thresh + 15)
             threshold = int(otsu_thresh)
     binary = (image < threshold).astype(np.uint8) * 255
     sigma = gaussian_sigma(scale, sensitivity)

@@ -173,25 +173,27 @@ class Sidebar(ctk.CTkScrollableFrame):
         # Top row: Number of plates (left) and Resolution (right)
         _top_row = ctk.CTkFrame(b, fg_color="transparent")
         _top_row.pack(pady=(0, 8), padx=15, fill="x")
+        _top_row.columnconfigure(0, weight=1)
+        _top_row.columnconfigure(1, weight=1)
         # Left side: Plates
         _left = ctk.CTkFrame(_top_row, fg_color="transparent")
-        _left.pack(side="left")
+        _left.grid(row=0, column=0, sticky="w")
         _label_with_tip(_left, "Plates:",
                         "How many plates are in this image.\n"
                         "Auto-advances after selecting this many.",
                         font=ctk.CTkFont(size=11)).pack(anchor="w")
-        self.entry_num_plates = ctk.CTkEntry(_left, width=50,
+        self.entry_num_plates = ctk.CTkEntry(_left, width=60,
                                               placeholder_text="1")
         self.entry_num_plates.pack(anchor="w", pady=(2, 0))
         # Right side: Resolution
         _right = ctk.CTkFrame(_top_row, fg_color="transparent")
-        _right.pack(side="right")
+        _right.grid(row=0, column=1, sticky="e")
         _label_with_tip(_right, "Resolution:",
                         "Scanner DPI (dots per inch).\n"
                         "Used to convert pixels to millimeters.\n"
                         "Auto-detected from image. Edit if incorrect.",
                         font=ctk.CTkFont(size=11)).pack(anchor="e")
-        self.entry_dpi = ctk.CTkEntry(_right, width=70,
+        self.entry_dpi = ctk.CTkEntry(_right, width=80,
                                        placeholder_text="auto")
         self.entry_dpi.pack(anchor="e", pady=(2, 0))
 
@@ -577,7 +579,7 @@ class Sidebar(ctk.CTkScrollableFrame):
         self.sec_sessions.hide()
         self.sec_folder.collapse(summary=image_name)
         self.entry_dpi.delete(0, "end")
-        self.entry_dpi.insert(0, str(dpi))
+        self.entry_dpi.insert(0, f"{dpi} dpi")
         self.sec_settings.show()
         self.sec_settings.expand()
         # hide later sections

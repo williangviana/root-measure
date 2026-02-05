@@ -340,19 +340,6 @@ class Sidebar(ctk.CTkScrollableFrame):
             state="disabled", fg_color=self._step_color_idle)
         self.btn_review.pack(pady=3, padx=15, fill="x")
 
-        # Action buttons (inside workflow body, below step buttons)
-        self.btn_next_image = ctk.CTkButton(
-            b, text="Next Image", fg_color="#2b5797",
-            command=app.next_image)
-
-        self.btn_continue_later = ctk.CTkButton(
-            b, text="Continue Later", fg_color="#2b5797",
-            command=lambda: app.continue_later())
-
-        self.btn_stop = ctk.CTkButton(
-            b, text="Finish & Plot", fg_color="#2b5797",
-            command=lambda: app.finish_and_plot())
-
         # --- Ordered section list (for pack-order preservation) ---
         # sec_sessions is excluded — it always packs after _status_frame
         self._section_order = [
@@ -383,9 +370,25 @@ class Sidebar(ctk.CTkScrollableFrame):
         self._progress_frame.pack(fill="x")
         self._progress_frame.pack_forget()
 
+        # Action buttons (at bottom of sidebar, below status)
+        self._action_frame = ctk.CTkFrame(self, fg_color="transparent")
+        self._action_frame.pack(fill="x", pady=(5, 10))
+
+        self.btn_next_image = ctk.CTkButton(
+            self._action_frame, text="Next Image", fg_color="#2b5797",
+            command=app.next_image)
+
+        self.btn_continue_later = ctk.CTkButton(
+            self._action_frame, text="Continue Later", fg_color="#555555",
+            command=lambda: app.continue_later())
+
+        self.btn_stop = ctk.CTkButton(
+            self._action_frame, text="Finish & Plot", fg_color="#217346",
+            command=lambda: app.finish_and_plot())
+
         # Mid-workflow continue later (child of status area, hidden by default)
         self.btn_continue_later_mid = ctk.CTkButton(
-            self._status_frame, text="Continue Later", fg_color="#2b5797",
+            self._action_frame, text="Continue Later", fg_color="#555555",
             command=lambda: app.continue_later())
 
     # --- helpers ---

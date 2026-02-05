@@ -196,7 +196,6 @@ class Sidebar(ctk.CTkScrollableFrame):
                         font=ctk.CTkFont(size=11)).pack(anchor="center")
         self.entry_genotypes_per_plate = ctk.CTkEntry(_geno_frame, width=45,
                                                        placeholder_text="1")
-        self.entry_genotypes_per_plate.insert(0, "1")
         self.entry_genotypes_per_plate.pack(anchor="center", pady=(2, 0))
         # Segments
         _seg_frame = ctk.CTkFrame(_options_row, fg_color="transparent")
@@ -208,7 +207,6 @@ class Sidebar(ctk.CTkScrollableFrame):
                         font=ctk.CTkFont(size=11)).pack(anchor="e")
         self.entry_segments = ctk.CTkEntry(_seg_frame, width=45,
                                             placeholder_text="1")
-        self.entry_segments.insert(0, "1")
         self.entry_segments.pack(anchor="e", pady=(2, 0))
         # Keep var_split and var_multi for compatibility
         self.var_split = ctk.BooleanVar(value=False)

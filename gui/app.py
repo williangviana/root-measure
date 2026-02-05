@@ -773,10 +773,8 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
             self.sidebar.btn_done.pack(pady=(5, 0), padx=15, fill="x")
 
     def _on_root_clicked(self):
-        """Show Done button when first root is clicked."""
-        if self.canvas.get_root_points():
-            self.sidebar.btn_done.pack_forget()
-            self.sidebar.btn_done.pack(pady=(5, 0), padx=15, fill="x")
+        """Callback when a root is clicked (button already visible)."""
+        pass
 
     def _plates_done(self):
         """Called when user presses Enter after selecting plates."""
@@ -863,10 +861,10 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
         # Determine button text based on what's next
         is_last = (pi == len(plates) - 1) and (not self._split or self._split_stage == 1)
         num_marks = self._get_num_marks()
-        if num_marks > 0:
-            btn_text = "Click Segments" if is_last else "Next Plate"
+        if is_last:
+            btn_text = "Click Segments" if num_marks > 0 else "Start Trace"
         else:
-            btn_text = "Start Trace" if is_last else "Next Plate"
+            btn_text = "Next Plate"
         self.sidebar.btn_done.configure(text=btn_text)
         self.sidebar.btn_done.pack_forget()
         self.sidebar.btn_done.pack(pady=(5, 0), padx=15, fill="x")

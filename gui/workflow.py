@@ -4,6 +4,11 @@ import cv2
 import numpy as np
 from datetime import datetime
 
+def _log(msg):
+    """Print debug message with timestamp."""
+    ts = datetime.now().strftime("%H:%M:%S")
+    print(f"[{ts}] {msg}")
+
 from image_processing import preprocess
 from root_tracing import find_root_tip, trace_root, build_plate_graph
 from utils import _compute_segments, _find_nearest_path_index
@@ -84,10 +89,12 @@ class MeasurementMixin:
 
     def measure(self):
         """Run preprocessing, tracing, and show results for review."""
+        _log("measure() called")
         self._exit_preview()
         points = self.canvas.get_root_points()
         flags = self.canvas.get_root_flags()
         plates = self.canvas.get_plates()
+        _log(f"  {len(points)} root points, {len(plates)} plates")
 
         if not points or self.image is None:
             self.sidebar.set_status("Nothing to measure.")
@@ -95,6 +102,7 @@ class MeasurementMixin:
 
         self._scale_val = self._get_scale()
         self._sensitivity = self.sidebar.var_sensitivity.get()
+        _log(f"  scale={self._scale_val}, sensitivity={self._sensitivity}")
 
         self._hide_action_buttons()
         self.sidebar.set_status("Preprocessing...")
@@ -188,6 +196,8 @@ class MeasurementMixin:
 
     def _show_review(self, skip_delay=False):
         """Show traced results and let user click bad traces to retry."""
+        _log(f"_show_review(skip_delay={skip_delay})")
+        _log(f"  {len(self._traces if hasattr(self, '_traces') else self.canvas._traces)} traces")
         self.sidebar.hide_progress()
         self.sidebar.set_step(4)
         # Re-enable workflow buttons so user can go back to previous steps
@@ -249,11 +259,15 @@ class MeasurementMixin:
 
     def _review_done(self):
         """Called when user presses Enter in review mode."""
+        _log("_review_done() called")
         if not getattr(self, '_review_ready', True):
+            _log("  ignoring - review not ready yet")
             return  # ignore leftover Enter from previous mode
         selected = self.canvas.get_selected_for_retry()
+        _log(f"  selected for retry: {selected}")
         if not selected:
             # accept all — save and finish
+            _log("  no selection → finishing measurement")
             self.canvas.set_mode(ImageCanvas.MODE_VIEW)
             self._finish_measurement()
             return
@@ -261,15 +275,19 @@ class MeasurementMixin:
         self._retry_result_indices = [self._trace_to_result[s]
                                        for s in selected
                                        if s < len(self._trace_to_result)]
+        _log(f"  retry_result_indices: {self._retry_result_indices}")
         if not self._retry_result_indices:
+            _log("  no valid indices → finishing measurement")
             self.canvas.set_mode(ImageCanvas.MODE_VIEW)
             self._finish_measurement()
             return
         # enter reclick mode
+        _log("  → entering reclick mode")
         self._start_reclick()
 
     def _start_reclick(self):
         """Enter reclick mode for bad traces."""
+        _log("_start_reclick() called")
         self._hide_action_buttons()
         self.canvas.clear_reclick()
         self._reclick_idx = 0  # which retry root we're on
@@ -277,6 +295,7 @@ class MeasurementMixin:
         self._reclick_clicks_per_root = 2 + num_marks
         self.canvas._reclick_clicks_per_root = self._reclick_clicks_per_root
         n = len(self._retry_result_indices)
+        _log(f"  {n} roots to retry, {self._reclick_clicks_per_root} clicks per root")
         self.canvas._reclick_expected = n * self._reclick_clicks_per_root
         self.canvas.set_mode(
             ImageCanvas.MODE_RECLICK,
@@ -331,9 +350,11 @@ class MeasurementMixin:
 
     def _reclick_enter(self):
         """Called when user presses Enter during reclick."""
+        _log("_reclick_enter() called")
         pts = self.canvas._reclick_points
         cpr = self._reclick_clicks_per_root
         n = len(self._retry_result_indices)
+        _log(f"  {len(pts)} points clicked, need {(self._reclick_idx + 1) * cpr} for root {self._reclick_idx + 1}/{n}")
         # need at least enough points for the current root
         if len(pts) < (self._reclick_idx + 1) * cpr:
             self.sidebar.set_status(
@@ -361,10 +382,12 @@ class MeasurementMixin:
                 self._show_reclick_status()
                 return
         # all re-clicks done — re-trace
+        _log("  all reclick points placed → retracing")
         self._do_retrace()
 
     def _do_retrace(self):
         """Re-trace roots with manually clicked points."""
+        _log("_do_retrace() called")
         self._hide_action_buttons()
         # ensure binary mask exists (may be missing after session restore)
         if not hasattr(self, '_binary') or self._binary is None:
@@ -391,6 +414,8 @@ class MeasurementMixin:
             clicks = groups[j]
             top_manual = clicks[0]
             bot_manual = clicks[-1]
+            _log(f"  retracing root {j + 1}/{total} (result idx {ri})")
+            _log(f"    top={top_manual}, bot={bot_manual}")
             self.sidebar.set_status(f"Re-tracing root {j + 1}/{total}...")
             self.sidebar.update_progress(j + 1)
             self.update()
@@ -404,6 +429,7 @@ class MeasurementMixin:
             pg = plate_graphs.get(pi) if pi is not None else None
             res = trace_root(self._binary, top_manual, bot_manual,
                              self._scale_val, plate_bounds=pb, plate_graph=pg)
+            _log(f"    traced: {res['length_cm']:.2f} cm, method={res['method']}")
             # use reclick marks if provided (clicks between top and bottom)
             if cpr > 2:
                 mark_coords = list(clicks[1:-1])
@@ -426,10 +452,12 @@ class MeasurementMixin:
                 self._add_root_trace(i, res)
                 self._trace_to_result.append(i)
 
+        _log(f"  rebuilt {len(self.canvas._traces)} traces")
         self.sidebar.hide_progress()
         self.canvas._redraw()
 
         # Go back to review mode so user can verify retrace worked
+        _log("  → returning to review mode")
         self._show_review(skip_delay=True)
 
     def _save_trace_screenshot(self, silent=False):
@@ -618,12 +646,14 @@ class MeasurementMixin:
 
     def _finish_measurement(self):
         """Save results and show final summary."""
+        _log("_finish_measurement() called")
         self.sidebar.hide_progress()
         self.sidebar.set_step(4)
         plates = self.canvas.get_plates()
         traced = [r for r in self._results
                   if r['method'] not in ('skip', 'error')]
         lengths = [r['length_cm'] for r in traced if r['length_cm']]
+        _log(f"  {len(traced)} traced, {len(plates)} plates")
         msg = f"Done! {len(traced)} root(s) traced."
         if lengths:
             msg += f"\nMean: {np.mean(lengths):.2f} cm, "

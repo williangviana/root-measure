@@ -94,7 +94,7 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
         self.sidebar.grid(row=0, column=0, sticky="nsew", padx=0, pady=0)
 
         # Action buttons frame - fixed at bottom of left column (hidden initially)
-        self._action_frame = ctk.CTkFrame(self._left_frame, fg_color="gray17")
+        self._action_frame = ctk.CTkFrame(self._left_frame, fg_color="transparent")
         self._action_frame.grid(row=1, column=0, sticky="ew", padx=0, pady=0)
         self._action_frame.grid_remove()
 

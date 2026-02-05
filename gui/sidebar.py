@@ -123,7 +123,11 @@ class Sidebar(ctk.CTkScrollableFrame):
     """Left sidebar with progressive, collapsible sections."""
 
     def __init__(self, parent, app, **kwargs):
-        super().__init__(parent, width=280, **kwargs)
+        # Make scrollbar subtle - blend with background until hovered
+        super().__init__(parent, width=280,
+                         scrollbar_button_color="gray20",
+                         scrollbar_button_hover_color="gray40",
+                         **kwargs)
         self.app = app
 
         # --- Header ---

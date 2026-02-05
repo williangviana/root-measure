@@ -746,6 +746,7 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
         self._retry_result_indices = []
         self._reclick_idx = 0
         self.canvas._app_status_callback = self.sidebar.set_status
+        self.canvas._on_click_callback = self._on_plate_added
         self.canvas.set_mode(
             ImageCanvas.MODE_SELECT_PLATES,
             on_done=self._plates_done)
@@ -760,9 +761,21 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
         self.sidebar.btn_review.configure(state="disabled")
         self._hide_action_buttons()
         self._show_action_frame()
-        self.sidebar.btn_done.pack(pady=(5, 0), padx=15, fill="x")
+        # Done button shown after first plate is drawn (via _on_plate_added)
         self.btn_continue_later_mid.pack(pady=(10, 5), padx=15, fill="x")
         self.sidebar.set_step(1)
+
+    def _on_plate_added(self):
+        """Show Done button when first plate is drawn."""
+        if self.canvas.get_plates() or self.canvas._pending_plate:
+            self.sidebar.btn_done.pack_forget()
+            self.sidebar.btn_done.pack(pady=(5, 0), padx=15, fill="x")
+
+    def _on_root_clicked(self):
+        """Show Done button when first root is clicked."""
+        if self.canvas.get_root_points():
+            self.sidebar.btn_done.pack_forget()
+            self.sidebar.btn_done.pack(pady=(5, 0), padx=15, fill="x")
 
     def _plates_done(self):
         """Called when user presses Enter after selecting plates."""
@@ -801,7 +814,10 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
         self.sidebar.btn_review.configure(state="disabled")
         self._hide_action_buttons()
         self._show_action_frame()
-        self.sidebar.btn_done.pack(pady=(5, 0), padx=15, fill="x")
+        # Done button shown after first root is clicked (via _on_root_clicked callback)
+        # But show immediately if resuming with existing roots
+        if self.canvas.get_root_points():
+            self.sidebar.btn_done.pack(pady=(5, 0), padx=15, fill="x")
         self.btn_continue_later_mid.pack(pady=(10, 5), padx=15, fill="x")
         self.sidebar.set_step(2)
 
@@ -829,6 +845,7 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
         self.canvas._current_root_group = self._current_group
         self.canvas._current_plate_idx = self._current_plate_idx
         self._set_plate_info(pi)
+        self.canvas._on_click_callback = self._on_root_clicked
         self.canvas.set_mode(
             ImageCanvas.MODE_CLICK_ROOTS,
             on_done=self._plate_roots_done)

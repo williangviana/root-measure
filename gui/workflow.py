@@ -190,6 +190,11 @@ class MeasurementMixin:
         """Show traced results and let user click bad traces to retry."""
         self.sidebar.hide_progress()
         self.sidebar.set_step(4)
+        # Re-enable workflow buttons so user can go back to previous steps
+        self.sidebar.btn_select_plates.configure(state="normal")
+        self.sidebar.btn_click_roots.configure(state="normal")
+        self.sidebar.btn_measure.configure(state="normal")
+        self.sidebar.btn_review.configure(state="normal")
         # sync trace-to-result mapping so canvas review numbering is correct
         self.canvas._trace_to_result = list(self._trace_to_result)
         # Block Enter for 500ms to prevent leftover keypresses from skipping review

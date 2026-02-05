@@ -976,6 +976,8 @@ class ImageCanvas(ctk.CTkFrame):
             # store as pending — user can redraw before pressing Enter
             self._pending_plate = (rmin, rmax, cmin, cmax)
             self._redraw()
+            if self._on_click_callback:
+                self._on_click_callback()
 
     def _on_right_click(self, event):
         """Right-click / two-finger click: undo last action."""

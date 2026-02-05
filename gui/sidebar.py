@@ -170,18 +170,18 @@ class Sidebar(ctk.CTkScrollableFrame):
         self.sec_settings = _Section(self, "SCAN SETTINGS")
         b = self.sec_settings.body
         _label_with_tip(b, "DPI:",
-                        "Scanner resolution in dots per inch.\n"
-                        "Auto-detected from the image metadata.\n"
-                        "Override if the detection is wrong.",
+                        "Scanner resolution (dots per inch).\n"
+                        "Used to convert pixels to millimeters.\n"
+                        "Auto-detected from image. Edit if incorrect.",
                         font=ctk.CTkFont(size=11)).pack(padx=15, anchor="w")
         self.entry_dpi = ctk.CTkEntry(b, placeholder_text="auto-detect")
         self.entry_dpi.pack(pady=(2, 8), padx=15, fill="x")
 
         _label_with_tip(b, "Root thickness:",
-                        "Adjusts how aggressively the image is\n"
-                        "binarized to detect roots.\n"
-                        "Use 'thick' for older/thicker roots,\n"
-                        "'thin' for young/fine roots.",
+                        "Match this to your root age/type:\n"
+                        "• thick: older, thicker roots\n"
+                        "• medium: typical roots (default)\n"
+                        "• thin: young seedlings, fine roots",
                         font=ctk.CTkFont(size=11)).pack(padx=15, anchor="w")
         self.var_sensitivity = ctk.StringVar(value="medium")
         self.menu_sensitivity = ctk.CTkSegmentedButton(
@@ -227,7 +227,7 @@ class Sidebar(ctk.CTkScrollableFrame):
         _row_multi = ctk.CTkFrame(b, fg_color="transparent")
         _row_multi.pack(pady=5, padx=15, anchor="w")
         self.chk_multi = ctk.CTkCheckBox(
-            _row_multi, text="Multi-measurement",
+            _row_multi, text="Segment mode",
             variable=self.var_multi,
             command=self._toggle_segments,
             font=ctk.CTkFont(size=11))
@@ -235,14 +235,15 @@ class Sidebar(ctk.CTkScrollableFrame):
         _q = ctk.CTkLabel(_row_multi, text="(?)", font=ctk.CTkFont(size=10),
                           text_color="gray50", cursor="hand2")
         _q.pack(side="left", padx=(4, 0))
-        _Tooltip(_q, "Click additional points along the root\n"
-                     "to divide it into segments. Useful for\n"
-                     "measuring growth zones separately.")
+        _Tooltip(_q, "Measure root in segments (e.g. tip, middle, base).\n"
+                     "After clicking root tops, you'll click points\n"
+                     "along each root to divide it into parts.")
 
         self.frame_segments = ctk.CTkFrame(b, fg_color="transparent")
-        _label_with_tip(self.frame_segments, "Segments per root:",
-                        "Number of clicks to split the root\n"
-                        "into segments (e.g. 2 clicks = 3 segments).",
+        _label_with_tip(self.frame_segments, "Number of segments:",
+                        "How many parts to divide each root into.\n"
+                        "Example: 2 segments = 1 click per root,\n"
+                        "3 segments = 2 clicks per root.",
                         font=ctk.CTkFont(size=11)).pack(side="left", padx=(15, 5))
         self.entry_segments = ctk.CTkEntry(self.frame_segments, width=50,
                                             placeholder_text="2")
@@ -252,16 +253,16 @@ class Sidebar(ctk.CTkScrollableFrame):
         _row_split = ctk.CTkFrame(b, fg_color="transparent")
         _row_split.pack(pady=5, padx=15, anchor="w")
         self.chk_split = ctk.CTkCheckBox(
-            _row_split, text="Split plate (2 genotypes)",
+            _row_split, text="Split plate",
             variable=self.var_split,
             font=ctk.CTkFont(size=11))
         self.chk_split.pack(side="left")
         _q2 = ctk.CTkLabel(_row_split, text="(?)", font=ctk.CTkFont(size=10),
                            text_color="gray50", cursor="hand2")
         _q2.pack(side="left", padx=(4, 0))
-        _Tooltip(_q2, "Enable if each plate has two genotypes\n"
-                      "side by side. Roots on the left half are\n"
-                      "assigned to genotype A, right half to B.")
+        _Tooltip(_q2, "Two genotypes per plate (left/right).\n"
+                      "You'll click roots for each genotype\n"
+                      "separately. Genotypes assigned in pairs.")
 
         self.btn_next_settings = ctk.CTkButton(
             b, text="Next", fg_color="#2b5797",
@@ -272,20 +273,18 @@ class Sidebar(ctk.CTkScrollableFrame):
         self.sec_experiment = _Section(self, "EXPERIMENT")
         b = self.sec_experiment.body
 
-        _label_with_tip(b, "Experiment:",
-                        "A name for this experiment. Results are\n"
-                        "grouped by experiment name in the output\n"
-                        "folder and session files.",
+        _label_with_tip(b, "Experiment name:",
+                        "Name for your experiment (e.g. 'salt_stress_01').\n"
+                        "Used to organize output files and sessions.",
                         font=ctk.CTkFont(size=11)).pack(padx=15, anchor="w")
         self.entry_experiment = ctk.CTkEntry(
             b, placeholder_text="e.g. salt_screen_1")
         self.entry_experiment.pack(pady=(2, 8), padx=15, fill="x")
 
         _label_with_tip(b, "Genotypes:",
-                        "List the genotype names, separated by\n"
-                        "commas. Each plate is assigned a genotype\n"
-                        "in the order you list them here.\n"
-                        "With split plates, list pairs (A, B).",
+                        "Comma-separated list (e.g. 'WT, mutant1, mutant2').\n"
+                        "Assigned to plates in order (plate 1 = first genotype).\n"
+                        "With split plates, list pairs: 'WT, mutant' for each plate.",
                         font=ctk.CTkFont(size=11)).pack(padx=15, anchor="w")
         self.entry_genotypes = ctk.CTkEntry(
             b, placeholder_text="e.g. WT, crd-1")
@@ -294,10 +293,10 @@ class Sidebar(ctk.CTkScrollableFrame):
                      font=ctk.CTkFont(size=9),
                      text_color="gray50").pack(padx=15, anchor="w")
 
-        _label_with_tip(b, "Condition:",
-                        "Treatment or condition label for each plate.\n"
-                        "Comma-separated, mapped to plates in order.\n"
-                        "Leave empty for a simple (non-factorial) design.",
+        _label_with_tip(b, "Conditions (optional):",
+                        "Treatment labels (e.g. 'control, salt, drought').\n"
+                        "Assigned to plates in order. Leave empty if\n"
+                        "you only have genotypes without treatments.",
                         font=ctk.CTkFont(size=11)).pack(
             padx=15, pady=(6, 0), anchor="w")
         self.entry_condition = ctk.CTkEntry(

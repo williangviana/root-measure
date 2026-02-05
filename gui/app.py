@@ -543,7 +543,12 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
         self._action_frame.grid_remove()
 
     def _show_action_frame(self):
-        """Ensure action button frame is visible."""
+        """Ensure action button frame is visible (after hiding all buttons first)."""
+        # Clear any stale buttons before showing frame
+        self.btn_next_image.pack_forget()
+        self.btn_continue_later.pack_forget()
+        self.btn_stop.pack_forget()
+        self.btn_continue_later_mid.pack_forget()
         self._action_frame.grid()
 
     def _get_scale(self):

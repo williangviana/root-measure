@@ -101,13 +101,13 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
             self._action_frame, text="Next Image", fg_color="#2b5797",
             command=self.next_image)
         self.btn_continue_later = ctk.CTkButton(
-            self._action_frame, text="Continue Later", fg_color="#555555",
+            self._action_frame, text="Continue Later", fg_color="#2b5797",
             command=lambda: self.continue_later())
         self.btn_stop = ctk.CTkButton(
-            self._action_frame, text="Finish & Plot", fg_color="#217346",
+            self._action_frame, text="Finish & Plot", fg_color="#2b5797",
             command=lambda: self.finish_and_plot())
         self.btn_continue_later_mid = ctk.CTkButton(
-            self._action_frame, text="Continue Later", fg_color="#555555",
+            self._action_frame, text="Continue Later", fg_color="#2b5797",
             command=lambda: self.continue_later())
 
         self.canvas = ImageCanvas(self)

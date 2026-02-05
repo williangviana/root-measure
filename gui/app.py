@@ -829,8 +829,8 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
                 btn_text = f"Confirm Plate {num_with_pending}/{expected}"
 
             self.sidebar.btn_done.configure(text=btn_text)
-            self.sidebar.btn_done.pack_forget()
-            self.sidebar.btn_done.pack(pady=(5, 0), padx=15, fill="x")
+            if not self.sidebar.btn_done.winfo_ismapped():
+                self.sidebar.btn_done.pack(pady=(5, 0), padx=15, fill="x")
 
     def _on_root_clicked(self):
         """Callback when a root is clicked (button already visible)."""
@@ -931,8 +931,8 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
         else:
             btn_text = "Next Plate"
         self.sidebar.btn_done.configure(text=btn_text)
-        self.sidebar.btn_done.pack_forget()
-        self.sidebar.btn_done.pack(pady=(5, 0), padx=15, fill="x")
+        if not self.sidebar.btn_done.winfo_ismapped():
+            self.sidebar.btn_done.pack(pady=(5, 0), padx=15, fill="x")
 
     def _plate_roots_done(self):
         """Called when user presses Enter after clicking roots on a plate."""
@@ -1052,8 +1052,8 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
             ImageCanvas.MODE_CLICK_MARKS,
             on_done=self._plate_marks_done)
         self.canvas.zoom_to_region(r1, r2, c1, c2)
-        self.sidebar.btn_done.pack_forget()
-        self.sidebar.btn_done.pack(pady=(5, 0), padx=15, fill="x")
+        if not self.sidebar.btn_done.winfo_ismapped():
+            self.sidebar.btn_done.pack(pady=(5, 0), padx=15, fill="x")
         self._update_marks_status()
         self.lbl_bottom.configure(
             text="Click=place mark  |  Right-click=undo  |  Scroll=zoom")

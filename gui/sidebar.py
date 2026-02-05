@@ -522,6 +522,9 @@ class Sidebar(ctk.CTkScrollableFrame):
 
         self.sec_sessions.show()
         self.sec_sessions.expand()
+        # Keep action buttons at bottom
+        self._action_frame.pack_forget()
+        self._action_frame.pack(fill="x", pady=(5, 10))
 
     # --- phase transitions ---
 

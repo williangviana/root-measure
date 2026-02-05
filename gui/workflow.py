@@ -585,6 +585,7 @@ class MeasurementMixin:
 
     def _finish_measurement(self):
         """Save results and show final summary."""
+        self.sidebar.hide_progress()
         self.sidebar.set_step(4)
         plates = self.canvas.get_plates()
         traced = [r for r in self._results

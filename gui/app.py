@@ -368,6 +368,8 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
 
     def load_image(self, path):
         """Load and display a single image."""
+        # Hide action buttons from previous image
+        self._hide_action_buttons()
         # Exit preview mode if active (clicking same image exits preview)
         if getattr(self, '_preview_active', False) and path == self.image_path:
             self._preview_active = False

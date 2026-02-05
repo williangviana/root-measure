@@ -556,10 +556,19 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
         self.sidebar.entry_dpi.insert(0, "1200")
         return SCALE_PX_PER_CM
 
-    def _preview_preprocessing(self):
-        """Show preprocessed binary image for current settings."""
+    def _preview_preprocessing(self, force_show=False):
+        """Show preprocessed binary image for current settings, or toggle back to original."""
         if self.image is None:
             self.sidebar.set_status("Load an image first")
+            return
+        # Toggle off if already showing preview (unless force_show for settings updates)
+        if getattr(self, '_preview_active', False) and not force_show:
+            self._preview_active = False
+            display = cv2.cvtColor(self.image, cv2.COLOR_GRAY2RGB) if len(self.image.shape) == 2 else self.image
+            if display.dtype == np.uint16:
+                display = (display / 256).astype(np.uint8)
+            self.canvas.set_image_preview(display)
+            self.sidebar.set_status("Ready")
             return
         try:
             from image_processing import preprocess
@@ -573,7 +582,7 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
             # Use preview method to preserve overlays and zoom
             self.canvas.set_image_preview(display)
             self._preview_active = True
-            self.sidebar.set_status("Preview - click image in list to exit")
+            self.sidebar.set_status("Preview - click Preview again to exit")
         except Exception as e:
             self.sidebar.set_status(f"Preview error: {e}")
 

@@ -388,7 +388,7 @@ class Sidebar(ctk.CTkScrollableFrame):
             self.app._update_auto_threshold()
         # Update preview if active
         if getattr(self.app, '_preview_active', False):
-            self.app._preview_preprocessing()
+            self.app._preview_preprocessing(force_show=True)
 
     def _toggle_threshold(self):
         if self.var_auto_thresh.get():
@@ -397,7 +397,7 @@ class Sidebar(ctk.CTkScrollableFrame):
             self.app._update_auto_threshold()
             # Update preview if active
             if getattr(self.app, '_preview_active', False):
-                self.app._preview_preprocessing()
+                self.app._preview_preprocessing(force_show=True)
         else:
             self.lbl_thresh_val.configure(text_color=("gray10", "gray90"))
 
@@ -411,7 +411,7 @@ class Sidebar(ctk.CTkScrollableFrame):
         self.lbl_thresh_val.configure(text=str(int(val)))
         # Auto-update preview when slider changes
         if getattr(self.app, '_preview_active', False):
-            self.app._preview_preprocessing()
+            self.app._preview_preprocessing(force_show=True)
 
     def get_threshold(self):
         """Return threshold value or None for auto-detect."""

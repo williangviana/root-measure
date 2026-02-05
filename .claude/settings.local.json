@@ -12,7 +12,12 @@
       "Bash(git reset:*)",
       "Bash(git stash:*)",
       "Bash(python3:*)",
-      "Bash(git rebase:*)"
+      "Bash(git rebase:*)",
+      "Bash(git filter-branch:*)",
+      "Bash(FILTER_BRANCH_SQUELCH_WARNING=1 git filter-branch:*)",
+      "Bash(git config:*)",
+      "Bash(ls:*)",
+      "Bash(grep:*)"
     ]
   }
 }

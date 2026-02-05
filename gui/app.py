@@ -359,6 +359,7 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
             return
 
         self._experiment_name = ''
+        self._genotype_colors = {}  # reset color registry for new folder
         self.sidebar.advance_to_images(self.folder.name, self.images)
         # show this folder's sessions (if any) so user can click to resume
         sessions = get_session_summaries(self.folder)

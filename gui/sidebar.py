@@ -268,14 +268,10 @@ class Sidebar(ctk.CTkScrollableFrame):
                                                        placeholder_text="1")
         self.entry_genotypes_per_plate.insert(0, "1")
         self.entry_genotypes_per_plate.pack(anchor="e", pady=(2, 0))
-        # Keep var_split for compatibility - derived from genotypes_per_plate
+        # Keep var_split and var_multi for compatibility
         self.var_split = ctk.BooleanVar(value=False)
-        self.chk_split = None  # No longer used
-        _Tooltip(_q2, "Two genotypes per plate (left/right).\n"
-                      "You'll click roots for each genotype\n"
-                      "separately. Genotypes assigned in pairs.")
-        # Keep var_multi for compatibility but it's now derived from segments
         self.var_multi = ctk.BooleanVar(value=False)
+        self.chk_split = None  # No longer used
         self.frame_segments = None  # No longer used
 
         self.btn_next_settings = ctk.CTkButton(

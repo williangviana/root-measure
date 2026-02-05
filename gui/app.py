@@ -809,17 +809,14 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
             self._split = self.sidebar.var_split.get()
             self._split_stage = 0
             # _current_group set per-plate in _enter_root_click_stage via registry
-        self._enter_root_click_stage()
         self.sidebar.btn_measure.configure(state="disabled")
         self.sidebar.btn_review.configure(state="disabled")
         self._hide_action_buttons()
         self._show_action_frame()
-        # Done button shown after first root is clicked (via _on_root_clicked callback)
-        # But show immediately if resuming with existing roots
-        if self.canvas.get_root_points():
-            self.sidebar.btn_done.pack(pady=(5, 0), padx=15, fill="x")
         self.btn_continue_later_mid.pack(pady=(10, 5), padx=15, fill="x")
         self.sidebar.set_step(2)
+        # _enter_root_click_stage shows Done button
+        self._enter_root_click_stage()
 
     def _enter_root_click_stage(self):
         """Set up the canvas for the current root clicking stage."""
@@ -859,9 +856,12 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
         label = " / ".join(label_parts)
         self.sidebar.set_status(
             f"Plate {pi + 1}/{len(plates)} — {label}\n"
-            "Click root tops. D+Click=dead, T+Click=touching. Enter=next.")
+            "Click root tops. D+Click=dead, T+Click=touching.")
         self.lbl_bottom.configure(
-            text="Click=root top  |  D+Click=dead  |  T+Click=touching  |  Right-click=undo  |  Enter=next  |  Scroll=zoom")
+            text="Click=root top  |  D+Click=dead  |  T+Click=touching  |  Right-click=undo  |  Scroll=zoom")
+        # Always show Done button in root click stage (user can advance even with 0 roots)
+        self.sidebar.btn_done.pack_forget()
+        self.sidebar.btn_done.pack(pady=(5, 0), padx=15, fill="x")
 
     def _plate_roots_done(self):
         """Called when user presses Enter after clicking roots on a plate."""
@@ -977,9 +977,12 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
             ImageCanvas.MODE_CLICK_MARKS,
             on_done=self._plate_marks_done)
         self.canvas.zoom_to_region(r1, r2, c1, c2)
+        # Ensure Done button is shown
+        self.sidebar.btn_done.pack_forget()
+        self.sidebar.btn_done.pack(pady=(5, 0), padx=15, fill="x")
         self._update_marks_status()
         self.lbl_bottom.configure(
-            text="Click=place mark  |  Right-click=undo  |  Enter=done  |  Scroll=zoom")
+            text="Click=place mark  |  Right-click=undo  |  Scroll=zoom")
 
     def _update_marks_status(self):
         """Update status bar with marks progress."""

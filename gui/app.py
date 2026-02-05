@@ -861,8 +861,10 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
         # Determine button text based on what's next
         is_last = (pi == len(plates) - 1) and (not self._split or self._split_stage == 1)
         num_marks = self._get_num_marks()
-        if is_last:
-            btn_text = "Click Segments" if num_marks > 0 else "Start Trace"
+        if num_marks > 0:
+            btn_text = "Click Segments"
+        elif is_last:
+            btn_text = "Start Trace"
         else:
             btn_text = "Next Plate"
         self.sidebar.btn_done.configure(text=btn_text)

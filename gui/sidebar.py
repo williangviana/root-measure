@@ -170,7 +170,53 @@ class Sidebar(ctk.CTkScrollableFrame):
         self.sec_settings = _Section(self, "SCAN SETTINGS")
         b = self.sec_settings.body
 
-        # Resolution row
+        # Row 1: Plates > Genotypes > Segments
+        _options_row = ctk.CTkFrame(b, fg_color="transparent")
+        _options_row.pack(pady=(0, 8), padx=15, fill="x")
+        _options_row.columnconfigure(0, weight=1)
+        _options_row.columnconfigure(1, weight=1)
+        _options_row.columnconfigure(2, weight=1)
+        # Plates
+        _plates_frame = ctk.CTkFrame(_options_row, fg_color="transparent")
+        _plates_frame.grid(row=0, column=0, sticky="w")
+        _label_with_tip(_plates_frame, "Plates:",
+                        "How many plates are in this image.\n"
+                        "Auto-advances after selecting this many.",
+                        font=ctk.CTkFont(size=11)).pack(anchor="w")
+        self.entry_num_plates = ctk.CTkEntry(_plates_frame, width=45,
+                                              placeholder_text="1")
+        self.entry_num_plates.pack(anchor="w", pady=(2, 0))
+        # Genotypes per plate
+        _geno_frame = ctk.CTkFrame(_options_row, fg_color="transparent")
+        _geno_frame.grid(row=0, column=1)
+        _label_with_tip(_geno_frame, "Genotypes:",
+                        "Genotypes per plate (default 1).\n"
+                        "Use 2 if plate has two genotypes side by side.\n"
+                        "You'll click roots for each genotype separately.",
+                        font=ctk.CTkFont(size=11)).pack(anchor="center")
+        self.entry_genotypes_per_plate = ctk.CTkEntry(_geno_frame, width=45,
+                                                       placeholder_text="1")
+        self.entry_genotypes_per_plate.insert(0, "1")
+        self.entry_genotypes_per_plate.pack(anchor="center", pady=(2, 0))
+        # Segments
+        _seg_frame = ctk.CTkFrame(_options_row, fg_color="transparent")
+        _seg_frame.grid(row=0, column=2, sticky="e")
+        _label_with_tip(_seg_frame, "Segments:",
+                        "Number of segments per root (default 1 = whole root).\n"
+                        "Use 2+ to measure root in parts (tip, middle, base).\n"
+                        "You'll click segment boundaries after root tops.",
+                        font=ctk.CTkFont(size=11)).pack(anchor="e")
+        self.entry_segments = ctk.CTkEntry(_seg_frame, width=45,
+                                            placeholder_text="1")
+        self.entry_segments.insert(0, "1")
+        self.entry_segments.pack(anchor="e", pady=(2, 0))
+        # Keep var_split and var_multi for compatibility
+        self.var_split = ctk.BooleanVar(value=False)
+        self.var_multi = ctk.BooleanVar(value=False)
+        self.chk_split = None  # No longer used
+        self.frame_segments = None  # No longer used
+
+        # Row 2: Resolution
         _res_row = ctk.CTkFrame(b, fg_color="transparent")
         _res_row.pack(pady=(0, 8), padx=15, fill="x")
         _label_with_tip(_res_row, "Resolution:",
@@ -182,6 +228,7 @@ class Sidebar(ctk.CTkScrollableFrame):
                                        placeholder_text="auto")
         self.entry_dpi.pack(side="left", padx=(10, 0))
 
+        # Row 3: Root thickness
         _label_with_tip(b, "Root thickness:",
                         "Match this to your root age/type:\n"
                         "• thick: older, thicker roots\n"
@@ -195,6 +242,7 @@ class Sidebar(ctk.CTkScrollableFrame):
             command=self._on_sensitivity_change)
         self.menu_sensitivity.pack(pady=(2, 8), padx=15, fill="x")
 
+        # Row 4: Root detection
         _label_with_tip(b, "Root detection:",
                         "Click Preview to see detected roots.\n"
                         "Adjust slider until the full root is visible.\n"
@@ -227,52 +275,6 @@ class Sidebar(ctk.CTkScrollableFrame):
         self.slider_thresh.configure(command=self._on_thresh_change)
         # Bind click on slider to disable auto mode
         self.slider_thresh.bind("<Button-1>", self._on_slider_click)
-
-        # Row: Plates, Segments, Split plate
-        _options_row = ctk.CTkFrame(b, fg_color="transparent")
-        _options_row.pack(pady=(8, 5), padx=15, fill="x")
-        _options_row.columnconfigure(0, weight=1)
-        _options_row.columnconfigure(1, weight=1)
-        _options_row.columnconfigure(2, weight=1)
-        # Plates
-        _plates_frame = ctk.CTkFrame(_options_row, fg_color="transparent")
-        _plates_frame.grid(row=0, column=0, sticky="w")
-        _label_with_tip(_plates_frame, "Plates:",
-                        "How many plates are in this image.\n"
-                        "Auto-advances after selecting this many.",
-                        font=ctk.CTkFont(size=11)).pack(anchor="w")
-        self.entry_num_plates = ctk.CTkEntry(_plates_frame, width=45,
-                                              placeholder_text="1")
-        self.entry_num_plates.pack(anchor="w", pady=(2, 0))
-        # Segments
-        _seg_frame = ctk.CTkFrame(_options_row, fg_color="transparent")
-        _seg_frame.grid(row=0, column=1)
-        _label_with_tip(_seg_frame, "Segments:",
-                        "Number of segments per root (default 1 = whole root).\n"
-                        "Use 2+ to measure root in parts (tip, middle, base).\n"
-                        "You'll click segment boundaries after root tops.",
-                        font=ctk.CTkFont(size=11)).pack(anchor="center")
-        self.entry_segments = ctk.CTkEntry(_seg_frame, width=45,
-                                            placeholder_text="1")
-        self.entry_segments.insert(0, "1")
-        self.entry_segments.pack(anchor="center", pady=(2, 0))
-        # Genotypes per plate
-        _geno_frame = ctk.CTkFrame(_options_row, fg_color="transparent")
-        _geno_frame.grid(row=0, column=2, sticky="e")
-        _label_with_tip(_geno_frame, "Genotypes:",
-                        "Genotypes per plate (default 1).\n"
-                        "Use 2 if plate has two genotypes side by side.\n"
-                        "You'll click roots for each genotype separately.",
-                        font=ctk.CTkFont(size=11)).pack(anchor="e")
-        self.entry_genotypes_per_plate = ctk.CTkEntry(_geno_frame, width=45,
-                                                       placeholder_text="1")
-        self.entry_genotypes_per_plate.insert(0, "1")
-        self.entry_genotypes_per_plate.pack(anchor="e", pady=(2, 0))
-        # Keep var_split and var_multi for compatibility
-        self.var_split = ctk.BooleanVar(value=False)
-        self.var_multi = ctk.BooleanVar(value=False)
-        self.chk_split = None  # No longer used
-        self.frame_segments = None  # No longer used
 
         self.btn_next_settings = ctk.CTkButton(
             b, text="Next", fg_color="#2b5797",

@@ -126,6 +126,11 @@ class ImageCanvas(ctk.CTkFrame):
         self._on_done_callback = on_done
         self.canvas.focus_set()
 
+    def _trigger_done(self):
+        """Trigger the current mode's done callback (for Done button)."""
+        if self._on_done_callback:
+            self._on_done_callback()
+
     def get_plates(self):
         return list(self._plates)
 

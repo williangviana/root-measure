@@ -111,6 +111,9 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
         self.btn_continue_later_mid = ctk.CTkButton(
             self._action_frame, text="Continue Later", fg_color="#2b5797",
             command=lambda: self.continue_later())
+        self.btn_done = ctk.CTkButton(
+            self._action_frame, text="Done", fg_color="#2b5797",
+            command=self._on_done_clicked)
 
         self.canvas = ImageCanvas(self)
         self.canvas.grid(row=0, column=1, sticky="nsew", padx=(2, 0), pady=0)
@@ -326,7 +329,7 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
                     self.sidebar.set_status(
                         f"Session restored: {len(plates)} plate(s), "
                         f"{len(points)} root(s).\n"
-                        f"Click Review & Save to review traces.")
+                        f"Click Review Traces to review.")
                 else:
                     self.sidebar.set_status(
                         f"Session restored: {len(plates)} plate(s), "
@@ -477,7 +480,7 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
         self.sidebar.set_status(
             f"Measurement complete: {len(plates)} plate(s), "
             f"{len(points)} root(s).\n"
-            f"Click Review & Save to review traces.")
+            f"Click Review Traces to review.")
         self.lbl_bottom.configure(text="Willian Viana — Dinneny Lab")
         self._clear_plate_info()
 
@@ -542,6 +545,7 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
         self.btn_continue_later.pack_forget()
         self.btn_stop.pack_forget()
         self.btn_continue_later_mid.pack_forget()
+        self.btn_done.pack_forget()
         self._action_frame.grid_remove()
 
     def _show_action_frame(self):
@@ -551,7 +555,12 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
         self.btn_continue_later.pack_forget()
         self.btn_stop.pack_forget()
         self.btn_continue_later_mid.pack_forget()
+        self.btn_done.pack_forget()
         self._action_frame.grid()
+
+    def _on_done_clicked(self):
+        """Handle Done button click - triggers current mode's on_done callback."""
+        self.canvas._trigger_done()
 
     def _get_scale(self):
         """Get scale (px/cm) from DPI entry or auto-detect."""
@@ -749,16 +758,17 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
             on_done=self._plates_done)
         self.sidebar.set_status(
             "Draw rectangle around plate.\n"
-            "Adjust by redrawing. Enter=confirm.")
+            "Adjust by redrawing.")
         self.lbl_bottom.configure(
-            text="Drag=draw plate  |  Redraw=adjust  |  Right-click=undo  |  Enter=confirm  |  Scroll=zoom")
+            text="Drag=draw plate  |  Redraw=adjust  |  Right-click=undo  |  Scroll=zoom")
 
         self.sidebar.btn_click_roots.configure(state="disabled")
         self.sidebar.btn_measure.configure(state="disabled")
         self.sidebar.btn_review.configure(state="disabled")
         self._hide_action_buttons()
         self._show_action_frame()
-        self.btn_continue_later_mid.pack(pady=(10, 5), padx=15, fill="x")
+        self.btn_done.pack(pady=(10, 5), padx=15, fill="x")
+        self.btn_continue_later_mid.pack(pady=3, padx=15, fill="x")
         self.sidebar.set_step(1)
 
     def _plates_done(self):
@@ -798,7 +808,8 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
         self.sidebar.btn_review.configure(state="disabled")
         self._hide_action_buttons()
         self._show_action_frame()
-        self.btn_continue_later_mid.pack(pady=(10, 5), padx=15, fill="x")
+        self.btn_done.pack(pady=(10, 5), padx=15, fill="x")
+        self.btn_continue_later_mid.pack(pady=3, padx=15, fill="x")
         self.sidebar.set_step(2)
 
     def _enter_root_click_stage(self):
@@ -910,11 +921,12 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
         self.canvas.zoom_to_region(r1, r2, c1, c2)
         self._hide_action_buttons()
         self._show_action_frame()
-        self.btn_continue_later_mid.pack(pady=(10, 5), padx=15, fill="x")
+        self.btn_done.pack(pady=(10, 5), padx=15, fill="x")
+        self.btn_continue_later_mid.pack(pady=3, padx=15, fill="x")
         self.sidebar.set_step(2)
         self._update_marks_status()
         self.lbl_bottom.configure(
-            text="Click=place mark  |  Right-click=undo  |  Enter=done  |  Scroll=zoom")
+            text="Click=place mark  |  Right-click=undo  |  Done/Enter=confirm  |  Scroll=zoom")
 
     def _start_marks_phase(self):
         """Enter mark clicking mode for normal roots on the current plate/group."""

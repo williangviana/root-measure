@@ -218,13 +218,14 @@ class MeasurementMixin:
         if n_with_segs:
             msg += f"\n{n_with_segs} root(s) with segments."
         msg += "\nClick a bad trace to select for retry."
-        msg += "\nEnter = accept / retry selected."
+        msg += "\nDone = accept / retry selected."
         self.sidebar.set_status(msg)
         self._hide_action_buttons()
         self._show_action_frame()
-        self.btn_continue_later_mid.pack(pady=(10, 5), padx=15, fill="x")
+        self.btn_done.pack(pady=(10, 5), padx=15, fill="x")
+        self.btn_continue_later_mid.pack(pady=3, padx=15, fill="x")
         self.lbl_bottom.configure(
-            text="Click trace=select for retry (orange)  |  Enter=accept / retry selected  |  Scroll=zoom")
+            text="Click trace=select for retry (orange)  |  Done/Enter=accept / retry selected  |  Scroll=zoom")
 
 
     def _enable_review(self):
@@ -283,6 +284,7 @@ class MeasurementMixin:
         self._show_reclick_status()
         self._hide_action_buttons()
         self._show_action_frame()
+        self.btn_done.pack(pady=(10, 5), padx=15, fill="x")
         self.btn_continue_later_mid.pack(pady=3, padx=15, fill="x")
 
     def _show_reclick_status(self):

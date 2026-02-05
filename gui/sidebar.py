@@ -340,7 +340,7 @@ class Sidebar(ctk.CTkScrollableFrame):
         self.btn_measure.pack(pady=3, padx=15, fill="x")
 
         self.btn_review = ctk.CTkButton(
-            b, text="4. Review & Save", command=app.show_review,
+            b, text="4. Review Traces", command=app.show_review,
             state="disabled", fg_color=self._step_color_idle)
         self.btn_review.pack(pady=3, padx=15, fill="x")
 

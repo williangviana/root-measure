@@ -8,6 +8,7 @@ from cx_Freeze import setup, Executable
 # Use Path objects for cross-platform compatibility
 scripts_dir = Path("scripts")
 gui_dir = Path("gui")
+icon_dir = Path("icon")
 
 build_options = {
     "packages": [
@@ -39,6 +40,7 @@ build_options = {
 
 bdist_mac_options = {
     "bundle_name": "Root Measure",
+    "iconfile": str(icon_dir / "root_measure_icon.icns"),
     "codesign_identity": "-",
     "codesign_deep": True,
 }
@@ -48,10 +50,12 @@ if sys.platform == "win32":
     # Windows: use Win32GUI base to hide console window
     exe_base = "Win32GUI"
     target_name = "RootMeasure.exe"
+    icon_file = str(icon_dir / "root_measure_icon.ico")
 else:
     # macOS/Linux
     exe_base = "gui"
     target_name = "RootMeasure"
+    icon_file = str(icon_dir / "root_measure_icon.icns")
 
 setup(
     name="RootMeasure",
@@ -67,6 +71,7 @@ setup(
             str(gui_dir / "app.py"),
             base=exe_base,
             target_name=target_name,
+            icon=icon_file,
         )
     ],
 )

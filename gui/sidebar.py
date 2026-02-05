@@ -205,12 +205,13 @@ class Sidebar(ctk.CTkScrollableFrame):
             width=120)
         self.slider_thresh.set(140)
         self.slider_thresh.pack(side="left", padx=(5, 5))
-        self.slider_thresh.configure(state="disabled")
         self.lbl_thresh_val = ctk.CTkLabel(
             self._thresh_frame, text="140", width=30,
             font=ctk.CTkFont(size=11))
         self.lbl_thresh_val.pack(side="left")
         self.slider_thresh.configure(command=self._on_thresh_change)
+        # Bind click on slider to disable auto mode
+        self.slider_thresh.bind("<Button-1>", self._on_slider_click)
 
         self.btn_preview = ctk.CTkButton(
             b, text="Preview", width=80, height=28,
@@ -407,12 +408,19 @@ class Sidebar(ctk.CTkScrollableFrame):
 
     def _toggle_threshold(self):
         if self.var_auto_thresh.get():
-            self.slider_thresh.configure(state="disabled")
             self.lbl_thresh_val.configure(text_color="gray50")
             # Show auto-detected value
             self.app._update_auto_threshold()
+            # Update preview if active
+            if getattr(self.app, '_preview_active', False):
+                self.app._preview_preprocessing()
         else:
-            self.slider_thresh.configure(state="normal")
+            self.lbl_thresh_val.configure(text_color=("gray10", "gray90"))
+
+    def _on_slider_click(self, event):
+        """Disable auto mode when user clicks on slider."""
+        if self.var_auto_thresh.get():
+            self.var_auto_thresh.set(False)
             self.lbl_thresh_val.configure(text_color=("gray10", "gray90"))
 
     def _on_thresh_change(self, val):

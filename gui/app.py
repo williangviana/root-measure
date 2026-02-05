@@ -320,10 +320,10 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
                     self._hide_action_buttons()
                     self._show_action_frame()
                     self.btn_next_image.pack(
-                        pady=(10, 3), padx=15, fill="x")
+                        pady=(10, 5), padx=15, fill="x")
                     self.btn_continue_later.pack(
-                        pady=3, padx=15, fill="x")
-                    self.btn_stop.pack(pady=3, padx=15, fill="x")
+                        pady=5, padx=15, fill="x")
+                    self.btn_stop.pack(pady=(5, 10), padx=15, fill="x")
                     self.sidebar.set_status(
                         f"Session restored: {len(plates)} plate(s), "
                         f"{len(points)} root(s).\n"
@@ -484,9 +484,9 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
         self.sidebar.btn_review.configure(state="normal")
         self._hide_action_buttons()
         self._show_action_frame()
-        self.btn_next_image.pack(pady=(10, 3), padx=15, fill="x")
-        self.btn_continue_later.pack(pady=3, padx=15, fill="x")
-        self.btn_stop.pack(pady=3, padx=15, fill="x")
+        self.btn_next_image.pack(pady=(10, 5), padx=15, fill="x")
+        self.btn_continue_later.pack(pady=5, padx=15, fill="x")
+        self.btn_stop.pack(pady=(5, 10), padx=15, fill="x")
         plates = self.canvas.get_plates()
         points = self.canvas.get_root_points()
         self.sidebar.set_status(

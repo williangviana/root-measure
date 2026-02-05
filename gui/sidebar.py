@@ -130,6 +130,11 @@ class Sidebar(ctk.CTkScrollableFrame):
                          **kwargs)
         self.app = app
 
+        # Enable scrolling anywhere in sidebar (not just on scrollbar)
+        # Bind to the parent frame that contains the scrollable content
+        self.bind("<Enter>", self._bind_scroll)
+        self.bind("<Leave>", self._unbind_scroll)
+
         # --- Header ---
         ctk.CTkLabel(self, text="Root Measuring Tool",
                      font=ctk.CTkFont(size=18, weight="bold")).pack(
@@ -389,6 +394,33 @@ class Sidebar(ctk.CTkScrollableFrame):
         self._progress_frame.pack_forget()
 
     # --- helpers ---
+
+    def _bind_scroll(self, event=None):
+        """Bind mousewheel when entering sidebar."""
+        self.bind_all("<MouseWheel>", self._on_mousewheel)
+        self.bind_all("<Button-4>", self._on_mousewheel)
+        self.bind_all("<Button-5>", self._on_mousewheel)
+
+    def _unbind_scroll(self, event=None):
+        """Unbind mousewheel when leaving sidebar."""
+        self.unbind_all("<MouseWheel>")
+        self.unbind_all("<Button-4>")
+        self.unbind_all("<Button-5>")
+
+    def _on_mousewheel(self, event):
+        """Handle mousewheel scroll anywhere in sidebar."""
+        # Get the canvas from CTkScrollableFrame
+        if hasattr(self, '_parent_canvas'):
+            canvas = self._parent_canvas
+        else:
+            return
+        # macOS uses event.delta, Linux uses event.num
+        if event.delta:
+            canvas.yview_scroll(int(-event.delta / 2), "units")
+        elif event.num == 4:
+            canvas.yview_scroll(-1, "units")
+        elif event.num == 5:
+            canvas.yview_scroll(1, "units")
 
     def _add_separator(self):
         ctk.CTkFrame(self, height=1, fg_color="gray30").pack(

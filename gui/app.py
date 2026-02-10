@@ -311,6 +311,7 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
                         f"Continue where you left off.")
                 elif step >= 4 and self.canvas._traces:
                     # measurement done or in review — show action buttons
+                    self._split = self.sidebar.is_split_plate()
                     self.sidebar.set_step(5)
                     self.canvas._measurement_done = True
                     self.sidebar.btn_select_plates.configure(state="normal")

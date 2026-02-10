@@ -350,6 +350,8 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
         from utils import list_images_in_folder
 
         folder = filedialog.askdirectory(title="Select image folder")
+        self.lift()
+        self.focus_force()
         if not folder:
             return
         self.folder = Path(folder)

@@ -352,6 +352,22 @@ class Sidebar(ctk.CTkScrollableFrame):
             state="disabled", fg_color=self._step_color_idle)
         self.btn_review.pack(pady=3, padx=15, fill="x")
 
+        # Review toggle buttons (hidden by default, shown in review mode)
+        self._review_toggles_frame = ctk.CTkFrame(b, fg_color="transparent")
+        self.btn_toggle_zoom = ctk.CTkButton(
+            self._review_toggles_frame, text="Zoom In",
+            width=90, height=28, font=ctk.CTkFont(size=11),
+            fg_color="#555555", hover_color="#666666",
+            command=self._on_toggle_zoom)
+        self.btn_toggle_zoom.pack(side="left", padx=(0, 4), expand=True, fill="x")
+        self.btn_toggle_traces = ctk.CTkButton(
+            self._review_toggles_frame, text="Hide Traces",
+            width=90, height=28, font=ctk.CTkFont(size=11),
+            fg_color="#555555", hover_color="#666666",
+            command=self._on_toggle_traces)
+        self.btn_toggle_traces.pack(side="left", padx=(4, 0), expand=True, fill="x")
+        # frame is not packed yet — show_review_toggles() will pack it
+
         # --- Ordered section list (for pack-order preservation) ---
         # sec_sessions is excluded — it always packs after _status_frame
         self._section_order = [
@@ -397,6 +413,33 @@ class Sidebar(ctk.CTkScrollableFrame):
     def _toggle_segments(self):
         """Legacy method - segments now always visible."""
         pass
+
+    def show_review_toggles(self):
+        """Show the zoom/traces toggle buttons below the Review button."""
+        self.btn_toggle_zoom.configure(text="Zoom In", fg_color="#555555")
+        self.btn_toggle_traces.configure(text="Hide Traces", fg_color="#555555")
+        self._review_toggles_frame.pack(pady=(0, 3), padx=15, fill="x",
+                                         after=self.btn_review)
+
+    def hide_review_toggles(self):
+        """Hide the zoom/traces toggle buttons."""
+        self._review_toggles_frame.pack_forget()
+
+    def _on_toggle_zoom(self):
+        """Handle zoom toggle button click."""
+        zoomed = self.app.canvas.toggle_review_zoom()
+        if zoomed:
+            self.btn_toggle_zoom.configure(text="Full View", fg_color="#2b5797")
+        else:
+            self.btn_toggle_zoom.configure(text="Zoom In", fg_color="#555555")
+
+    def _on_toggle_traces(self):
+        """Handle traces toggle button click."""
+        visible = self.app.canvas.toggle_review_traces()
+        if visible:
+            self.btn_toggle_traces.configure(text="Hide Traces", fg_color="#555555")
+        else:
+            self.btn_toggle_traces.configure(text="Show Traces", fg_color="#2b5797")
 
     def is_split_plate(self):
         """Return True if genotypes per plate > 1."""

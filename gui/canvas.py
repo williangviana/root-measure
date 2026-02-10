@@ -91,6 +91,8 @@ class ImageCanvas(ctk.CTkFrame):
         # review state (click to toggle retry selection)
         self._selected_for_retry = set()  # indices into _traces
         self._trace_original_colors = []  # original colors before selection
+        self._review_zoomed = False        # True = zoomed to plates, False = full view
+        self._review_traces_visible = True # toggle trace overlay in review mode
 
         # reclick state (top+bottom for retry roots)
         self._reclick_points = []  # list of (row, col) pairs
@@ -229,6 +231,32 @@ class ImageCanvas(ctk.CTkFrame):
 
     def clear_review(self):
         self._selected_for_retry.clear()
+        self._review_zoomed = False
+        self._review_traces_visible = True
+
+    def toggle_review_zoom(self):
+        """Toggle between full view and zoomed-to-plates view in review mode."""
+        self._review_zoomed = not self._review_zoomed
+        if self._review_zoomed:
+            # zoom to the bounding box of all plates
+            plates = self._plates
+            if plates:
+                r1 = min(p[0] for p in plates)
+                c1 = min(p[2] for p in plates)
+                r2 = max(p[1] for p in plates)
+                c2 = max(p[3] for p in plates)
+                self.zoom_to_region(r1, r2, c1, c2, pad_frac=0.05)
+            self._redraw()
+        else:
+            self._fit_image()
+            self._redraw()
+        return self._review_zoomed
+
+    def toggle_review_traces(self):
+        """Toggle trace overlay visibility in review mode."""
+        self._review_traces_visible = not self._review_traces_visible
+        self._redraw()
+        return self._review_traces_visible
 
     def clear_reclick(self):
         for rid in self._reclick_marker_ids:
@@ -458,8 +486,13 @@ class ImageCanvas(ctk.CTkFrame):
                     self._mark_marker_ids.extend([rid, tid])
 
         # traced paths with segment coloring
+        # In review mode, respect the traces visibility toggle
+        _show_traces = (self._review_traces_visible
+                        or self._mode != self.MODE_REVIEW)
         trace_plate_counters = {}
         for ti, (path, shades, mark_indices) in enumerate(self._traces):
+            if not _show_traces:
+                continue
             if len(path) < 2:
                 continue
             is_selected = ti in self._selected_for_retry
@@ -502,7 +535,7 @@ class ImageCanvas(ctk.CTkFrame):
                     font=("Helvetica", 10, "bold"))
 
         # dead/touching seedling markers when traces are visible
-        if len(self._traces) > 0:
+        if len(self._traces) > 0 and _show_traces:
             cross_s = 6
             for i, ((row, col), flag) in enumerate(
                     zip(self._root_points, self._root_flags)):

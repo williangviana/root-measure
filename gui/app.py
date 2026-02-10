@@ -566,6 +566,7 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
         self._action_frame.grid_remove()
         # Hide sidebar Done button too
         self.sidebar.btn_done.pack_forget()
+        self.sidebar.hide_review_toggles()
 
     def _show_action_frame(self):
         """Ensure action button frame is visible (after hiding all buttons first)."""

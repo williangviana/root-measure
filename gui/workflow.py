@@ -242,6 +242,7 @@ class MeasurementMixin:
         self.canvas._on_click_callback = self._update_review_button
         self.sidebar.btn_done.pack(pady=(5, 0), padx=15, fill="x")
         self.btn_continue_later_mid.pack(pady=(10, 5), padx=15, fill="x")
+        self.sidebar.show_review_toggles()
         self.lbl_bottom.configure(
             text="Click trace=select for retry (red)  |  Scroll=zoom")
 

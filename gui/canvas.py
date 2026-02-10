@@ -376,6 +376,8 @@ class ImageCanvas(ctk.CTkFrame):
         self._plate_rect_ids.clear()
         show_plate_rect = self._mode in (self.MODE_SELECT_PLATES, self.MODE_VIEW,
                                           self.MODE_REVIEW)
+        if self._review_zoom_state >= 0:
+            show_plate_rect = False
         for i, (r1, r2, c1, c2) in enumerate(self._plates):
             cx1, cy1 = self.image_to_canvas(c1, r1)
             cx2, cy2 = self.image_to_canvas(c2, r2)

@@ -418,8 +418,8 @@ class Sidebar(ctk.CTkScrollableFrame):
         """Show the zoom/traces toggle buttons below the Review button."""
         self.btn_toggle_zoom.configure(text="Zoom In", fg_color="#555555")
         self.btn_toggle_traces.configure(text="Hide Traces", fg_color="#555555")
-        self._review_toggles_frame.pack(pady=(0, 3), padx=15, fill="x",
-                                         after=self.btn_review)
+        self._review_toggles_frame.pack_forget()
+        self._review_toggles_frame.pack(pady=(0, 3), padx=15, fill="x")
 
     def hide_review_toggles(self):
         """Hide the zoom/traces toggle buttons."""

@@ -469,6 +469,9 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
 
     def _restore_completed_view(self):
         """Show completed measurement view for the current image."""
+        self._split = self.sidebar.is_split_plate()
+        if self.canvas._traces and not getattr(self, '_results', None):
+            self._rebuild_results_from_traces()
         self._hide_action_buttons()
         self.sidebar.sec_sessions.hide()
         self.sidebar.sec_folder.collapse(summary=self.folder.name if self.folder else "")

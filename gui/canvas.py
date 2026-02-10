@@ -579,6 +579,8 @@ class ImageCanvas(ctk.CTkFrame):
                     fill="#1a7a1a", anchor="w",
                     font=("Helvetica", 8, "bold"))
                 self._reclick_marker_ids.extend([rid, tid])
+            for rid in self._reclick_marker_ids:
+                self.canvas.tag_raise(rid)
 
         # plate info overlay (shown when zoomed into a plate)
         info = getattr(self, '_plate_info', None)

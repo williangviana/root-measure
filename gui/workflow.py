@@ -327,6 +327,9 @@ class MeasurementMixin:
         self.sidebar.btn_done.configure(text=btn_text)
         self.sidebar.btn_done.pack(pady=(5, 0), padx=15, fill="x")
         self.btn_continue_later_mid.pack(pady=(10, 5), padx=15, fill="x")
+        self.canvas._review_zoomed = True
+        self.sidebar.show_review_toggles()
+        self.sidebar.btn_toggle_zoom.configure(text="Full View", fg_color="#2b5797")
 
     def _show_reclick_status(self):
         """Show status for current reclick root."""

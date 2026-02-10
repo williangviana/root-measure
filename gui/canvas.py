@@ -488,7 +488,8 @@ class ImageCanvas(ctk.CTkFrame):
         # traced paths with segment coloring
         # In review mode, respect the traces visibility toggle
         _show_traces = (self._review_traces_visible
-                        or self._mode != self.MODE_REVIEW)
+                        or self._mode not in (self.MODE_REVIEW,
+                                              self.MODE_RECLICK))
         trace_plate_counters = {}
         for ti, (path, shades, mark_indices) in enumerate(self._traces):
             if not _show_traces:

@@ -335,11 +335,10 @@ class MeasurementMixin:
         n = len(self.canvas._plates)
         if n > 1:
             self.sidebar.btn_toggle_zoom.configure(
-                text=f"Plate {self.canvas._review_zoom_state + 1}",
-                fg_color="#2b5797")
+                text="Zoom In Plate 2", fg_color="#2b5797")
         else:
             self.sidebar.btn_toggle_zoom.configure(
-                text="Full View", fg_color="#2b5797")
+                text="Zoom Out", fg_color="#2b5797")
 
     def _show_reclick_status(self):
         """Show status for current reclick root."""

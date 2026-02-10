@@ -416,7 +416,12 @@ class Sidebar(ctk.CTkScrollableFrame):
 
     def show_review_toggles(self):
         """Show the zoom/traces toggle buttons below the Review button."""
-        self.btn_toggle_zoom.configure(text="Zoom In", fg_color="#555555")
+        n = len(self.app.canvas._plates)
+        if n > 1:
+            self.btn_toggle_zoom.configure(
+                text="Zoom In Plate 1", fg_color="#555555")
+        else:
+            self.btn_toggle_zoom.configure(text="Zoom In", fg_color="#555555")
         self.btn_toggle_traces.configure(text="Hide Traces", fg_color="#555555")
         self._review_toggles_frame.pack_forget()
         self._review_toggles_frame.pack(pady=(0, 3), padx=15, fill="x")
@@ -430,12 +435,21 @@ class Sidebar(ctk.CTkScrollableFrame):
         state = self.app.canvas.toggle_review_zoom()
         n = len(self.app.canvas._plates)
         if state == -1:
-            self.btn_toggle_zoom.configure(text="Zoom In", fg_color="#555555")
-        elif n > 1:
+            # full view — next click zooms in
+            if n > 1:
+                self.btn_toggle_zoom.configure(
+                    text="Zoom In Plate 1", fg_color="#555555")
+            else:
+                self.btn_toggle_zoom.configure(
+                    text="Zoom In", fg_color="#555555")
+        elif state < n - 1:
+            # zoomed to a plate, more plates ahead
             self.btn_toggle_zoom.configure(
-                text=f"Plate {state + 1}", fg_color="#2b5797")
+                text=f"Zoom In Plate {state + 2}", fg_color="#2b5797")
         else:
-            self.btn_toggle_zoom.configure(text="Full View", fg_color="#2b5797")
+            # zoomed to last (or only) plate — next click zooms out
+            self.btn_toggle_zoom.configure(
+                text="Zoom Out", fg_color="#2b5797")
 
     def _on_toggle_traces(self):
         """Handle traces toggle button click."""

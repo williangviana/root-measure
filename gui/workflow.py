@@ -275,12 +275,15 @@ class MeasurementMixin:
         """Update review button text based on selection."""
         selected = self.canvas.get_selected_for_retry()
         if selected:
-            self.sidebar.btn_done.configure(text=f"Retry {len(selected)} Selected")
+            n = len(selected)
+            self.sidebar.btn_done.configure(
+                text=f"Auto Retrace ({n})", fg_color="#2b5797")
             self.sidebar.btn_manual_trace.configure(
-                text=f"Manual {len(selected)} Selected")
+                text=f"Manual Trace ({n})", fg_color="#2b5797")
             self.sidebar.btn_manual_trace.pack(pady=(3, 0), padx=15, fill="x")
         else:
-            self.sidebar.btn_done.configure(text="Accept All")
+            self.sidebar.btn_done.configure(
+                text="Accept All", fg_color="#2b5797")
             self.sidebar.btn_manual_trace.pack_forget()
 
     def _review_done(self):

@@ -137,6 +137,11 @@ class ImageCanvas(ctk.CTkFrame):
 
     def _trigger_done(self):
         """Trigger the current mode's done callback (for Done button)."""
+        # Confirm pending plate before finishing (same as Enter key logic)
+        if self._mode == self.MODE_SELECT_PLATES and self._pending_plate is not None:
+            self._plates.append(self._pending_plate)
+            self._pending_plate = None
+            self._redraw()
         if self._on_done_callback:
             self._on_done_callback()
 
@@ -175,6 +180,7 @@ class ImageCanvas(ctk.CTkFrame):
         self._mark_points.clear()
         self._mark_marker_ids.clear()
         self._all_marks.clear()
+        self._marks_display_numbers.clear()
 
     def get_mark_points(self):
         return list(self._mark_points)
@@ -615,6 +621,10 @@ class ImageCanvas(ctk.CTkFrame):
 
         # manual trace preview (confirmed + in-progress)
         if self._mode == self.MODE_MANUAL_TRACE:
+            for rid in self._manual_trace_marker_ids:
+                self.canvas.delete(rid)
+            for rid in self._manual_trace_line_ids:
+                self.canvas.delete(rid)
             self._manual_trace_marker_ids.clear()
             self._manual_trace_line_ids.clear()
             # draw confirmed traces from previous roots
@@ -1132,6 +1142,7 @@ class ImageCanvas(ctk.CTkFrame):
             for _ in range(2):
                 if self._mark_marker_ids:
                     self.canvas.delete(self._mark_marker_ids.pop())
+            self._redraw()
             if self._on_click_callback:
                 self._on_click_callback()
             return True

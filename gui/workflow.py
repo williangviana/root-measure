@@ -585,11 +585,12 @@ class MeasurementMixin:
         self._results[ri] = res
 
         self._manual_trace_idx += 1
-        self.canvas.clear_manual_trace()
+        self.canvas.confirm_manual_trace()
 
         if self._manual_trace_idx < len(self._manual_trace_result_indices):
             self._enter_manual_trace_for_current()
         else:
+            self.canvas.clear_manual_trace()
             self._rebuild_all_traces()
             self._show_review(skip_delay=True)
 

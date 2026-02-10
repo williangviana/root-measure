@@ -101,7 +101,8 @@ class ImageCanvas(ctk.CTkFrame):
         self._reclick_marker_ids = []
 
         # manual trace state
-        self._manual_trace_points = []      # list of (row, col)
+        self._manual_trace_points = []      # list of (row, col) — current root
+        self._manual_trace_confirmed = []   # list of point-lists for completed roots
         self._manual_trace_marker_ids = []  # canvas oval ids
         self._manual_trace_line_ids = []    # canvas line ids
 
@@ -269,12 +270,23 @@ class ImageCanvas(ctk.CTkFrame):
         self._reclick_marker_ids.clear()
         self._reclick_expected = 0
 
+    def confirm_manual_trace(self):
+        """Save current manual trace points and start fresh for next root."""
+        if self._manual_trace_points:
+            self._manual_trace_confirmed.append(
+                list(self._manual_trace_points))
+        self._manual_trace_points.clear()
+        self._manual_trace_marker_ids.clear()
+        self._manual_trace_line_ids.clear()
+
     def clear_manual_trace(self):
+        """Clear all manual trace state (current + confirmed)."""
         for rid in self._manual_trace_marker_ids:
             self.canvas.delete(rid)
         for rid in self._manual_trace_line_ids:
             self.canvas.delete(rid)
         self._manual_trace_points.clear()
+        self._manual_trace_confirmed.clear()
         self._manual_trace_marker_ids.clear()
         self._manual_trace_line_ids.clear()
 
@@ -601,10 +613,27 @@ class ImageCanvas(ctk.CTkFrame):
             for rid in self._reclick_marker_ids:
                 self.canvas.tag_raise(rid)
 
-        # manual trace preview
-        if self._mode == self.MODE_MANUAL_TRACE and self._manual_trace_points:
+        # manual trace preview (confirmed + in-progress)
+        if self._mode == self.MODE_MANUAL_TRACE:
             self._manual_trace_marker_ids.clear()
             self._manual_trace_line_ids.clear()
+            # draw confirmed traces from previous roots
+            for confirmed in self._manual_trace_confirmed:
+                for i, (row, col) in enumerate(confirmed):
+                    cx, cy = self.image_to_canvas(col, row)
+                    r = 4
+                    rid = self.canvas.create_oval(
+                        cx - r, cy - r, cx + r, cy + r,
+                        outline="white", fill="#00cc99", width=1)
+                    self._manual_trace_marker_ids.append(rid)
+                    if i > 0:
+                        prev_row, prev_col = confirmed[i - 1]
+                        px, py = self.image_to_canvas(prev_col, prev_row)
+                        lid = self.canvas.create_line(
+                            px, py, cx, cy,
+                            fill="#00cc99", width=2)
+                        self._manual_trace_line_ids.append(lid)
+            # draw current in-progress trace
             for i, (row, col) in enumerate(self._manual_trace_points):
                 cx, cy = self.image_to_canvas(col, row)
                 r = 4

@@ -434,8 +434,14 @@ class Sidebar(ctk.CTkScrollableFrame):
         """Handle zoom toggle button click."""
         state = self.app.canvas.toggle_review_zoom()
         n = len(self.app.canvas._plates)
+        # update plate info overlay to match zoomed plate
+        if state >= 0:
+            self.app._set_plate_info(state)
+        else:
+            self.app._clear_plate_info()
+        self.app.canvas._redraw()
+        # update button text
         if state == -1:
-            # full view — next click zooms in
             if n > 1:
                 self.btn_toggle_zoom.configure(
                     text="Zoom In Plate 1", fg_color="#555555")
@@ -443,11 +449,9 @@ class Sidebar(ctk.CTkScrollableFrame):
                 self.btn_toggle_zoom.configure(
                     text="Zoom In", fg_color="#555555")
         elif state < n - 1:
-            # zoomed to a plate, more plates ahead
             self.btn_toggle_zoom.configure(
                 text=f"Zoom In Plate {state + 2}", fg_color="#555555")
         else:
-            # zoomed to last (or only) plate — next click zooms out
             self.btn_toggle_zoom.configure(
                 text="Zoom Out", fg_color="#555555")
 

@@ -91,7 +91,7 @@ class ImageCanvas(ctk.CTkFrame):
         # review state (click to toggle retry selection)
         self._selected_for_retry = set()  # indices into _traces
         self._trace_original_colors = []  # original colors before selection
-        self._review_zoomed = False        # True = zoomed to plates, False = full view
+        self._review_zoom_state = -1       # -1 = full view, 0..N-1 = zoomed plate index
         self._review_traces_visible = True # toggle trace overlay in review mode
 
         # reclick state (top+bottom for retry roots)
@@ -231,22 +231,24 @@ class ImageCanvas(ctk.CTkFrame):
 
     def clear_review(self):
         self._selected_for_retry.clear()
-        self._review_zoomed = False
+        self._review_zoom_state = -1
         self._review_traces_visible = True
 
-    def toggle_review_zoom(self, plate_idx=0):
-        """Toggle between full view and zoomed-to-plate view in review mode."""
-        self._review_zoomed = not self._review_zoomed
-        if self._review_zoomed:
-            plates = self._plates
-            if plates:
-                pi = min(plate_idx, len(plates) - 1)
-                self.zoom_to_region(*plates[pi])
-            self._redraw()
+    def toggle_review_zoom(self):
+        """Cycle zoom: full view → plate 0 → plate 1 → … → full view."""
+        n = len(self._plates)
+        if n == 0:
+            return -1
+        # cycle: -1 → 0 → 1 → … → n-1 → -1
+        self._review_zoom_state += 1
+        if self._review_zoom_state >= n:
+            self._review_zoom_state = -1
+        if self._review_zoom_state >= 0:
+            self.zoom_to_region(*self._plates[self._review_zoom_state])
         else:
             self._fit_image()
             self._redraw()
-        return self._review_zoomed
+        return self._review_zoom_state
 
     def toggle_review_traces(self):
         """Toggle trace overlay visibility in review mode."""

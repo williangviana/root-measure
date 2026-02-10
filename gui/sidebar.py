@@ -427,12 +427,15 @@ class Sidebar(ctk.CTkScrollableFrame):
 
     def _on_toggle_zoom(self):
         """Handle zoom toggle button click."""
-        pi = getattr(self.app, '_current_plate_idx', 0)
-        zoomed = self.app.canvas.toggle_review_zoom(plate_idx=pi)
-        if zoomed:
-            self.btn_toggle_zoom.configure(text="Full View", fg_color="#2b5797")
-        else:
+        state = self.app.canvas.toggle_review_zoom()
+        n = len(self.app.canvas._plates)
+        if state == -1:
             self.btn_toggle_zoom.configure(text="Zoom In", fg_color="#555555")
+        elif n > 1:
+            self.btn_toggle_zoom.configure(
+                text=f"Plate {state + 1}", fg_color="#2b5797")
+        else:
+            self.btn_toggle_zoom.configure(text="Full View", fg_color="#2b5797")
 
     def _on_toggle_traces(self):
         """Handle traces toggle button click."""

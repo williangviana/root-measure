@@ -40,6 +40,15 @@ For ANY change, answer these before coding:
 
 **If a change affects step N, check steps N+1 through the end.** Don't just fix the immediate symptom — follow the data all the way to CSV output, plotting, session save/restore, and review/re-click.
 
+## Bug Fix Discipline (CRITICAL)
+
+**Never fix just the one thing that broke. Always audit the surrounding code for the same class of bug.**
+
+1. **Same-class audit**: If attribute X was missing, check if attributes Y and Z are also missing in the same code path. If a button text wasn't updating, check ALL buttons in the same flow.
+2. **Session resume is the #1 trap**: `_try_resume()` in app.py has multiple branches (step==2, step>=4, image-done). Each branch must initialize the same `self._*` attributes that the normal workflow sets. When fixing a missing attribute in one branch, audit ALL attributes that the normal flow sets (select_plates → click_roots → measure → review) and confirm each one is either (a) initialized in the resume branch, (b) initialized on-demand with a safety check, or (c) not needed.
+3. **tkinter swallows exceptions**: Button callbacks in CustomTkinter silently eat errors. If something "works but the UI doesn't update," the most likely cause is an exception after the working part but before the UI update. Add print/traceback when debugging.
+4. **Test the full scenario, not just the symptom**: If the bug is "X doesn't work after session resume," also verify that retrace, manual trace, CSV save, and review all still work after session resume — not just X.
+
 ## Code Discipline
 
 - Match existing patterns and style in the codebase.

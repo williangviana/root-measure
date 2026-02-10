@@ -1030,7 +1030,7 @@ class ImageCanvas(ctk.CTkFrame):
             if self._on_click_callback:
                 self._on_click_callback()
 
-    _PAN_THRESHOLD = 5  # pixels of drag before switching to pan
+    _PAN_THRESHOLD = 10  # pixels of drag before switching to pan
 
     def _on_left_drag(self, event):
         if self._drag_start is not None and (self._space_held or self._is_panning

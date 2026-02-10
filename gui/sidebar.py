@@ -445,11 +445,11 @@ class Sidebar(ctk.CTkScrollableFrame):
         elif state < n - 1:
             # zoomed to a plate, more plates ahead
             self.btn_toggle_zoom.configure(
-                text=f"Zoom In Plate {state + 2}", fg_color="#2b5797")
+                text=f"Zoom In Plate {state + 2}", fg_color="#555555")
         else:
             # zoomed to last (or only) plate — next click zooms out
             self.btn_toggle_zoom.configure(
-                text="Zoom Out", fg_color="#2b5797")
+                text="Zoom Out", fg_color="#555555")
 
     def _on_toggle_traces(self):
         """Handle traces toggle button click."""
@@ -457,7 +457,7 @@ class Sidebar(ctk.CTkScrollableFrame):
         if visible:
             self.btn_toggle_traces.configure(text="Hide Traces", fg_color="#555555")
         else:
-            self.btn_toggle_traces.configure(text="Show Traces", fg_color="#2b5797")
+            self.btn_toggle_traces.configure(text="Show Traces", fg_color="#555555")
 
     def is_split_plate(self):
         """Return True if genotypes per plate > 1."""

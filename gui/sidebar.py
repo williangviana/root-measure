@@ -628,7 +628,7 @@ class Sidebar(ctk.CTkScrollableFrame):
         """Phase 1: folder loaded — show images in folder section."""
         if processed is None:
             processed = set()
-        self.btn_load_folder.pack_forget()
+        self.btn_load_folder.configure(text="Change Folder")
         self._populate_image_list(images, processed)
         self.sec_folder.expand()
         self.sec_folder._summary.configure(text=folder_name)

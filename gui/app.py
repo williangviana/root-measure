@@ -238,7 +238,7 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
         if current and current in name_to_path:
             current_path = name_to_path[current]
             # populate image list first (used in all branches)
-            self.sidebar.btn_load_folder.pack_forget()
+            self.sidebar.btn_load_folder.configure(text="Change Folder")
             self.sidebar._populate_image_list(
                 self.images, self._processed_images)
             self.sidebar.btn_finish_plot.pack_forget()
@@ -358,6 +358,7 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
 
         if not self.images:
             self.sidebar.sec_sessions.hide()
+            self.sidebar.btn_load_folder.configure(text="Open Folder")
             self.sidebar.set_status(f"No scans found in {self.folder.name}")
             return
 
@@ -368,6 +369,8 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
         self._plate_offset = 0
         self._root_offset = 0
         self._image_canvas_data = {}
+        self.image = None
+        self.image_path = None
         self.sidebar.advance_to_images(self.folder.name, self.images)
         # show this folder's sessions (if any) so user can click to resume
         sessions = get_session_summaries(self.folder)

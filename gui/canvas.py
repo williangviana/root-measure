@@ -234,18 +234,14 @@ class ImageCanvas(ctk.CTkFrame):
         self._review_zoomed = False
         self._review_traces_visible = True
 
-    def toggle_review_zoom(self):
-        """Toggle between full view and zoomed-to-plates view in review mode."""
+    def toggle_review_zoom(self, plate_idx=0):
+        """Toggle between full view and zoomed-to-plate view in review mode."""
         self._review_zoomed = not self._review_zoomed
         if self._review_zoomed:
-            # zoom to the bounding box of all plates
             plates = self._plates
             if plates:
-                r1 = min(p[0] for p in plates)
-                c1 = min(p[2] for p in plates)
-                r2 = max(p[1] for p in plates)
-                c2 = max(p[3] for p in plates)
-                self.zoom_to_region(r1, r2, c1, c2, pad_frac=0.05)
+                pi = min(plate_idx, len(plates) - 1)
+                self.zoom_to_region(*plates[pi])
             self._redraw()
         else:
             self._fit_image()

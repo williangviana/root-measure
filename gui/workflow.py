@@ -18,6 +18,25 @@ from plotting import plot_results
 from canvas import ImageCanvas
 from session import data_dir, traces_dir
 
+
+def _interpolate_manual_path(points):
+    """Interpolate between clicked points at ~1px spacing."""
+    if len(points) < 2:
+        return np.array(points)
+    all_pts = []
+    for i in range(len(points) - 1):
+        r1, c1 = points[i]
+        r2, c2 = points[i + 1]
+        dist = np.sqrt((r2 - r1)**2 + (c2 - c1)**2)
+        n_interp = max(2, int(np.ceil(dist)))
+        rows = np.linspace(r1, r2, n_interp)
+        cols = np.linspace(c1, c2, n_interp)
+        if i > 0:
+            rows = rows[1:]
+            cols = cols[1:]
+        all_pts.extend(zip(rows, cols))
+    return np.array(all_pts)
+
 # genotype color shades: [bright, pastel] for trace segments (30 entries)
 # First 8 are Okabe-Ito (colorblind-friendly), then extended hues
 GROUP_COLORS = [
@@ -257,8 +276,12 @@ class MeasurementMixin:
         selected = self.canvas.get_selected_for_retry()
         if selected:
             self.sidebar.btn_done.configure(text=f"Retry {len(selected)} Selected")
+            self.sidebar.btn_manual_trace.configure(
+                text=f"Manual {len(selected)} Selected")
+            self.sidebar.btn_manual_trace.pack(pady=(3, 0), padx=15, fill="x")
         else:
             self.sidebar.btn_done.configure(text="Accept All")
+            self.sidebar.btn_manual_trace.pack_forget()
 
     def _review_done(self):
         """Called when user presses Enter in review mode."""
@@ -456,21 +479,126 @@ class MeasurementMixin:
                 res['segments'] = []
             self._results[ri] = res
 
-        # rebuild all traces
+        self._rebuild_all_traces()
+
+        self.sidebar.hide_progress()
+
+        # Go back to review mode so user can verify retrace worked
+        _log("  → returning to review mode")
+        self._show_review(skip_delay=True)
+
+    def _rebuild_all_traces(self):
+        """Rebuild all canvas traces from self._results."""
         self.canvas.clear_traces()
         self._trace_to_result.clear()
         for i, res in enumerate(self._results):
             if res['path'].size > 0 and res['method'] not in ('skip', 'error'):
                 self._add_root_trace(i, res)
                 self._trace_to_result.append(i)
-
         _log(f"  rebuilt {len(self.canvas._traces)} traces")
-        self.sidebar.hide_progress()
         self.canvas._redraw()
 
-        # Go back to review mode so user can verify retrace worked
-        _log("  → returning to review mode")
-        self._show_review(skip_delay=True)
+    # --- Manual trace flow ---
+
+    def _start_manual_trace(self):
+        """Enter manual trace mode for selected bad traces."""
+        selected = self.canvas.get_selected_for_retry()
+        self._manual_trace_result_indices = [
+            self._trace_to_result[s]
+            for s in selected
+            if s < len(self._trace_to_result)
+        ]
+        if not self._manual_trace_result_indices:
+            self.canvas.set_mode(ImageCanvas.MODE_VIEW)
+            self._finish_measurement()
+            return
+        self._manual_trace_idx = 0
+        self.canvas.clear_manual_trace()
+        self._enter_manual_trace_for_current()
+
+    def _enter_manual_trace_for_current(self):
+        """Set up manual trace mode for the current root."""
+        ri = self._manual_trace_result_indices[self._manual_trace_idx]
+        n = len(self._manual_trace_result_indices)
+        pi_idx = self._manual_trace_idx + 1
+
+        self._hide_action_buttons()
+        self._show_action_frame()
+
+        self.canvas.set_mode(
+            ImageCanvas.MODE_MANUAL_TRACE,
+            on_done=self._manual_trace_done)
+        self.canvas._on_click_callback = self._update_manual_trace_status
+
+        # zoom to the plate containing this root
+        points = self.canvas.get_root_points()
+        if ri < len(points):
+            top = points[ri]
+            plates = self.canvas.get_plates()
+            for pidx, (r1, r2, c1, c2) in enumerate(plates):
+                if r1 <= top[0] <= r2 and c1 <= top[1] <= c2:
+                    self.canvas.zoom_to_region(r1, r2, c1, c2)
+                    self._set_plate_info(pidx)
+                    break
+
+        is_last = self._manual_trace_idx >= n - 1
+        btn_text = "Finish" if is_last else "Next Root"
+        self.sidebar.btn_done.configure(text=btn_text)
+        self.sidebar.btn_done.pack(pady=(5, 0), padx=15, fill="x")
+        self.btn_continue_later_mid.pack(pady=(10, 5), padx=15, fill="x")
+        self.sidebar.show_review_toggles()
+
+        self.sidebar.set_status(
+            f"Manual trace root {pi_idx}/{n}:\n"
+            f"Click points along the root (top→bottom).\n"
+            f"Right-click=undo, Enter=confirm.")
+        self.lbl_bottom.configure(
+            text=f"Manual {pi_idx}/{n}  |  Click=add point  |  "
+                 f"Right-click=undo  |  Scroll=zoom")
+
+    def _manual_trace_done(self):
+        """Called when user presses Enter to confirm a manual trace."""
+        points = self.canvas.get_manual_trace_points()
+        if len(points) < 2:
+            self.sidebar.set_status("Need at least 2 points for a manual trace.")
+            return
+
+        path = _interpolate_manual_path(points)
+        diffs = np.diff(path, axis=0)
+        length_px = float(np.sum(np.sqrt((diffs ** 2).sum(axis=1))))
+        length_cm = length_px / self._scale_val if self._scale_val else 0
+
+        ri = self._manual_trace_result_indices[self._manual_trace_idx]
+
+        mark_coords = self.canvas._all_marks.get(ri, [])
+        segments = []
+        if mark_coords and path.size > 0:
+            segments = _compute_segments(path, mark_coords, self._scale_val)
+
+        res = dict(
+            length_cm=length_cm, length_px=length_px,
+            path=path, method='manual', warning=None,
+            segments=segments, mark_coords=mark_coords)
+        self._results[ri] = res
+
+        self._manual_trace_idx += 1
+        self.canvas.clear_manual_trace()
+
+        if self._manual_trace_idx < len(self._manual_trace_result_indices):
+            self._enter_manual_trace_for_current()
+        else:
+            self._rebuild_all_traces()
+            self._show_review(skip_delay=True)
+
+    def _update_manual_trace_status(self):
+        """Update status after each click during manual trace."""
+        n_pts = len(self.canvas._manual_trace_points)
+        n = len(self._manual_trace_result_indices)
+        pi_idx = self._manual_trace_idx + 1
+        self.sidebar.set_status(
+            f"Manual trace root {pi_idx}/{n}: {n_pts} point(s).\n"
+            f"Click more points along the root.\n"
+            f"Enter=confirm, Right-click=undo.")
 
     def _save_trace_screenshot(self, silent=False):
         """Save plate image with traced root overlays (no UI elements)."""

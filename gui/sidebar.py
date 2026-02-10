@@ -391,6 +391,12 @@ class Sidebar(ctk.CTkScrollableFrame):
             command=lambda: app.canvas._trigger_done())
         # starts hidden
 
+        # Manual trace button (hidden by default, shown in review when traces selected)
+        self.btn_manual_trace = ctk.CTkButton(
+            self._status_frame, text="Manual Trace", fg_color="#7b4f8a",
+            command=lambda: app._start_manual_trace())
+        # starts hidden
+
         # progress bar inside status area
         self._progress_frame = ctk.CTkFrame(self._status_frame,
                                              fg_color="transparent")

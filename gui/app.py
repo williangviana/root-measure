@@ -564,8 +564,9 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
         self.btn_stop.pack_forget()
         self.btn_continue_later_mid.pack_forget()
         self._action_frame.grid_remove()
-        # Hide sidebar Done button too
+        # Hide sidebar Done button and manual trace button too
         self.sidebar.btn_done.pack_forget()
+        self.sidebar.btn_manual_trace.pack_forget()
         self.sidebar.hide_review_toggles()
 
     def _show_action_frame(self):

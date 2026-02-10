@@ -36,6 +36,7 @@ class ImageCanvas(ctk.CTkFrame):
     MODE_CLICK_MARKS = "click_marks"
     MODE_REVIEW = "review"
     MODE_RECLICK = "reclick"
+    MODE_MANUAL_TRACE = "manual_trace"
 
     def __init__(self, parent, **kwargs):
         super().__init__(parent, **kwargs)
@@ -98,6 +99,11 @@ class ImageCanvas(ctk.CTkFrame):
         self._reclick_points = []  # list of (row, col) pairs
         self._reclick_expected = 0  # how many pairs expected
         self._reclick_marker_ids = []
+
+        # manual trace state
+        self._manual_trace_points = []      # list of (row, col)
+        self._manual_trace_marker_ids = []  # canvas oval ids
+        self._manual_trace_line_ids = []    # canvas line ids
 
         # help overlay
         self._help_visible = False
@@ -262,6 +268,18 @@ class ImageCanvas(ctk.CTkFrame):
         self._reclick_points.clear()
         self._reclick_marker_ids.clear()
         self._reclick_expected = 0
+
+    def clear_manual_trace(self):
+        for rid in self._manual_trace_marker_ids:
+            self.canvas.delete(rid)
+        for rid in self._manual_trace_line_ids:
+            self.canvas.delete(rid)
+        self._manual_trace_points.clear()
+        self._manual_trace_marker_ids.clear()
+        self._manual_trace_line_ids.clear()
+
+    def get_manual_trace_points(self):
+        return list(self._manual_trace_points)
 
     def get_reclick_groups(self, clicks_per_root):
         """Return list of click groups from reclick points.
@@ -489,7 +507,8 @@ class ImageCanvas(ctk.CTkFrame):
         # In review mode, respect the traces visibility toggle
         _show_traces = (self._review_traces_visible
                         or self._mode not in (self.MODE_REVIEW,
-                                              self.MODE_RECLICK))
+                                              self.MODE_RECLICK,
+                                              self.MODE_MANUAL_TRACE))
         trace_plate_counters = {}
         for ti, (path, shades, mark_indices) in enumerate(self._traces):
             if not _show_traces:
@@ -582,10 +601,33 @@ class ImageCanvas(ctk.CTkFrame):
             for rid in self._reclick_marker_ids:
                 self.canvas.tag_raise(rid)
 
+        # manual trace preview
+        if self._mode == self.MODE_MANUAL_TRACE and self._manual_trace_points:
+            self._manual_trace_marker_ids.clear()
+            self._manual_trace_line_ids.clear()
+            for i, (row, col) in enumerate(self._manual_trace_points):
+                cx, cy = self.image_to_canvas(col, row)
+                r = 4
+                rid = self.canvas.create_oval(
+                    cx - r, cy - r, cx + r, cy + r,
+                    outline="white", fill="#00ffff", width=1)
+                self._manual_trace_marker_ids.append(rid)
+                if i > 0:
+                    prev_row, prev_col = self._manual_trace_points[i - 1]
+                    px, py = self.image_to_canvas(prev_col, prev_row)
+                    lid = self.canvas.create_line(
+                        px, py, cx, cy,
+                        fill="#00ffff", width=2, dash=(6, 3))
+                    self._manual_trace_line_ids.append(lid)
+            all_ids = self._manual_trace_marker_ids + self._manual_trace_line_ids
+            for rid in all_ids:
+                self.canvas.tag_raise(rid)
+
         # plate info overlay (shown when zoomed into a plate)
         info = getattr(self, '_plate_info', None)
         if info and self._mode in (self.MODE_CLICK_ROOTS, self.MODE_CLICK_MARKS,
-                                    self.MODE_REVIEW, self.MODE_RECLICK):
+                                    self.MODE_REVIEW, self.MODE_RECLICK,
+                                    self.MODE_MANUAL_TRACE):
             cw = self.canvas.winfo_width()
             ch = self.canvas.winfo_height()
             y = ch - 6
@@ -667,6 +709,11 @@ class ImageCanvas(ctk.CTkFrame):
                 ("Enter", "Confirm re-click"),
                 ("Right-click", "Undo last click"),
             ],
+            self.MODE_MANUAL_TRACE: [
+                ("Click", "Add point along root"),
+                ("Enter", "Confirm manual trace"),
+                ("Right-click", "Undo last point"),
+            ],
         }
         _MODE_NAMES = {
             self.MODE_VIEW: "View",
@@ -675,6 +722,7 @@ class ImageCanvas(ctk.CTkFrame):
             self.MODE_CLICK_MARKS: "Click Marks",
             self.MODE_REVIEW: "Review",
             self.MODE_RECLICK: "Re-click",
+            self.MODE_MANUAL_TRACE: "Manual Trace",
         }
 
         mode_shortcuts = _MODE_SHORTCUTS.get(self._mode, [])
@@ -946,6 +994,12 @@ class ImageCanvas(ctk.CTkFrame):
             self._redraw()
             if self._on_click_callback:
                 self._on_click_callback()
+        elif self._mode == self.MODE_MANUAL_TRACE:
+            col, row = self.canvas_to_image(sx, sy)
+            self._manual_trace_points.append((row, col))
+            self._redraw()
+            if self._on_click_callback:
+                self._on_click_callback()
 
     _PAN_THRESHOLD = 5  # pixels of drag before switching to pan
 
@@ -1054,6 +1108,12 @@ class ImageCanvas(ctk.CTkFrame):
             return True
         elif self._mode == self.MODE_RECLICK and self._reclick_points:
             self._reclick_points.pop()
+            self._redraw()
+            if self._on_click_callback:
+                self._on_click_callback()
+            return True
+        elif self._mode == self.MODE_MANUAL_TRACE and self._manual_trace_points:
+            self._manual_trace_points.pop()
             self._redraw()
             if self._on_click_callback:
                 self._on_click_callback()

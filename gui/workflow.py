@@ -207,6 +207,9 @@ class MeasurementMixin:
         self.sidebar.btn_review.configure(state="normal")
         # sync trace-to-result mapping so canvas review numbering is correct
         self.canvas._trace_to_result = list(self._trace_to_result)
+        # ensure traces are visible when entering review
+        self.canvas._review_traces_visible = True
+        self.canvas._review_zoom_state = -1
         # Block Enter for 500ms to prevent leftover keypresses from skipping review
         # (skip delay when returning from retrace to avoid double-enter)
         if skip_delay:

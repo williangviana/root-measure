@@ -134,6 +134,11 @@ class ImageCanvas(ctk.CTkFrame):
 
     def set_mode(self, mode, on_done=None):
         """Set interaction mode."""
+        # Reset transient state from previous mode
+        self._manual_trace_drawing = False
+        self._is_panning = False
+        self._click_start = None
+        self._drag_start = None
         self._mode = mode
         self._on_done_callback = on_done
         self.canvas.focus_set()

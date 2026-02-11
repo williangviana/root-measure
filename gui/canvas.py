@@ -579,6 +579,42 @@ class ImageCanvas(ctk.CTkFrame):
                     fill=lbl_color, anchor="s",
                     font=("Helvetica", 10, "bold"))
 
+        # root click dots when traces hidden in reclick/manual trace mode
+        if (not _show_traces
+                and self._mode in (self.MODE_RECLICK, self.MODE_MANUAL_TRACE)
+                and self._root_points):
+            dot_r = 5
+            group_counters = {}
+            for i, ((row, col), flag) in enumerate(
+                    zip(self._root_points, self._root_flags)):
+                group = self._root_groups[i] if i < len(self._root_groups) else 0
+                plate = self._root_plates[i] if i < len(self._root_plates) else 0
+                key = (plate, group)
+                group_counters[key] = group_counters.get(key, 0) + 1
+                cx, cy = self.image_to_canvas(col, row)
+                marker_color = GROUP_MARKER_COLORS[group % len(GROUP_MARKER_COLORS)]
+                if flag is not None:
+                    label = "DEAD" if flag == 'dead' else "TOUCH"
+                    cross_s = 6
+                    self.canvas.create_line(
+                        cx - cross_s, cy - cross_s, cx + cross_s, cy + cross_s,
+                        fill=marker_color, width=2)
+                    self.canvas.create_line(
+                        cx - cross_s, cy + cross_s, cx + cross_s, cy - cross_s,
+                        fill=marker_color, width=2)
+                    self.canvas.create_text(
+                        cx + 10, cy - 10, text=f"{group_counters[key]} {label}",
+                        fill=marker_color, anchor="w",
+                        font=("Helvetica", 9, "bold"))
+                else:
+                    self.canvas.create_oval(
+                        cx - dot_r, cy - dot_r, cx + dot_r, cy + dot_r,
+                        outline="white", fill=marker_color, width=1)
+                    self.canvas.create_text(
+                        cx + 10, cy - 10, text=str(group_counters[key]),
+                        fill=marker_color, anchor="w",
+                        font=("Helvetica", 9, "bold"))
+
         # dead/touching seedling markers when traces are visible
         if len(self._traces) > 0 and _show_traces:
             cross_s = 6

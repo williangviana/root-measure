@@ -395,16 +395,29 @@ class Sidebar(ctk.CTkScrollableFrame):
         self.btn_manual_trace = ctk.CTkButton(
             self._status_frame, text="Manual Trace", fg_color="#7b4f8a",
             command=lambda: app._start_manual_trace_with_mode(
-                'freehand' if self._freehand_var.get() else 'segmented'))
+                self._trace_mode_var.get()))
         # starts hidden
 
-        # Freehand checkbox (shown alongside manual trace button)
-        self._freehand_var = ctk.BooleanVar(value=False)
-        self._freehand_checkbox = ctk.CTkCheckBox(
-            self._status_frame, text="Freehand",
-            variable=self._freehand_var,
-            font=ctk.CTkFont(size=12),
-            checkbox_width=18, checkbox_height=18)
+        # Trace mode checkboxes (radio-button behavior, freehand default)
+        self._trace_mode_var = ctk.StringVar(value='freehand')
+        self._trace_mode_frame = ctk.CTkFrame(
+            self._status_frame, fg_color="transparent")
+        self._seg_var = ctk.BooleanVar(value=False)
+        self._free_var = ctk.BooleanVar(value=True)
+        self._cb_segmented = ctk.CTkCheckBox(
+            self._trace_mode_frame, text="Segmented Line",
+            variable=self._seg_var,
+            font=ctk.CTkFont(size=11),
+            checkbox_width=16, checkbox_height=16,
+            command=self._select_segmented)
+        self._cb_segmented.pack(side="left", padx=(0, 8))
+        self._cb_freehand = ctk.CTkCheckBox(
+            self._trace_mode_frame, text="Freehand Line",
+            variable=self._free_var,
+            font=ctk.CTkFont(size=11),
+            checkbox_width=16, checkbox_height=16,
+            command=self._select_freehand)
+        self._cb_freehand.pack(side="left")
         # starts hidden — shown/hidden with btn_manual_trace
 
         # progress bar inside status area
@@ -447,13 +460,25 @@ class Sidebar(ctk.CTkScrollableFrame):
         self._review_toggles_frame.pack_forget()
 
     def show_manual_trace_modes(self):
-        """Show freehand checkbox below manual trace button."""
-        self._freehand_checkbox.pack_forget()
-        self._freehand_checkbox.pack(pady=(0, 3), padx=15, anchor="w")
+        """Show trace mode checkboxes below manual trace button."""
+        self._trace_mode_frame.pack_forget()
+        self._trace_mode_frame.pack(pady=(0, 3), padx=15, anchor="w")
 
     def hide_manual_trace_modes(self):
-        """Hide the freehand checkbox."""
-        self._freehand_checkbox.pack_forget()
+        """Hide the trace mode checkboxes."""
+        self._trace_mode_frame.pack_forget()
+
+    def _select_segmented(self):
+        """Toggle to segmented mode (uncheck freehand)."""
+        self._trace_mode_var.set('segmented')
+        self._seg_var.set(True)
+        self._free_var.set(False)
+
+    def _select_freehand(self):
+        """Toggle to freehand mode (uncheck segmented)."""
+        self._trace_mode_var.set('freehand')
+        self._free_var.set(True)
+        self._seg_var.set(False)
 
     def _on_toggle_zoom(self):
         """Handle zoom toggle button click."""

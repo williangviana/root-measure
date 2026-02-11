@@ -105,7 +105,7 @@ class ImageCanvas(ctk.CTkFrame):
         self._manual_trace_confirmed = []   # list of point-lists for completed roots
         self._manual_trace_marker_ids = []  # canvas oval ids
         self._manual_trace_line_ids = []    # canvas line ids
-        self._manual_trace_submode = 'segmented'  # 'segmented' or 'freehand'
+        self._manual_trace_submode = 'freehand'  # 'segmented' or 'freehand'
         self._manual_trace_strokes = []     # stroke start indices (freehand undo)
         self._manual_trace_drawing = False  # True during active freehand drag
 

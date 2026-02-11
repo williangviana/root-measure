@@ -880,7 +880,7 @@ class ImageCanvas(ctk.CTkFrame):
 
     def _on_scroll(self, event):
         """Two-finger scroll = pan vertically."""
-        if self._image_np is None:
+        if self._image_np is None or self._manual_trace_drawing:
             return
         # macOS delta is ±1..±N per tick; multiply for smooth pan speed
         dy = event.delta * 3
@@ -890,7 +890,7 @@ class ImageCanvas(ctk.CTkFrame):
 
     def _on_scroll_h(self, event):
         """Shift + scroll = pan horizontally."""
-        if self._image_np is None:
+        if self._image_np is None or self._manual_trace_drawing:
             return
         dx = event.delta * 3
         self._offset_x += dx
@@ -899,7 +899,7 @@ class ImageCanvas(ctk.CTkFrame):
 
     def _on_pinch_zoom(self, event):
         """Pinch-to-zoom (macOS: Ctrl+MouseWheel / Opt+MouseWheel)."""
-        if self._image_np is None:
+        if self._image_np is None or self._manual_trace_drawing:
             return
         self._do_zoom(event)
 
@@ -1121,10 +1121,7 @@ class ImageCanvas(ctk.CTkFrame):
                 outline="#9b59b6", width=2, dash=(4, 2))
 
     def _on_left_release(self, event):
-        if self._space_held:
-            self._drag_start = None
-            return
-        # End freehand stroke on mouse release
+        # End freehand stroke on mouse release (check before space_held)
         if (self._mode == self.MODE_MANUAL_TRACE
                 and self._manual_trace_submode == 'freehand'
                 and self._manual_trace_drawing):
@@ -1132,6 +1129,9 @@ class ImageCanvas(ctk.CTkFrame):
             self._redraw()
             if self._on_click_callback:
                 self._on_click_callback()
+            return
+        if self._space_held:
+            self._drag_start = None
             return
         # finish deferred click-or-pan for non-plate modes
         if self._click_start is not None:

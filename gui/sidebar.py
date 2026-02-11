@@ -394,27 +394,18 @@ class Sidebar(ctk.CTkScrollableFrame):
         # Manual trace button (hidden by default, shown in review when traces selected)
         self.btn_manual_trace = ctk.CTkButton(
             self._status_frame, text="Manual Trace", fg_color="#7b4f8a",
-            command=lambda: app._show_manual_trace_modes())
+            command=lambda: app._start_manual_trace_with_mode(
+                'freehand' if self._freehand_var.get() else 'segmented'))
         # starts hidden
 
-        # Manual trace sub-mode buttons (hidden by default)
-        self._manual_trace_mode_frame = ctk.CTkFrame(
-            self._status_frame, fg_color="transparent")
-        self.btn_manual_segmented = ctk.CTkButton(
-            self._manual_trace_mode_frame, text="Segmented",
-            width=90, height=28, font=ctk.CTkFont(size=11),
-            fg_color="#7b4f8a",
-            command=lambda: app._start_manual_trace_with_mode('segmented'))
-        self.btn_manual_segmented.pack(
-            side="left", padx=(0, 4), expand=True, fill="x")
-        self.btn_manual_freehand = ctk.CTkButton(
-            self._manual_trace_mode_frame, text="Freehand",
-            width=90, height=28, font=ctk.CTkFont(size=11),
-            fg_color="#7b4f8a",
-            command=lambda: app._start_manual_trace_with_mode('freehand'))
-        self.btn_manual_freehand.pack(
-            side="left", padx=(4, 0), expand=True, fill="x")
-        # frame is not packed yet — show_manual_trace_modes() will pack it
+        # Freehand checkbox (shown alongside manual trace button)
+        self._freehand_var = ctk.BooleanVar(value=False)
+        self._freehand_checkbox = ctk.CTkCheckBox(
+            self._status_frame, text="Freehand",
+            variable=self._freehand_var,
+            font=ctk.CTkFont(size=12),
+            checkbox_width=18, checkbox_height=18)
+        # starts hidden — shown/hidden with btn_manual_trace
 
         # progress bar inside status area
         self._progress_frame = ctk.CTkFrame(self._status_frame,
@@ -456,13 +447,13 @@ class Sidebar(ctk.CTkScrollableFrame):
         self._review_toggles_frame.pack_forget()
 
     def show_manual_trace_modes(self):
-        """Show segmented/freehand sub-mode buttons."""
-        self._manual_trace_mode_frame.pack_forget()
-        self._manual_trace_mode_frame.pack(pady=(0, 3), padx=15, fill="x")
+        """Show freehand checkbox below manual trace button."""
+        self._freehand_checkbox.pack_forget()
+        self._freehand_checkbox.pack(pady=(0, 3), padx=15, anchor="w")
 
     def hide_manual_trace_modes(self):
-        """Hide the sub-mode buttons."""
-        self._manual_trace_mode_frame.pack_forget()
+        """Hide the freehand checkbox."""
+        self._freehand_checkbox.pack_forget()
 
     def _on_toggle_zoom(self):
         """Handle zoom toggle button click."""

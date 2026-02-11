@@ -827,19 +827,22 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
                 expected = 1
             expected = max(1, expected)
 
-            if expected == 1:
+            if expected == 1 and num_confirmed == 0:
                 # Single plate - show confirm button
                 btn_text = "Confirm Plate"
-            elif num_with_pending < expected:
+            elif expected > 1 and num_with_pending < expected:
                 # Multiple plates - show progress
                 btn_text = f"Plate {num_with_pending}/{expected}"
-            elif num_confirmed >= expected:
+            elif expected > 1 and num_confirmed >= expected:
                 # All plates CONFIRMED (not just drawn) - auto-advance
                 self.after(100, self._plates_done)
                 return
-            else:
+            elif expected > 1:
                 # All plates drawn but pending not yet confirmed
                 btn_text = f"Confirm Plate {num_with_pending}/{expected}"
+            else:
+                # Single expected but multiple confirmed, or confirming additional
+                btn_text = "Confirm Plates"
 
             self.sidebar.btn_done.configure(text=btn_text)
             if not self.sidebar.btn_done.winfo_ismapped():

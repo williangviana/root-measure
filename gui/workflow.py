@@ -281,10 +281,12 @@ class MeasurementMixin:
             self.sidebar.btn_manual_trace.configure(
                 text=f"Manual Trace ({n})", fg_color="#2b5797")
             self.sidebar.btn_manual_trace.pack(pady=(3, 0), padx=15, fill="x")
+            self.sidebar.show_manual_trace_modes()
         else:
             self.sidebar.btn_done.configure(
                 text="Accept All", fg_color="#2b5797")
             self.sidebar.btn_manual_trace.pack_forget()
+            self.sidebar.hide_manual_trace_modes()
 
     def _review_done(self):
         """Called when user presses Enter in review mode."""
@@ -502,10 +504,6 @@ class MeasurementMixin:
         self.canvas._redraw()
 
     # --- Manual trace flow ---
-
-    def _show_manual_trace_modes(self):
-        """Show sub-mode selection buttons for manual trace."""
-        self.sidebar.show_manual_trace_modes()
 
     def _start_manual_trace_with_mode(self, mode):
         """Enter manual trace with chosen sub-mode."""

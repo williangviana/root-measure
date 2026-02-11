@@ -503,6 +503,16 @@ class MeasurementMixin:
 
     # --- Manual trace flow ---
 
+    def _show_manual_trace_modes(self):
+        """Show sub-mode selection buttons for manual trace."""
+        self.sidebar.show_manual_trace_modes()
+
+    def _start_manual_trace_with_mode(self, mode):
+        """Enter manual trace with chosen sub-mode."""
+        self.sidebar.hide_manual_trace_modes()
+        self.canvas._manual_trace_submode = mode
+        self._start_manual_trace()
+
     def _start_manual_trace(self):
         """Enter manual trace mode for selected bad traces."""
         selected = self.canvas.get_selected_for_retry()
@@ -551,13 +561,22 @@ class MeasurementMixin:
         self.btn_continue_later_mid.pack(pady=(10, 5), padx=15, fill="x")
         self.sidebar.show_review_toggles()
 
-        self.sidebar.set_status(
-            f"Manual trace root {pi_idx}/{n}:\n"
-            f"Click points along the root (top→bottom).\n"
-            f"Right-click=undo, Enter=confirm.")
-        self.lbl_bottom.configure(
-            text=f"Manual {pi_idx}/{n}  |  Click=add point  |  "
-                 f"Right-click=undo  |  Scroll=zoom")
+        if self.canvas._manual_trace_submode == 'freehand':
+            self.sidebar.set_status(
+                f"Manual trace root {pi_idx}/{n} (Freehand):\n"
+                f"Drag along the root to draw.\n"
+                f"Right-click=undo stroke, Enter=confirm.")
+            self.lbl_bottom.configure(
+                text=f"Manual {pi_idx}/{n}  |  Drag=draw  |  "
+                     f"Right-click=undo stroke  |  Scroll=zoom")
+        else:
+            self.sidebar.set_status(
+                f"Manual trace root {pi_idx}/{n}:\n"
+                f"Click points along the root (top→bottom).\n"
+                f"Right-click=undo, Enter=confirm.")
+            self.lbl_bottom.configure(
+                text=f"Manual {pi_idx}/{n}  |  Click=add point  |  "
+                     f"Right-click=undo  |  Scroll=zoom")
 
     def _manual_trace_done(self):
         """Called when user presses Enter to confirm a manual trace."""
@@ -595,14 +614,21 @@ class MeasurementMixin:
             self._show_review(skip_delay=True)
 
     def _update_manual_trace_status(self):
-        """Update status after each click during manual trace."""
+        """Update status after each click/stroke during manual trace."""
         n_pts = len(self.canvas._manual_trace_points)
         n = len(self._manual_trace_result_indices)
         pi_idx = self._manual_trace_idx + 1
-        self.sidebar.set_status(
-            f"Manual trace root {pi_idx}/{n}: {n_pts} point(s).\n"
-            f"Click more points along the root.\n"
-            f"Enter=confirm, Right-click=undo.")
+        if self.canvas._manual_trace_submode == 'freehand':
+            n_strokes = len(self.canvas._manual_trace_strokes)
+            self.sidebar.set_status(
+                f"Manual trace root {pi_idx}/{n}: "
+                f"{n_strokes} stroke(s), {n_pts} points.\n"
+                f"Drag more or Enter=confirm, Right-click=undo stroke.")
+        else:
+            self.sidebar.set_status(
+                f"Manual trace root {pi_idx}/{n}: {n_pts} point(s).\n"
+                f"Click more points along the root.\n"
+                f"Enter=confirm, Right-click=undo.")
 
     def _save_trace_screenshot(self, silent=False):
         """Save plate image with traced root overlays (no UI elements)."""

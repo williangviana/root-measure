@@ -105,6 +105,9 @@ class ImageCanvas(ctk.CTkFrame):
         self._manual_trace_confirmed = []   # list of point-lists for completed roots
         self._manual_trace_marker_ids = []  # canvas oval ids
         self._manual_trace_line_ids = []    # canvas line ids
+        self._manual_trace_submode = 'segmented'  # 'segmented' or 'freehand'
+        self._manual_trace_strokes = []     # stroke start indices (freehand undo)
+        self._manual_trace_drawing = False  # True during active freehand drag
 
         # help overlay
         self._help_visible = False
@@ -284,6 +287,8 @@ class ImageCanvas(ctk.CTkFrame):
         self._manual_trace_points.clear()
         self._manual_trace_marker_ids.clear()
         self._manual_trace_line_ids.clear()
+        self._manual_trace_strokes.clear()
+        self._manual_trace_drawing = False
 
     def clear_manual_trace(self):
         """Clear all manual trace state (current + confirmed)."""
@@ -295,6 +300,8 @@ class ImageCanvas(ctk.CTkFrame):
         self._manual_trace_confirmed.clear()
         self._manual_trace_marker_ids.clear()
         self._manual_trace_line_ids.clear()
+        self._manual_trace_strokes.clear()
+        self._manual_trace_drawing = False
 
     def get_manual_trace_points(self):
         return list(self._manual_trace_points)
@@ -644,20 +651,32 @@ class ImageCanvas(ctk.CTkFrame):
                             fill="#00cc99", width=2)
                         self._manual_trace_line_ids.append(lid)
             # draw current in-progress trace
-            for i, (row, col) in enumerate(self._manual_trace_points):
-                cx, cy = self.image_to_canvas(col, row)
-                r = 4
-                rid = self.canvas.create_oval(
-                    cx - r, cy - r, cx + r, cy + r,
-                    outline="white", fill="#00ffff", width=1)
-                self._manual_trace_marker_ids.append(rid)
-                if i > 0:
+            if self._manual_trace_submode == 'freehand':
+                # Freehand: solid lines only, no dots
+                for i in range(1, len(self._manual_trace_points)):
                     prev_row, prev_col = self._manual_trace_points[i - 1]
+                    row, col = self._manual_trace_points[i]
                     px, py = self.image_to_canvas(prev_col, prev_row)
+                    cx, cy = self.image_to_canvas(col, row)
                     lid = self.canvas.create_line(
-                        px, py, cx, cy,
-                        fill="#00ffff", width=2, dash=(6, 3))
+                        px, py, cx, cy, fill="#00ffff", width=2)
                     self._manual_trace_line_ids.append(lid)
+            else:
+                # Segmented: dots + dashed lines
+                for i, (row, col) in enumerate(self._manual_trace_points):
+                    cx, cy = self.image_to_canvas(col, row)
+                    r = 4
+                    rid = self.canvas.create_oval(
+                        cx - r, cy - r, cx + r, cy + r,
+                        outline="white", fill="#00ffff", width=1)
+                    self._manual_trace_marker_ids.append(rid)
+                    if i > 0:
+                        prev_row, prev_col = self._manual_trace_points[i - 1]
+                        px, py = self.image_to_canvas(prev_col, prev_row)
+                        lid = self.canvas.create_line(
+                            px, py, cx, cy,
+                            fill="#00ffff", width=2, dash=(6, 3))
+                        self._manual_trace_line_ids.append(lid)
             all_ids = self._manual_trace_marker_ids + self._manual_trace_line_ids
             for rid in all_ids:
                 self.canvas.tag_raise(rid)
@@ -962,6 +981,16 @@ class ImageCanvas(ctk.CTkFrame):
                 self._redraw()
             col, row = self.canvas_to_image(event.x, event.y)
             self._rect_start = (row, col)
+        elif (self._mode == self.MODE_MANUAL_TRACE
+              and self._manual_trace_submode == 'freehand'):
+            # Start freehand drawing stroke
+            col, row = self.canvas_to_image(event.x, event.y)
+            self._manual_trace_strokes.append(len(self._manual_trace_points))
+            self._manual_trace_points.append((row, col))
+            self._manual_trace_drawing = True
+            self._redraw()
+            if self._on_click_callback:
+                self._on_click_callback()
         else:
             # defer click — may become a pan drag
             self._click_start = (event.x, event.y)
@@ -1043,6 +1072,27 @@ class ImageCanvas(ctk.CTkFrame):
     _PAN_THRESHOLD = 10  # pixels of drag before switching to pan
 
     def _on_left_drag(self, event):
+        # Freehand drawing: capture points instead of panning
+        if (self._mode == self.MODE_MANUAL_TRACE
+                and self._manual_trace_submode == 'freehand'
+                and self._manual_trace_drawing
+                and not self._space_held):
+            col, row = self.canvas_to_image(event.x, event.y)
+            if self._manual_trace_points:
+                lr, lc = self._manual_trace_points[-1]
+                if (row - lr) ** 2 + (col - lc) ** 2 < 36:  # 6px spacing
+                    return
+            self._manual_trace_points.append((row, col))
+            # Incremental draw: add line segment without full redraw
+            if len(self._manual_trace_points) >= 2:
+                prev_row, prev_col = self._manual_trace_points[-2]
+                px, py = self.image_to_canvas(prev_col, prev_row)
+                cx, cy = self.image_to_canvas(col, row)
+                lid = self.canvas.create_line(
+                    px, py, cx, cy, fill="#00ffff", width=2)
+                self._manual_trace_line_ids.append(lid)
+                self.canvas.tag_raise(lid)
+            return
         if self._drag_start is not None and (self._space_held or self._is_panning
                                              or self._mode != self.MODE_SELECT_PLATES):
             dx = event.x - self._drag_start[0]
@@ -1073,6 +1123,15 @@ class ImageCanvas(ctk.CTkFrame):
     def _on_left_release(self, event):
         if self._space_held:
             self._drag_start = None
+            return
+        # End freehand stroke on mouse release
+        if (self._mode == self.MODE_MANUAL_TRACE
+                and self._manual_trace_submode == 'freehand'
+                and self._manual_trace_drawing):
+            self._manual_trace_drawing = False
+            self._redraw()
+            if self._on_click_callback:
+                self._on_click_callback()
             return
         # finish deferred click-or-pan for non-plate modes
         if self._click_start is not None:
@@ -1153,7 +1212,12 @@ class ImageCanvas(ctk.CTkFrame):
                 self._on_click_callback()
             return True
         elif self._mode == self.MODE_MANUAL_TRACE and self._manual_trace_points:
-            self._manual_trace_points.pop()
+            if (self._manual_trace_submode == 'freehand'
+                    and self._manual_trace_strokes):
+                stroke_start = self._manual_trace_strokes.pop()
+                del self._manual_trace_points[stroke_start:]
+            else:
+                self._manual_trace_points.pop()
             self._redraw()
             if self._on_click_callback:
                 self._on_click_callback()

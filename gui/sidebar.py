@@ -404,20 +404,20 @@ class Sidebar(ctk.CTkScrollableFrame):
             self._status_frame, fg_color="transparent")
         self._seg_var = ctk.BooleanVar(value=False)
         self._free_var = ctk.BooleanVar(value=True)
-        self._cb_segmented = ctk.CTkCheckBox(
-            self._trace_mode_frame, text="Segmented Line",
-            variable=self._seg_var,
-            font=ctk.CTkFont(size=11),
-            checkbox_width=16, checkbox_height=16,
-            command=self._select_segmented)
-        self._cb_segmented.pack(side="left", padx=(0, 8))
         self._cb_freehand = ctk.CTkCheckBox(
             self._trace_mode_frame, text="Freehand Line",
             variable=self._free_var,
             font=ctk.CTkFont(size=11),
             checkbox_width=16, checkbox_height=16,
             command=self._select_freehand)
-        self._cb_freehand.pack(side="left")
+        self._cb_freehand.pack(side="left", padx=(0, 8))
+        self._cb_segmented = ctk.CTkCheckBox(
+            self._trace_mode_frame, text="Segmented Line",
+            variable=self._seg_var,
+            font=ctk.CTkFont(size=11),
+            checkbox_width=16, checkbox_height=16,
+            command=self._select_segmented)
+        self._cb_segmented.pack(side="left")
         # starts hidden — shown/hidden with btn_manual_trace
 
         # progress bar inside status area

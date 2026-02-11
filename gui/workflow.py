@@ -280,7 +280,8 @@ class MeasurementMixin:
                 text=f"Auto Retrace ({n})", fg_color="#2b5797")
             self.sidebar.btn_manual_trace.configure(
                 text=f"Manual Trace ({n})", fg_color="#2b5797")
-            self.sidebar.btn_manual_trace.pack(pady=(3, 0), padx=15, fill="x")
+            if not self.sidebar.btn_manual_trace.winfo_ismapped():
+                self.sidebar.btn_manual_trace.pack(pady=(3, 0), padx=15, fill="x")
             self.sidebar.show_manual_trace_modes()
         else:
             self.sidebar.btn_done.configure(

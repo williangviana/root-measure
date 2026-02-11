@@ -461,12 +461,13 @@ class Sidebar(ctk.CTkScrollableFrame):
 
     def show_manual_trace_modes(self):
         """Show trace mode checkboxes below manual trace button."""
-        self._trace_mode_frame.pack_forget()
-        self._trace_mode_frame.pack(pady=(0, 3), padx=15, anchor="w")
+        if not self._trace_mode_frame.winfo_ismapped():
+            self._trace_mode_frame.pack(pady=(0, 3), padx=15, anchor="w")
 
     def hide_manual_trace_modes(self):
         """Hide the trace mode checkboxes."""
-        self._trace_mode_frame.pack_forget()
+        if self._trace_mode_frame.winfo_ismapped():
+            self._trace_mode_frame.pack_forget()
 
     def _select_segmented(self):
         """Toggle to segmented mode (uncheck freehand)."""

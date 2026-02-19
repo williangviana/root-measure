@@ -14,8 +14,10 @@ class _AutocompleteEntry(ctk.CTkFrame):
         self._entry.pack(fill="x")
         self._listbox = None
         self._popup = None
-        self._dismiss_id = None  # pending after() id for delayed hide
-        self._shown_items = []   # items currently in the dropdown
+        self._dismiss_id = None
+        self._shown_items = []
+        self._menu_items = []
+        self._menu_selected = -1
         # bind to the actual tk.Entry inside CTkEntry
         inner = self._entry._entry
         inner.bind("<KeyRelease>", self._on_key)
@@ -108,100 +110,88 @@ class _AutocompleteEntry(ctk.CTkFrame):
         # skip if already showing the same items
         if self._popup and self._shown_items == items:
             return
-        # update listbox in-place if popup exists but items changed
-        if self._popup and self._listbox:
-            self._listbox.delete(0, tk.END)
-            for item in items:
-                self._listbox.insert(tk.END, f"  {item}")
-            n = min(len(items), 6)
-            self._listbox.configure(height=n)
-            self._listbox.update_idletasks()
-            inner = self._entry._entry
-            x = inner.winfo_rootx()
-            y = inner.winfo_rooty() + inner.winfo_height()
-            w = inner.winfo_width()
-            h = self._listbox.winfo_reqheight() + 6
-            self._popup.geometry(f"{w}x{h}+{x}+{y}")
-            self._shown_items = list(items)
-            return
+        # rebuild popup when items change
         self._hide_dropdown()
         self._popup = tk.Toplevel(self)
         self._popup.wm_overrideredirect(True)
-        self._popup.configure(bg="#3a3a3a")
-        # outer frame for a thin border
-        border = tk.Frame(self._popup, bg="#555555", padx=1, pady=1)
-        border.pack(fill="both", expand=True)
+        self._popup.configure(bg="#4a4a4a")
+        # container with border look
+        container = tk.Frame(self._popup, bg="#4a4a4a")
+        container.pack(fill="both", expand=True, padx=1, pady=1)
+        self._menu_items = []
+        self._menu_selected = -1
         n = min(len(items), 6)
-        self._listbox = tk.Listbox(
-            border, height=n,
-            bg="#333333", fg="#dcdcdc", selectbackground="#2b5797",
-            selectforeground="white", borderwidth=0, relief="flat",
-            font=("Helvetica", 12), activestyle="none",
-            selectborderwidth=0, highlightthickness=0)
-        for item in items:
-            self._listbox.insert(tk.END, f"  {item}")
-        self._listbox.pack(fill="both", expand=True, padx=1, pady=2)
-        self._listbox.update_idletasks()
-        # align with the inner tk.Entry inside CTkEntry
+        for i, item in enumerate(items[:n]):
+            lbl = tk.Label(
+                container, text=f"  {item}",
+                bg="#3a3a3a", fg="#dcdcdc", anchor="w",
+                font=("Helvetica", 12), padx=8, pady=6)
+            lbl.pack(fill="x", padx=2, pady=(2 if i == 0 else 1, 1))
+            lbl.bind("<Enter>", lambda e, l=lbl: l.configure(bg="#2b5797", fg="white"))
+            lbl.bind("<Leave>", lambda e, l=lbl: l.configure(bg="#3a3a3a", fg="#dcdcdc"))
+            lbl.bind("<ButtonRelease-1>", lambda e, v=item: self._pick(v))
+            self._menu_items.append(lbl)
+        # dummy listbox kept for compatibility with navigate/select_current
+        self._listbox = self._menu_items
+        container.update_idletasks()
         inner = self._entry._entry
         x = inner.winfo_rootx()
-        y = inner.winfo_rooty() + inner.winfo_height()
+        y = inner.winfo_rooty() + inner.winfo_height() + 2
         w = inner.winfo_width()
-        h = self._listbox.winfo_reqheight() + 6  # border + padding
+        h = container.winfo_reqheight() + 2
         self._popup.geometry(f"{w}x{h}+{x}+{y}")
-        self._listbox.configure(width=0)
-        self._listbox.bind("<<ListboxSelect>>", self._on_select)
         self._shown_items = list(items)
 
     def _hide_dropdown(self):
         self._dismiss_id = None
         self._shown_items = []
-        if self._listbox:
-            self._listbox.destroy()
-            self._listbox = None
+        self._menu_items = []
+        self._menu_selected = -1
+        self._listbox = None
         if self._popup:
             self._popup.destroy()
             self._popup = None
 
-    def _on_select(self, event):
-        if not self._listbox:
-            return
-        sel = self._listbox.curselection()
-        if sel:
-            val = self._listbox.get(sel[0]).strip()
-            full = self._entry.get()
-            if "," in full:
-                prefix = full.rsplit(",", 1)[0] + ", "
-            else:
-                prefix = ""
-            self._entry.delete(0, 'end')
-            self._entry.insert(0, prefix + val)
+    def _pick(self, val):
+        """Called when a menu item is clicked."""
+        full = self._entry.get()
+        if "," in full:
+            prefix = full.rsplit(",", 1)[0] + ", "
+        else:
+            prefix = ""
+        self._entry.delete(0, 'end')
+        self._entry.insert(0, prefix + val)
         self._hide_dropdown()
-        # cancel any pending dismiss before refocusing
         if self._dismiss_id:
             self._entry.after_cancel(self._dismiss_id)
             self._dismiss_id = None
         self._entry.focus_set()
 
+    def _on_select(self, event):
+        pass  # handled by _pick via label click
+
     def _select_current(self):
-        if self._listbox and self._listbox.curselection():
-            self._on_select(None)
+        if self._menu_items and 0 <= self._menu_selected < len(self._menu_items):
+            text = self._menu_items[self._menu_selected].cget("text").strip()
+            self._pick(text)
         else:
             self._hide_dropdown()
 
     def _navigate(self, direction):
-        if not self._listbox:
+        if not self._menu_items:
             return
-        sel = self._listbox.curselection()
-        if not sel:
-            idx = 0 if direction == 'Down' else self._listbox.size() - 1
+        # unhighlight previous
+        if 0 <= self._menu_selected < len(self._menu_items):
+            self._menu_items[self._menu_selected].configure(
+                bg="#3a3a3a", fg="#dcdcdc")
+        if direction == 'Down':
+            self._menu_selected = min(
+                self._menu_selected + 1, len(self._menu_items) - 1)
         else:
-            cur = sel[0]
-            idx = cur + (1 if direction == 'Down' else -1)
-            idx = max(0, min(idx, self._listbox.size() - 1))
-        self._listbox.selection_clear(0, tk.END)
-        self._listbox.selection_set(idx)
-        self._listbox.see(idx)
+            self._menu_selected = max(self._menu_selected - 1, 0)
+        # highlight new
+        self._menu_items[self._menu_selected].configure(
+            bg="#2b5797", fg="white")
 
 
 class _Tooltip:

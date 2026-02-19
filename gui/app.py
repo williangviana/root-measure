@@ -755,18 +755,28 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
 
     def next_image(self):
         """Return to image selection after finishing measurement."""
-        # re-save CSV/screenshot/metadata in case retrace changed results (silent to avoid duplicate status)
-        if getattr(self, '_results', None):
-            plates = self.canvas.get_plates()
-            self._save_results(self._results, plates, self._scale_val, silent=True)
-            self._save_trace_screenshot(silent=True)
-            self._save_metadata()
-        if self.image_path:
-            self._processed_images.add(self.image_path)
-        self._stash_canvas()
-        self._auto_save()
-        self.sidebar.advance_to_images(
-            self.folder.name, self.images, self._processed_images)
+        print("[next_image] called")
+        try:
+            # re-save CSV/screenshot/metadata in case retrace changed results
+            if getattr(self, '_results', None) and hasattr(self, '_scale_val'):
+                plates = self.canvas.get_plates()
+                self._save_results(self._results, plates, self._scale_val, silent=True)
+                self._save_trace_screenshot(silent=True)
+                self._save_metadata()
+        except Exception:
+            import traceback; traceback.print_exc()
+        try:
+            if self.image_path:
+                self._processed_images.add(self.image_path)
+            self._stash_canvas()
+            self._auto_save()
+            print(f"[next_image] advancing to images, folder={self.folder}, "
+                  f"n_images={len(self.images)}, n_processed={len(self._processed_images)}")
+            self.sidebar.advance_to_images(
+                self.folder.name, self.images, self._processed_images)
+            print("[next_image] done")
+        except Exception:
+            import traceback; traceback.print_exc()
 
     def continue_later(self):
         """Save session and quit the app."""

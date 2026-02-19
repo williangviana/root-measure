@@ -354,10 +354,16 @@ def restore_settings(sidebar, settings):
         sidebar.entry_num_plates.insert(0, str(num_plates))
     sidebar.entry_experiment.delete(0, 'end')
     sidebar.entry_experiment.insert(0, settings.get('experiment', ''))
-    # restore genotypes and conditions so re-save after review works
-    sidebar.entry_genotypes.delete(0, 'end')
-    sidebar.entry_genotypes.insert(0, settings.get('genotypes', ''))
-    sidebar.entry_condition.delete(0, 'end')
-    sidebar.entry_condition.insert(0, settings.get('conditions', ''))
+    # seed genotype/condition autocomplete history but leave fields empty
+    _geno = settings.get('genotypes', '')
+    if _geno:
+        sidebar.entry_genotypes.insert(0, _geno)
+        sidebar.entry_genotypes.commit()
+        sidebar.entry_genotypes.delete(0, 'end')
+    _cond = settings.get('conditions', '')
+    if _cond:
+        sidebar.entry_condition.insert(0, _cond)
+        sidebar.entry_condition.commit()
+        sidebar.entry_condition.delete(0, 'end')
     sidebar.var_plot.set(settings.get('plot', True))
     sidebar.var_manual_endpoints.set(settings.get('manual_endpoints', False))

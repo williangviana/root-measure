@@ -5,7 +5,7 @@ import tkinter as tk
 
 
 class _AutocompleteEntry(ctk.CTkFrame):
-    """CTkEntry with a dropdown showing previously used values."""
+    """CTkEntry with a floating dropdown showing previously used values."""
 
     def __init__(self, master, placeholder_text="", **kw):
         super().__init__(master, fg_color="transparent")
@@ -13,6 +13,7 @@ class _AutocompleteEntry(ctk.CTkFrame):
         self._entry = ctk.CTkEntry(self, placeholder_text=placeholder_text, **kw)
         self._entry.pack(fill="x")
         self._listbox = None
+        self._popup = None
         self._entry.bind("<KeyRelease>", self._on_key)
         self._entry.bind("<FocusIn>", self._on_focus_in)
         self._entry.bind("<FocusOut>", self._on_focus_out)
@@ -36,10 +37,14 @@ class _AutocompleteEntry(ctk.CTkFrame):
         return self._entry.cget(key)
 
     def commit(self):
-        """Save current value to history (call when user confirms input)."""
+        """Save current value to history, splitting comma-separated items."""
         val = self._entry.get().strip()
-        if val and val not in self._history:
-            self._history.append(val)
+        if not val:
+            return
+        for item in val.split(","):
+            item = item.strip()
+            if item and item not in self._history:
+                self._history.append(item)
 
     def _get_matches(self):
         """Return history entries that match the current text."""
@@ -74,22 +79,33 @@ class _AutocompleteEntry(ctk.CTkFrame):
         self._entry.after(150, self._hide_dropdown)
 
     def _show_dropdown(self, items):
-        if self._listbox:
-            self._listbox.destroy()
+        self._hide_dropdown()
+        # floating toplevel so it doesn't push content down
+        self._popup = tk.Toplevel(self)
+        self._popup.wm_overrideredirect(True)
+        x = self._entry.winfo_rootx()
+        y = self._entry.winfo_rooty() + self._entry.winfo_height()
+        w = self._entry.winfo_width()
+        row_h = 22
+        h = min(len(items), 6) * row_h
+        self._popup.geometry(f"{w}x{h}+{x}+{y}")
         self._listbox = tk.Listbox(
-            self, height=min(len(items), 6),
+            self._popup, height=min(len(items), 6),
             bg="#2b2b2b", fg="#dcdcdc", selectbackground="#2b5797",
             selectforeground="white", borderwidth=1, relief="solid",
             font=("Helvetica", 12), activestyle="none")
         for item in items:
             self._listbox.insert(tk.END, item)
-        self._listbox.pack(fill="x", padx=2)
+        self._listbox.pack(fill="both", expand=True)
         self._listbox.bind("<<ListboxSelect>>", self._on_select)
 
     def _hide_dropdown(self):
         if self._listbox:
             self._listbox.destroy()
             self._listbox = None
+        if self._popup:
+            self._popup.destroy()
+            self._popup = None
 
     def _on_select(self, event):
         if not self._listbox:

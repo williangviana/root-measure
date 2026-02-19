@@ -4,6 +4,123 @@ import customtkinter as ctk
 import tkinter as tk
 
 
+class _AutocompleteEntry(ctk.CTkFrame):
+    """CTkEntry with a dropdown showing previously used values."""
+
+    def __init__(self, master, placeholder_text="", **kw):
+        super().__init__(master, fg_color="transparent")
+        self._history = []  # list of unique past values
+        self._entry = ctk.CTkEntry(self, placeholder_text=placeholder_text, **kw)
+        self._entry.pack(fill="x")
+        self._listbox = None
+        self._entry.bind("<KeyRelease>", self._on_key)
+        self._entry.bind("<FocusIn>", self._on_focus_in)
+        self._entry.bind("<FocusOut>", self._on_focus_out)
+
+    # delegate standard CTkEntry methods
+    def get(self):
+        return self._entry.get()
+
+    def delete(self, first, last=None):
+        return self._entry.delete(first, last)
+
+    def insert(self, index, string):
+        return self._entry.insert(index, string)
+
+    def configure(self, **kw):
+        return self._entry.configure(**kw)
+
+    def cget(self, key):
+        return self._entry.cget(key)
+
+    def commit(self):
+        """Save current value to history (call when user confirms input)."""
+        val = self._entry.get().strip()
+        if val and val not in self._history:
+            self._history.append(val)
+
+    def _get_matches(self):
+        """Return history entries that match the current text."""
+        text = self._entry.get().strip().lower()
+        if not text:
+            return list(self._history)
+        return [h for h in self._history if text in h.lower()]
+
+    def _on_key(self, event):
+        if event.keysym in ('Up', 'Down', 'Return', 'Escape'):
+            if event.keysym == 'Escape':
+                self._hide_dropdown()
+            elif event.keysym == 'Return':
+                self._select_current()
+            elif self._listbox:
+                self._navigate(event.keysym)
+            return
+        matches = self._get_matches()
+        if matches:
+            self._show_dropdown(matches)
+        else:
+            self._hide_dropdown()
+
+    def _on_focus_in(self, event):
+        if self._history:
+            matches = self._get_matches()
+            if matches:
+                self._show_dropdown(matches)
+
+    def _on_focus_out(self, event):
+        # delay so click on listbox can register
+        self._entry.after(150, self._hide_dropdown)
+
+    def _show_dropdown(self, items):
+        if self._listbox:
+            self._listbox.destroy()
+        self._listbox = tk.Listbox(
+            self, height=min(len(items), 6),
+            bg="#2b2b2b", fg="#dcdcdc", selectbackground="#2b5797",
+            selectforeground="white", borderwidth=1, relief="solid",
+            font=("Helvetica", 12), activestyle="none")
+        for item in items:
+            self._listbox.insert(tk.END, item)
+        self._listbox.pack(fill="x", padx=2)
+        self._listbox.bind("<<ListboxSelect>>", self._on_select)
+
+    def _hide_dropdown(self):
+        if self._listbox:
+            self._listbox.destroy()
+            self._listbox = None
+
+    def _on_select(self, event):
+        if not self._listbox:
+            return
+        sel = self._listbox.curselection()
+        if sel:
+            val = self._listbox.get(sel[0])
+            self._entry.delete(0, 'end')
+            self._entry.insert(0, val)
+        self._hide_dropdown()
+        self._entry.focus_set()
+
+    def _select_current(self):
+        if self._listbox and self._listbox.curselection():
+            self._on_select(None)
+        else:
+            self._hide_dropdown()
+
+    def _navigate(self, direction):
+        if not self._listbox:
+            return
+        sel = self._listbox.curselection()
+        if not sel:
+            idx = 0 if direction == 'Down' else self._listbox.size() - 1
+        else:
+            cur = sel[0]
+            idx = cur + (1 if direction == 'Down' else -1)
+            idx = max(0, min(idx, self._listbox.size() - 1))
+        self._listbox.selection_clear(0, tk.END)
+        self._listbox.selection_set(idx)
+        self._listbox.see(idx)
+
+
 class _Tooltip:
     """Hover tooltip for any widget."""
 
@@ -311,7 +428,7 @@ class Sidebar(ctk.CTkScrollableFrame):
                         "Assigned to plates in order (plate 1 = first genotype).\n"
                         "With split plates, list pairs: 'WT, mutant' for each plate.",
                         font=ctk.CTkFont(size=11)).pack(padx=15, anchor="w")
-        self.entry_genotypes = ctk.CTkEntry(
+        self.entry_genotypes = _AutocompleteEntry(
             b, placeholder_text="e.g. WT, crd-1")
         self.entry_genotypes.pack(pady=(2, 4), padx=15, fill="x")
         ctk.CTkLabel(b, text="Comma-separated if multiple",
@@ -324,7 +441,7 @@ class Sidebar(ctk.CTkScrollableFrame):
                         "If empty, 'Control' is used for all plates.",
                         font=ctk.CTkFont(size=11)).pack(
             padx=15, pady=(6, 0), anchor="w")
-        self.entry_condition = ctk.CTkEntry(
+        self.entry_condition = _AutocompleteEntry(
             b, placeholder_text="e.g. Control, PEG")
         self.entry_condition.pack(pady=(2, 4), padx=15, fill="x")
         ctk.CTkLabel(b, text="Comma-separated, maps to plates in order",

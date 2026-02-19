@@ -110,11 +110,11 @@ class _AutocompleteEntry(ctk.CTkFrame):
         if self._popup and self._listbox:
             self._listbox.delete(0, tk.END)
             for item in items:
-                self._listbox.insert(tk.END, item)
+                self._listbox.insert(tk.END, f"  {item}")
             n = min(len(items), 6)
             self._listbox.configure(height=n)
             self._listbox.update_idletasks()
-            h = self._listbox.winfo_reqheight()
+            h = self._listbox.winfo_reqheight() + 6
             x = self._entry.winfo_rootx()
             y = self._entry.winfo_rooty() + self._entry.winfo_height()
             w = self._entry.winfo_width()
@@ -130,18 +130,19 @@ class _AutocompleteEntry(ctk.CTkFrame):
             self._popup, height=n,
             bg="#2b2b2b", fg="#dcdcdc", selectbackground="#2b5797",
             selectforeground="white", borderwidth=1, relief="solid",
-            font=("Helvetica", 13), activestyle="none")
+            font=("Helvetica", 14), activestyle="none",
+            selectborderwidth=0, highlightthickness=0)
         for item in items:
-            self._listbox.insert(tk.END, item)
+            self._listbox.insert(tk.END, f"  {item}")
         self._listbox.pack()
         self._listbox.update_idletasks()
         x = self._entry.winfo_rootx()
         y = self._entry.winfo_rooty() + self._entry.winfo_height()
         w = self._entry.winfo_width()
-        h = self._listbox.winfo_reqheight()
+        h = self._listbox.winfo_reqheight() + 6  # top/bottom breathing room
         self._popup.geometry(f"{w}x{h}+{x}+{y}")
         self._listbox.configure(width=0)
-        self._listbox.pack(fill="both", expand=True)
+        self._listbox.pack(fill="both", expand=True, pady=3)
         self._listbox.bind("<<ListboxSelect>>", self._on_select)
         self._shown_items = list(items)
 
@@ -160,7 +161,7 @@ class _AutocompleteEntry(ctk.CTkFrame):
             return
         sel = self._listbox.curselection()
         if sel:
-            val = self._listbox.get(sel[0])
+            val = self._listbox.get(sel[0]).strip()
             full = self._entry.get()
             if "," in full:
                 prefix = full.rsplit(",", 1)[0] + ", "

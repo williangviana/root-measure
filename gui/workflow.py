@@ -759,7 +759,7 @@ class MeasurementMixin:
 
         # downscale for reference screenshot (keep under ~2 MB)
         h, w = img_bgr.shape[:2]
-        max_dim = 4000
+        max_dim = 8000
         if max(h, w) > max_dim:
             ratio = max_dim / max(h, w)
             new_w, new_h = int(w * ratio), int(h * ratio)
@@ -770,7 +770,7 @@ class MeasurementMixin:
         out_path = traces_dir(folder, exp) / f'{self.image_path.stem}_traces.jpg'
         out_path.parent.mkdir(parents=True, exist_ok=True)
         cv2.imwrite(str(out_path), img_bgr,
-                    [cv2.IMWRITE_JPEG_QUALITY, 85])
+                    [cv2.IMWRITE_JPEG_QUALITY, 95])
         if not silent:
             self.sidebar.set_status(
                 self.sidebar.lbl_status.cget("text") +

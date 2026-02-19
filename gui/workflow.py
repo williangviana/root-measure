@@ -649,8 +649,8 @@ class MeasurementMixin:
             img_bgr = img
         scale = self._scale_val
         font = cv2.FONT_HERSHEY_SIMPLEX
-        font_scale = max(0.4, scale / 1000)
-        font_thick = max(1, int(scale / 500))
+        font_scale = max(0.8, scale / 300)
+        font_thick = max(2, int(scale / 200))
         root_plates = list(self.canvas._root_plates)
         root_groups = list(self.canvas._root_groups)
         trace_to_result = list(self._trace_to_result)

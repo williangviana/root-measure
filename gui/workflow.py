@@ -671,19 +671,25 @@ class MeasurementMixin:
                 bgr = self._hex_to_bgr(shades[0])
                 pts = path[:, [1, 0]].astype(np.int32)
                 cv2.polylines(img_bgr, [pts], False, bgr, thickness=3)
-            # Add number label including dead/touching seedlings
+            # Add number + cm label (vertical) next to trace
             ri = trace_to_result[ti] if ti < len(trace_to_result) else ti
             plate = root_plates[ri] if ri < len(root_plates) else 0
             group = root_groups[ri] if ri < len(root_groups) else 0
             count = sum(1 for j in range(ri + 1)
                         if j < len(root_plates) and j < len(root_groups)
                         and root_plates[j] == plate and root_groups[j] == group)
+            # build label text with cm value
+            res = self._results[ri] if ri < len(self._results) else None
+            cm_val = res.get('length_cm') if res else None
+            if cm_val:
+                label_text = f"{count}  {cm_val:.2f}cm"
+            else:
+                label_text = str(count)
             top_row, top_col = path[0]
-            tx, ty = int(top_col), int(top_row) - 5
-            cv2.putText(img_bgr, str(count), (tx, ty), font, font_scale,
-                        (0, 0, 0), font_thick + 2, cv2.LINE_AA)
-            cv2.putText(img_bgr, str(count), (tx, ty), font, font_scale,
-                        self._hex_to_bgr(shades[0]), font_thick, cv2.LINE_AA)
+            color_bgr = self._hex_to_bgr(shades[0])
+            self._draw_vertical_label(
+                img_bgr, label_text, int(top_col), int(top_row),
+                font, font_scale, font_thick, color_bgr)
 
         # Draw dead/touching seedling markers
         from canvas import GROUP_MARKER_COLORS
@@ -707,12 +713,10 @@ class MeasurementMixin:
                      (cx + cross_size, cy + cross_size), bgr, 2)
             cv2.line(img_bgr, (cx - cross_size, cy + cross_size),
                      (cx + cross_size, cy - cross_size), bgr, 2)
-            # Draw label
-            tx, ty = cx + cross_size + 5, cy - 5
-            cv2.putText(img_bgr, f"{count} {label}", (tx, ty), font, font_scale,
-                        (0, 0, 0), font_thick + 2, cv2.LINE_AA)
-            cv2.putText(img_bgr, f"{count} {label}", (tx, ty), font, font_scale,
-                        bgr, font_thick, cv2.LINE_AA)
+            # Draw label (vertical)
+            self._draw_vertical_label(
+                img_bgr, f"{count} {label}", cx, cy - cross_size,
+                font, font_scale, font_thick, bgr)
 
         # draw scale bar in bottom-right corner
         bar_cm = 1.0
@@ -770,6 +774,41 @@ class MeasurementMixin:
         h = hex_color.lstrip('#')
         r, g, b = int(h[0:2], 16), int(h[2:4], 16), int(h[4:6], 16)
         return (b, g, r)
+
+    @staticmethod
+    def _draw_vertical_label(img, text, x, y, font, font_scale, thickness,
+                             color_bgr):
+        """Draw text rotated 90° CCW (reads bottom-to-top) at (x, y)."""
+        (tw, th), baseline = cv2.getTextSize(text, font, font_scale,
+                                             thickness + 2)
+        pad = 4
+        buf_h = th + baseline + pad * 2
+        buf_w = tw + pad * 2
+        buf = np.zeros((buf_h, buf_w, 3), dtype=np.uint8)
+        # draw outline then colored text on buffer
+        cv2.putText(buf, text, (pad, th + pad), font, font_scale,
+                    (0, 0, 0), thickness + 2, cv2.LINE_AA)
+        cv2.putText(buf, text, (pad, th + pad), font, font_scale,
+                    color_bgr, thickness, cv2.LINE_AA)
+        # rotate 90° CCW — text reads bottom-to-top
+        rotated = cv2.rotate(buf, cv2.ROTATE_90_COUNTERCLOCKWISE)
+        rh, rw = rotated.shape[:2]
+        # place so the bottom-left of rotated aligns with (x, y)
+        x0 = x - rw // 2
+        y0 = y - rh
+        # clip to image bounds
+        ih, iw = img.shape[:2]
+        sx = max(0, -x0)
+        sy = max(0, -y0)
+        dx = max(0, x0)
+        dy = max(0, y0)
+        cw = min(rw - sx, iw - dx)
+        ch = min(rh - sy, ih - dy)
+        if cw <= 0 or ch <= 0:
+            return
+        roi = rotated[sy:sy + ch, sx:sx + cw]
+        mask = np.any(roi > 0, axis=2)
+        img[dy:dy + ch, dx:dx + cw][mask] = roi[mask]
 
     def show_review(self):
         """Re-enter review mode from the sidebar button."""

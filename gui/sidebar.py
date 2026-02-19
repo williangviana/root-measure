@@ -15,6 +15,7 @@ class _AutocompleteEntry(ctk.CTkFrame):
         self._listbox = None
         self._popup = None
         self._dismiss_id = None  # pending after() id for delayed hide
+        self._shown_items = []   # items currently in the dropdown
         # bind to the actual tk.Entry inside CTkEntry
         inner = self._entry._entry
         inner.bind("<KeyRelease>", self._on_key)
@@ -81,6 +82,11 @@ class _AutocompleteEntry(ctk.CTkFrame):
 
     def _on_click(self, event):
         """Show dropdown when clicking into the entry."""
+        # short delay so widget geometry and focus are settled
+        self._entry.after(50, self._try_show)
+
+    def _try_show(self):
+        """Show dropdown if history exists and popup isn't already open."""
         if self._history and not self._popup:
             matches = self._get_matches()
             if matches:
@@ -97,6 +103,24 @@ class _AutocompleteEntry(ctk.CTkFrame):
         self._dismiss_id = self._entry.after(200, self._hide_dropdown)
 
     def _show_dropdown(self, items):
+        # skip if already showing the same items
+        if self._popup and self._shown_items == items:
+            return
+        # update listbox in-place if popup exists but items changed
+        if self._popup and self._listbox:
+            self._listbox.delete(0, tk.END)
+            for item in items:
+                self._listbox.insert(tk.END, item)
+            n = min(len(items), 6)
+            self._listbox.configure(height=n)
+            self._listbox.update_idletasks()
+            h = self._listbox.winfo_reqheight()
+            x = self._entry.winfo_rootx()
+            y = self._entry.winfo_rooty() + self._entry.winfo_height()
+            w = self._entry.winfo_width()
+            self._popup.geometry(f"{w}x{h}+{x}+{y}")
+            self._shown_items = list(items)
+            return
         self._hide_dropdown()
         # floating toplevel so it doesn't push content down
         self._popup = tk.Toplevel(self)
@@ -119,9 +143,11 @@ class _AutocompleteEntry(ctk.CTkFrame):
         self._listbox.configure(width=0)
         self._listbox.pack(fill="both", expand=True)
         self._listbox.bind("<<ListboxSelect>>", self._on_select)
+        self._shown_items = list(items)
 
     def _hide_dropdown(self):
         self._dismiss_id = None
+        self._shown_items = []
         if self._listbox:
             self._listbox.destroy()
             self._listbox = None

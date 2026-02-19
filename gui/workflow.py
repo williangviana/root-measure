@@ -681,9 +681,11 @@ class MeasurementMixin:
             # number label at top of trace
             top_row, top_col = path[0]
             color_bgr = self._hex_to_bgr(shades[0])
+            num_font_scale = font_scale * 1.8
+            num_font_thick = max(1, int(font_thick * 1.5))
             self._draw_vertical_label(
                 img_bgr, str(count), int(top_col), int(top_row),
-                font, font_scale, font_thick, color_bgr)
+                font, num_font_scale, num_font_thick, color_bgr)
             # cm label at bottom of trace (bigger font)
             res = self._results[ri] if ri < len(self._results) else None
             cm_val = res.get('length_cm') if res else None

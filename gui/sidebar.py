@@ -274,6 +274,20 @@ class Sidebar(ctk.CTkScrollableFrame):
         # Bind click on slider to disable auto mode
         self.slider_thresh.bind("<Button-1>", self._on_slider_click)
 
+        # Row 5: Manual root endpoints
+        self.var_manual_endpoints = ctk.BooleanVar(value=False)
+        self.chk_manual_endpoints = ctk.CTkCheckBox(
+            b, text="Manual root endpoints",
+            variable=self.var_manual_endpoints,
+            font=ctk.CTkFont(size=12))
+        _label_with_tip(b, "Click mode:",
+                        "Manual root endpoints: click both top AND bottom\n"
+                        "of each root instead of auto-detecting the tip.\n"
+                        "If unchecked, only click the top — tip is auto-detected.",
+                        font=ctk.CTkFont(size=11)).pack(padx=15, anchor="w",
+                                                         pady=(4, 0))
+        self.chk_manual_endpoints.pack(padx=25, anchor="w", pady=(2, 0))
+
         self.btn_next_settings = ctk.CTkButton(
             b, text="Next", fg_color="#2b5797",
             command=lambda: app._on_next_settings())
@@ -513,6 +527,10 @@ class Sidebar(ctk.CTkScrollableFrame):
             self.btn_toggle_traces.configure(text="Hide Traces", fg_color="#2b5797")
         else:
             self.btn_toggle_traces.configure(text="Show Traces", fg_color="#2b5797")
+
+    def is_manual_endpoints(self):
+        """Return True if manual root endpoints mode is active."""
+        return self.var_manual_endpoints.get()
 
     def is_split_plate(self):
         """Return True if genotypes per plate > 1."""

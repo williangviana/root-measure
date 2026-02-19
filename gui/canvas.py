@@ -85,6 +85,12 @@ class ImageCanvas(ctk.CTkFrame):
         self._all_marks = {}       # {root_index: [(row,col), ...]} all collected marks
         self._marks_display_numbers = []  # display number per mark-group (root position)
 
+        # manual endpoints state (per-root top+bottom clicking)
+        self._root_bottoms = {}    # {root_index: (row, col)} bottom click per root
+        self._click_seq_pos = 0    # position in click sequence: 0=top, 1..N-2=marks, N-1=bottom
+        self._clicks_per_root = 1  # 1=auto mode (top only), 2+=manual (top+marks+bottom)
+        self._manual_endpoints = False  # True when manual endpoints mode is active
+
         # trace overlay state
         self._traces = []          # list of (path_array, color_str)
         self._trace_to_result = []  # maps trace index → root index
@@ -181,6 +187,8 @@ class ImageCanvas(ctk.CTkFrame):
         self._root_plates.clear()
         self._root_marker_ids.clear()
         self._pending_flag = None
+        self._root_bottoms.clear()
+        self._click_seq_pos = 0
 
     def clear_marks(self):
         for rid in self._mark_marker_ids:
@@ -208,6 +216,14 @@ class ImageCanvas(ctk.CTkFrame):
         """Restore marks from saved state."""
         self._all_marks = {int(k): [tuple(m) for m in v]
                            for k, v in all_marks.items()}
+
+    def get_root_bottoms(self):
+        """Return dict of root_index -> (row, col) bottom points."""
+        return dict(self._root_bottoms)
+
+    def set_root_bottoms(self, bottoms):
+        """Restore root bottoms from saved state."""
+        self._root_bottoms = {int(k): tuple(v) for k, v in bottoms.items()}
 
     def clear_traces(self):
         self._traces.clear()
@@ -499,6 +515,33 @@ class ImageCanvas(ctk.CTkFrame):
                         font=("Helvetica", 9, "bold"))
                     self._root_marker_ids.extend([rid, tid])
 
+        # bottom dots and connecting lines (manual endpoints mode)
+        if not hide_markers and self._manual_endpoints and self._root_bottoms:
+            bot_r = 3 if is_view else 4
+            _clicking = self._mode in (self.MODE_CLICK_ROOTS,
+                                        self.MODE_CLICK_MARKS)
+            _active_pl = getattr(self, '_current_plate_idx', None)
+            for ri, (brow, bcol) in self._root_bottoms.items():
+                if ri >= len(self._root_points):
+                    continue
+                group = self._root_groups[ri] if ri < len(self._root_groups) else 0
+                plate = self._root_plates[ri] if ri < len(self._root_plates) else 0
+                if _clicking and _active_pl is not None \
+                        and plate != _active_pl:
+                    continue
+                marker_color = GROUP_MARKER_COLORS[group % len(GROUP_MARKER_COLORS)]
+                trow, tcol = self._root_points[ri]
+                tcx, tcy = self.image_to_canvas(tcol, trow)
+                bcx, bcy = self.image_to_canvas(bcol, brow)
+                # dashed line from top to bottom
+                self.canvas.create_line(
+                    tcx, tcy, bcx, bcy,
+                    fill=marker_color, width=1, dash=(4, 4))
+                # bottom dot
+                self.canvas.create_oval(
+                    bcx - bot_r, bcy - bot_r, bcx + bot_r, bcy + bot_r,
+                    outline="white", fill=marker_color, width=1)
+
         # mark circles (hide in review mode or when measurement done)
         self._mark_marker_ids.clear()
         if self._mode not in (self.MODE_REVIEW,) and not self._measurement_done:
@@ -788,7 +831,8 @@ class ImageCanvas(ctk.CTkFrame):
                 ("Right-click", "Undo last plate"),
             ],
             self.MODE_CLICK_ROOTS: [
-                ("Click", "Place root top"),
+                ("Click", "Place root top / mark / bottom"
+                          if self._manual_endpoints else "Place root top"),
                 ("D + Click", "Mark as dead"),
                 ("T + Click", "Mark as touching"),
                 ("Enter", "Next genotype / plate"),
@@ -1043,12 +1087,42 @@ class ImageCanvas(ctk.CTkFrame):
         sx, sy = click_pos
         if self._mode == self.MODE_CLICK_ROOTS:
             col, row = self.canvas_to_image(sx, sy)
-            flag = self._pending_flag
-            self._pending_flag = None
-            self._root_points.append((row, col))
-            self._root_flags.append(flag)
-            self._root_groups.append(getattr(self, '_current_root_group', 0))
-            self._root_plates.append(getattr(self, '_current_plate_idx', 0))
+            if not self._manual_endpoints:
+                # Auto-detect mode: each click is a root top
+                flag = self._pending_flag
+                self._pending_flag = None
+                self._root_points.append((row, col))
+                self._root_flags.append(flag)
+                self._root_groups.append(getattr(self, '_current_root_group', 0))
+                self._root_plates.append(getattr(self, '_current_plate_idx', 0))
+            else:
+                # Manual endpoints: cycle through top / marks / bottom per root
+                cpr = self._clicks_per_root
+                if self._click_seq_pos == 0:
+                    # TOP click for a new root
+                    flag = self._pending_flag
+                    self._pending_flag = None
+                    self._root_points.append((row, col))
+                    self._root_flags.append(flag)
+                    self._root_groups.append(getattr(self, '_current_root_group', 0))
+                    self._root_plates.append(getattr(self, '_current_plate_idx', 0))
+                    if flag is not None:
+                        # Dead/touching: skip remaining clicks for this root
+                        pass
+                    else:
+                        self._click_seq_pos = 1
+                elif self._click_seq_pos < cpr - 1:
+                    # MARK click (intermediate)
+                    root_idx = len(self._root_points) - 1
+                    if root_idx not in self._all_marks:
+                        self._all_marks[root_idx] = []
+                    self._all_marks[root_idx].append((row, col))
+                    self._click_seq_pos += 1
+                else:
+                    # BOTTOM click (last in sequence)
+                    root_idx = len(self._root_points) - 1
+                    self._root_bottoms[root_idx] = (row, col)
+                    self._click_seq_pos = 0
             self._redraw()
             if self._on_click_callback:
                 self._on_click_callback()
@@ -1225,14 +1299,53 @@ class ImageCanvas(ctk.CTkFrame):
                 return True
             return False
         elif self._mode == self.MODE_CLICK_ROOTS and self._root_points:
-            # only undo clicks from current group (matches CLI behavior)
             current_group = getattr(self, '_current_root_group', 0)
-            if self._root_groups and self._root_groups[-1] != current_group:
-                return False
-            self._root_points.pop()
-            self._root_flags.pop()
-            self._root_groups.pop()
-            self._root_plates.pop()
+            if not self._manual_endpoints:
+                # Auto mode: undo last root top click
+                if self._root_groups and self._root_groups[-1] != current_group:
+                    return False
+                self._root_points.pop()
+                self._root_flags.pop()
+                self._root_groups.pop()
+                self._root_plates.pop()
+            else:
+                # Manual endpoints: undo depends on position in sequence
+                if self._click_seq_pos == 0:
+                    # Completed root or flagged root — step back
+                    if self._root_groups[-1] != current_group:
+                        return False
+                    root_idx = len(self._root_points) - 1
+                    if self._root_flags[-1] is not None:
+                        # Previous root was flagged (only had top) — remove it
+                        self._root_points.pop()
+                        self._root_flags.pop()
+                        self._root_groups.pop()
+                        self._root_plates.pop()
+                    elif root_idx in self._root_bottoms:
+                        # Undo bottom click
+                        del self._root_bottoms[root_idx]
+                        self._click_seq_pos = self._clicks_per_root - 1
+                    else:
+                        # Root only had top (shouldn't happen if seq completed)
+                        self._root_points.pop()
+                        self._root_flags.pop()
+                        self._root_groups.pop()
+                        self._root_plates.pop()
+                elif self._click_seq_pos == 1:
+                    # Undo top click of current root
+                    self._root_points.pop()
+                    self._root_flags.pop()
+                    self._root_groups.pop()
+                    self._root_plates.pop()
+                    self._click_seq_pos = 0
+                else:
+                    # Undo a mark click
+                    root_idx = len(self._root_points) - 1
+                    if root_idx in self._all_marks and self._all_marks[root_idx]:
+                        self._all_marks[root_idx].pop()
+                        if not self._all_marks[root_idx]:
+                            del self._all_marks[root_idx]
+                    self._click_seq_pos -= 1
             self._redraw()
             if self._on_click_callback:
                 self._on_click_callback()

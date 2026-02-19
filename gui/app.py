@@ -279,6 +279,8 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
                         canvas_data.get('root_plates', []))
                 if canvas_data.get('all_marks'):
                     self.canvas.set_marks(canvas_data['all_marks'])
+                if canvas_data.get('root_bottoms'):
+                    self.canvas.set_root_bottoms(canvas_data['root_bottoms'])
                 if canvas_data.get('traces'):
                     self.canvas.set_traces(
                         canvas_data['traces'],
@@ -298,6 +300,12 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
                     self._current_group = cs.get('current_group', 0)
                     self._split_stage = cs.get('split_stage', 0)
                     self.canvas._current_root_group = self._current_group
+                    # restore manual endpoints click state
+                    self.canvas._click_seq_pos = cs.get('click_seq_pos', 0)
+                    manual = self.sidebar.is_manual_endpoints()
+                    self.canvas._manual_endpoints = manual
+                    num_marks = self._get_num_marks()
+                    self.canvas._clicks_per_root = (2 + num_marks) if manual else 1
                     # restore in-progress mark points
                     mark_pts = canvas_data.get('mark_points', [])
                     if mark_pts:
@@ -464,6 +472,9 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
                     if ps.get('multi_measurement'):
                         self.sidebar.var_multi.set(True)
                         self.sidebar._toggle_segments()
+
+                    self.sidebar.var_manual_endpoints.set(
+                        ps.get('manual_endpoints', False))
 
             dpi_src = "detected" if detected else "default"
             self.sidebar.set_status(
@@ -709,6 +720,7 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
                 'split_plate': self.sidebar.is_split_plate(),
                 'genotypes_per_plate': self.sidebar.get_genotypes_per_plate(),
                 'num_plates': num_plates,
+                'manual_endpoints': self.sidebar.is_manual_endpoints(),
             }, exp)
         self.sidebar.advance_to_workflow()
         self.select_plates()
@@ -732,6 +744,8 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
                 cd.get('root_plates', []))
         if cd.get('all_marks'):
             self.canvas.set_marks(cd['all_marks'])
+        if cd.get('root_bottoms'):
+            self.canvas.set_root_bottoms(cd['root_bottoms'])
         if cd.get('traces'):
             self.canvas.set_traces(
                 cd['traces'], cd.get('trace_to_result'))
@@ -850,7 +864,26 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
 
     def _on_root_clicked(self):
         """Callback when a root is clicked (button already visible)."""
-        pass
+        if not self.canvas._manual_endpoints:
+            return
+        # Update status to show what to click next
+        canvas = self.canvas
+        cpr = canvas._clicks_per_root
+        seq = canvas._click_seq_pos
+        n_roots = len(canvas._root_points)
+        plates = canvas.get_plates()
+        pi = self._current_plate_idx
+        if seq == 0:
+            # About to start a new root
+            hint = f"ROOT {n_roots + 1} — click TOP"
+        elif cpr == 2:
+            hint = f"ROOT {n_roots} — click BOTTOM"
+        elif seq < cpr - 1:
+            hint = f"ROOT {n_roots} — click MARK {seq}"
+        else:
+            hint = f"ROOT {n_roots} — click BOTTOM"
+        self.sidebar.set_status(
+            f"Plate {pi + 1}/{len(plates)}\n{hint}")
 
     def _plates_done(self):
         """Called when user presses Enter after selecting plates."""
@@ -921,6 +954,14 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
         self.canvas._current_plate_idx = self._current_plate_idx
         self._set_plate_info(pi)
         self.canvas._on_click_callback = self._on_root_clicked
+
+        # set up manual endpoints state
+        manual = self.sidebar.is_manual_endpoints()
+        num_marks = self._get_num_marks()
+        self.canvas._manual_endpoints = manual
+        self.canvas._clicks_per_root = (2 + num_marks) if manual else 1
+        self.canvas._click_seq_pos = 0
+
         self.canvas.set_mode(
             ImageCanvas.MODE_CLICK_ROOTS,
             on_done=self._plate_roots_done)
@@ -932,15 +973,27 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
             cond = conditions[pi] if pi < len(conditions) else conditions[-1]
             label_parts.append(cond)
         label = " / ".join(label_parts)
-        self.sidebar.set_status(
-            f"Plate {pi + 1}/{len(plates)} — {label}\n"
-            "Click root tops. D+Click=dead, T+Click=touching.")
-        self.lbl_bottom.configure(
-            text="Click=root top  |  D+Click=dead  |  T+Click=touching  |  Right-click=undo  |  Scroll=zoom")
+        if manual:
+            click_hint = "Click root TOP then BOTTOM for each root."
+            if num_marks > 0:
+                click_hint = f"Click root TOP, {num_marks} mark(s), then BOTTOM."
+            self.sidebar.set_status(
+                f"Plate {pi + 1}/{len(plates)} — {label}\n"
+                f"{click_hint} D+Click=dead, T+Click=touching.")
+            self.lbl_bottom.configure(
+                text="Click=root endpoint  |  D+Click=dead  |  T+Click=touching  |  Right-click=undo  |  Scroll=zoom")
+        else:
+            self.sidebar.set_status(
+                f"Plate {pi + 1}/{len(plates)} — {label}\n"
+                "Click root tops. D+Click=dead, T+Click=touching.")
+            self.lbl_bottom.configure(
+                text="Click=root top  |  D+Click=dead  |  T+Click=touching  |  Right-click=undo  |  Scroll=zoom")
         # Determine button text based on what's next
         is_last = (pi == len(plates) - 1) and (not self._split or self._split_stage == 1)
-        num_marks = self._get_num_marks()
-        if num_marks > 0:
+        if manual:
+            # No separate marks phase in manual mode
+            btn_text = "Start Trace" if is_last else "Next Plate"
+        elif num_marks > 0:
             btn_text = "Click 1st Segments"
         elif is_last:
             btn_text = "Start Trace"
@@ -953,10 +1006,12 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
     def _plate_roots_done(self):
         """Called when user presses Enter after clicking roots on a plate."""
         self._auto_save()
-        num_marks = self._get_num_marks()
-        if num_marks > 0:
-            self._start_marks_phase()
-            return
+        # In manual endpoints mode, marks are collected during click_roots
+        if not self.sidebar.is_manual_endpoints():
+            num_marks = self._get_num_marks()
+            if num_marks > 0:
+                self._start_marks_phase()
+                return
         self._advance_to_next_stage()
 
     def _advance_to_next_stage(self):

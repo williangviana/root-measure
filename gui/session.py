@@ -241,6 +241,7 @@ def save_session(session_path, app):
             'split': getattr(app, '_split', False),
             'current_group': getattr(app, '_current_group', 0),
             'split_stage': getattr(app, '_split_stage', 0),
+            'click_seq_pos': getattr(app.canvas, '_click_seq_pos', 0),
         },
     }
 
@@ -280,6 +281,7 @@ def _collect_settings(sidebar):
         'genotypes': sidebar.entry_genotypes.get().strip(),
         'conditions': sidebar.entry_condition.get().strip(),
         'plot': sidebar.var_plot.get(),
+        'manual_endpoints': sidebar.var_manual_endpoints.get(),
     }
 
 
@@ -306,6 +308,7 @@ def _collect_canvas(canvas):
         'root_plates': list(canvas._root_plates),
         'all_marks': all_marks,
         'mark_points': [list(p) for p in canvas._mark_points],
+        'root_bottoms': {str(k): list(v) for k, v in canvas._root_bottoms.items()},
         'traces': traces,
         'trace_to_result': list(canvas._trace_to_result),
     }
@@ -357,3 +360,4 @@ def restore_settings(sidebar, settings):
     sidebar.entry_condition.delete(0, 'end')
     sidebar.entry_condition.insert(0, settings.get('conditions', ''))
     sidebar.var_plot.set(settings.get('plot', True))
+    sidebar.var_manual_endpoints.set(settings.get('manual_endpoints', False))

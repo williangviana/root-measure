@@ -179,8 +179,14 @@ class MeasurementMixin:
             pb = plates[pi] if pi < len(plates) else None
             pg = self._plate_graphs.get(pi)
 
-            tip = find_root_tip(self._binary, top, scale=self._scale_val,
-                                plate_bounds=pb, plate_graph=pg)
+            manual_bottoms = self.canvas.get_root_bottoms()
+            if i in manual_bottoms:
+                # Manual endpoints mode: use user-provided bottom
+                tip = manual_bottoms[i]
+            else:
+                # Auto-detect mode: find tip automatically
+                tip = find_root_tip(self._binary, top, scale=self._scale_val,
+                                    plate_bounds=pb, plate_graph=pg)
             if tip is None:
                 res = dict(length_cm=0, length_px=0,
                            path=np.empty((0, 2)),

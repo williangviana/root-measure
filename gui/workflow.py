@@ -678,18 +678,23 @@ class MeasurementMixin:
             count = sum(1 for j in range(ri + 1)
                         if j < len(root_plates) and j < len(root_groups)
                         and root_plates[j] == plate and root_groups[j] == group)
-            # build label text with cm value
-            res = self._results[ri] if ri < len(self._results) else None
-            cm_val = res.get('length_cm') if res else None
-            if cm_val:
-                label_text = f"{count}  {cm_val:.2f}cm"
-            else:
-                label_text = str(count)
+            # number label at top of trace
             top_row, top_col = path[0]
             color_bgr = self._hex_to_bgr(shades[0])
             self._draw_vertical_label(
-                img_bgr, label_text, int(top_col), int(top_row),
+                img_bgr, str(count), int(top_col), int(top_row),
                 font, font_scale, font_thick, color_bgr)
+            # cm label at bottom of trace (bigger font)
+            res = self._results[ri] if ri < len(self._results) else None
+            cm_val = res.get('length_cm') if res else None
+            if cm_val:
+                bot_row, bot_col = path[-1]
+                cm_font_scale = font_scale * 1.8
+                cm_font_thick = max(1, int(font_thick * 1.5))
+                self._draw_vertical_label(
+                    img_bgr, f"{cm_val:.2f}cm", int(bot_col), int(bot_row),
+                    font, cm_font_scale, cm_font_thick, color_bgr,
+                    anchor="top")
 
         # Draw dead/touching seedling markers
         from canvas import GROUP_MARKER_COLORS
@@ -777,8 +782,12 @@ class MeasurementMixin:
 
     @staticmethod
     def _draw_vertical_label(img, text, x, y, font, font_scale, thickness,
-                             color_bgr):
-        """Draw text rotated 90° CCW (reads bottom-to-top) at (x, y)."""
+                             color_bgr, anchor="bottom"):
+        """Draw text rotated 90° CCW (reads bottom-to-top) at (x, y).
+
+        anchor="bottom": label sits above (x, y) — bottom of label at y.
+        anchor="top": label sits below (x, y) — top of label at y.
+        """
         (tw, th), baseline = cv2.getTextSize(text, font, font_scale,
                                              thickness + 2)
         pad = 4
@@ -793,9 +802,11 @@ class MeasurementMixin:
         # rotate 90° CCW — text reads bottom-to-top
         rotated = cv2.rotate(buf, cv2.ROTATE_90_COUNTERCLOCKWISE)
         rh, rw = rotated.shape[:2]
-        # place so the bottom-left of rotated aligns with (x, y)
         x0 = x - rw // 2
-        y0 = y - rh
+        if anchor == "top":
+            y0 = y  # label starts at y, extends downward
+        else:
+            y0 = y - rh  # label ends at y, extends upward
         # clip to image bounds
         ih, iw = img.shape[:2]
         sx = max(0, -x0)

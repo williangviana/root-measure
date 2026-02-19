@@ -116,32 +116,38 @@ class _AutocompleteEntry(ctk.CTkFrame):
             n = min(len(items), 6)
             self._listbox.configure(height=n)
             self._listbox.update_idletasks()
-            x = self._entry.winfo_rootx()
-            y = self._entry.winfo_rooty() + self._entry.winfo_height()
-            w = self._entry.winfo_width()
-            h = self._listbox.winfo_reqheight()
+            inner = self._entry._entry
+            x = inner.winfo_rootx()
+            y = inner.winfo_rooty() + inner.winfo_height()
+            w = inner.winfo_width()
+            h = self._listbox.winfo_reqheight() + 6
             self._popup.geometry(f"{w}x{h}+{x}+{y}")
             self._shown_items = list(items)
             return
         self._hide_dropdown()
         self._popup = tk.Toplevel(self)
         self._popup.wm_overrideredirect(True)
-        self._popup.configure(bg="#2b2b2b")
+        self._popup.configure(bg="#3a3a3a")
+        # outer frame for a thin border
+        border = tk.Frame(self._popup, bg="#555555", padx=1, pady=1)
+        border.pack(fill="both", expand=True)
         n = min(len(items), 6)
         self._listbox = tk.Listbox(
-            self._popup, height=n,
-            bg="#2b2b2b", fg="#dcdcdc", selectbackground="#2b5797",
+            border, height=n,
+            bg="#333333", fg="#dcdcdc", selectbackground="#2b5797",
             selectforeground="white", borderwidth=0, relief="flat",
-            font=("Helvetica", 14), activestyle="none",
+            font=("Helvetica", 12), activestyle="none",
             selectborderwidth=0, highlightthickness=0)
         for item in items:
             self._listbox.insert(tk.END, f"  {item}")
-        self._listbox.pack(fill="both", expand=True)
+        self._listbox.pack(fill="both", expand=True, padx=1, pady=2)
         self._listbox.update_idletasks()
-        x = self._entry.winfo_rootx()
-        y = self._entry.winfo_rooty() + self._entry.winfo_height()
-        w = self._entry.winfo_width()
-        h = self._listbox.winfo_reqheight()
+        # align with the inner tk.Entry inside CTkEntry
+        inner = self._entry._entry
+        x = inner.winfo_rootx()
+        y = inner.winfo_rooty() + inner.winfo_height()
+        w = inner.winfo_width()
+        h = self._listbox.winfo_reqheight() + 6  # border + padding
         self._popup.geometry(f"{w}x{h}+{x}+{y}")
         self._listbox.configure(width=0)
         self._listbox.bind("<<ListboxSelect>>", self._on_select)

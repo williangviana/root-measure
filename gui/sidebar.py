@@ -274,19 +274,20 @@ class Sidebar(ctk.CTkScrollableFrame):
         # Bind click on slider to disable auto mode
         self.slider_thresh.bind("<Button-1>", self._on_slider_click)
 
-        # Row 5: Manual root endpoints
-        self.var_manual_endpoints = ctk.BooleanVar(value=False)
-        self.chk_manual_endpoints = ctk.CTkCheckBox(
-            b, text="Manual root endpoints",
+        # Row 5: Auto-detect root tip
+        self.var_manual_endpoints = ctk.BooleanVar(value=True)
+        self.chk_auto_tip = ctk.CTkCheckBox(
+            b, text="Auto-detect root tip",
             variable=self.var_manual_endpoints,
+            onvalue=False, offvalue=True,
             font=ctk.CTkFont(size=12))
         _label_with_tip(b, "Click mode:",
-                        "Manual root endpoints: click both top AND bottom\n"
-                        "of each root instead of auto-detecting the tip.\n"
-                        "If unchecked, only click the top — tip is auto-detected.",
+                        "By default you click both top and bottom of each root.\n"
+                        "Check this to only click the top — the tip is found\n"
+                        "automatically (less accurate, may need retrace).",
                         font=ctk.CTkFont(size=11)).pack(padx=15, anchor="w",
                                                          pady=(4, 0))
-        self.chk_manual_endpoints.pack(padx=25, anchor="w", pady=(2, 0))
+        self.chk_auto_tip.pack(padx=25, anchor="w", pady=(2, 0))
 
         self.btn_next_settings = ctk.CTkButton(
             b, text="Next", fg_color="#2b5797",

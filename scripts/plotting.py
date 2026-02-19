@@ -68,14 +68,22 @@ def _compact_letter_display(group_names, pairwise_pvalues, alpha=0.05):
                         new_groups.append(gb)
                 else:
                     new_groups.append(lg)
-            letter_groups = new_groups
+            # deduplicate after each split to prevent exponential growth
+            seen = set()
+            deduped = []
+            for lg in new_groups:
+                key = frozenset(lg)
+                if key not in seen:
+                    seen.add(key)
+                    deduped.append(lg)
+            letter_groups = deduped
 
     # absorb: remove groups that are subsets of other groups
     cleaned = []
     for lg in letter_groups:
         if not any(lg < other for other in letter_groups if other is not lg):
             cleaned.append(lg)
-    # deduplicate
+    # final deduplicate
     unique = []
     seen = set()
     for lg in cleaned:

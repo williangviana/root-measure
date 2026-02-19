@@ -31,6 +31,8 @@ class _AutocompleteEntry(ctk.CTkFrame):
         return self._entry.configure(**kw)
 
     def cget(self, key):
+        if not hasattr(self, '_entry'):
+            return super().cget(key)
         return self._entry.cget(key)
 
     def commit(self):

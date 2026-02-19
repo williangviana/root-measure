@@ -46,12 +46,19 @@ class _AutocompleteEntry(ctk.CTkFrame):
             if item and item not in self._history:
                 self._history.append(item)
 
+    def _current_token(self):
+        """Return the text after the last comma (the part being typed)."""
+        full = self._entry.get()
+        if "," in full:
+            return full.rsplit(",", 1)[1].strip().lower()
+        return full.strip().lower()
+
     def _get_matches(self):
-        """Return history entries that match the current text."""
-        text = self._entry.get().strip().lower()
-        if not text:
+        """Return history entries matching text after the last comma."""
+        token = self._current_token()
+        if not token:
             return list(self._history)
-        return [h for h in self._history if text in h.lower()]
+        return [h for h in self._history if token in h.lower()]
 
     def _on_key(self, event):
         if event.keysym in ('Up', 'Down', 'Return', 'Escape'):
@@ -83,19 +90,22 @@ class _AutocompleteEntry(ctk.CTkFrame):
         # floating toplevel so it doesn't push content down
         self._popup = tk.Toplevel(self)
         self._popup.wm_overrideredirect(True)
+        n = min(len(items), 6)
+        self._listbox = tk.Listbox(
+            self._popup, height=n,
+            bg="#2b2b2b", fg="#dcdcdc", selectbackground="#2b5797",
+            selectforeground="white", borderwidth=1, relief="solid",
+            font=("Helvetica", 13), activestyle="none")
+        for item in items:
+            self._listbox.insert(tk.END, item)
+        self._listbox.pack()
+        self._listbox.update_idletasks()
         x = self._entry.winfo_rootx()
         y = self._entry.winfo_rooty() + self._entry.winfo_height()
         w = self._entry.winfo_width()
-        row_h = 22
-        h = min(len(items), 6) * row_h
+        h = self._listbox.winfo_reqheight()
         self._popup.geometry(f"{w}x{h}+{x}+{y}")
-        self._listbox = tk.Listbox(
-            self._popup, height=min(len(items), 6),
-            bg="#2b2b2b", fg="#dcdcdc", selectbackground="#2b5797",
-            selectforeground="white", borderwidth=1, relief="solid",
-            font=("Helvetica", 12), activestyle="none")
-        for item in items:
-            self._listbox.insert(tk.END, item)
+        self._listbox.configure(width=0)
         self._listbox.pack(fill="both", expand=True)
         self._listbox.bind("<<ListboxSelect>>", self._on_select)
 
@@ -113,8 +123,14 @@ class _AutocompleteEntry(ctk.CTkFrame):
         sel = self._listbox.curselection()
         if sel:
             val = self._listbox.get(sel[0])
+            full = self._entry.get()
+            if "," in full:
+                # keep everything before the last comma, append selection
+                prefix = full.rsplit(",", 1)[0] + ", "
+            else:
+                prefix = ""
             self._entry.delete(0, 'end')
-            self._entry.insert(0, val)
+            self._entry.insert(0, prefix + val)
         self._hide_dropdown()
         self._entry.focus_set()
 

@@ -18,10 +18,10 @@ class _AutocompleteEntry(ctk.CTkFrame):
         self._shown_items = []   # items currently in the dropdown
         # bind to the actual tk.Entry inside CTkEntry
         inner = self._entry._entry
-        inner.bind("<KeyRelease>", self._on_key)
-        inner.bind("<FocusIn>", self._on_focus_in)
-        inner.bind("<FocusOut>", self._on_focus_out)
-        inner.bind("<ButtonPress-1>", self._on_click)
+        inner.bind("<KeyRelease>", self._on_key, add="+")
+        inner.bind("<FocusIn>", self._on_focus_in, add="+")
+        inner.bind("<FocusOut>", self._on_focus_out, add="+")
+        inner.bind("<ButtonPress-1>", self._on_click, add="+")
 
     # delegate standard CTkEntry methods
     def get(self):

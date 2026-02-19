@@ -82,24 +82,26 @@ class _AutocompleteEntry(ctk.CTkFrame):
 
     def _on_click(self, event):
         """Show dropdown when clicking into the entry."""
-        # short delay so widget geometry and focus are settled
         self._entry.after(50, self._try_show)
 
     def _try_show(self):
-        """Show dropdown if history exists and popup isn't already open."""
-        if self._history and not self._popup:
-            matches = self._get_matches()
-            if matches:
-                self._show_dropdown(matches)
+        """Show dropdown if history exists."""
+        if not self._history:
+            return
+        # cancel any pending dismiss first
+        if self._dismiss_id:
+            self._entry.after_cancel(self._dismiss_id)
+            self._dismiss_id = None
+        matches = self._get_matches()
+        if matches:
+            self._show_dropdown(matches)
 
     def _on_focus_in(self, event):
-        # cancel any pending dismiss
         if self._dismiss_id:
             self._entry.after_cancel(self._dismiss_id)
             self._dismiss_id = None
 
     def _on_focus_out(self, event):
-        # delay hide so click on listbox can register
         self._dismiss_id = self._entry.after(200, self._hide_dropdown)
 
     def _show_dropdown(self, items):
@@ -114,35 +116,34 @@ class _AutocompleteEntry(ctk.CTkFrame):
             n = min(len(items), 6)
             self._listbox.configure(height=n)
             self._listbox.update_idletasks()
-            h = self._listbox.winfo_reqheight() + 6
             x = self._entry.winfo_rootx()
             y = self._entry.winfo_rooty() + self._entry.winfo_height()
             w = self._entry.winfo_width()
+            h = self._listbox.winfo_reqheight()
             self._popup.geometry(f"{w}x{h}+{x}+{y}")
             self._shown_items = list(items)
             return
         self._hide_dropdown()
-        # floating toplevel so it doesn't push content down
         self._popup = tk.Toplevel(self)
         self._popup.wm_overrideredirect(True)
+        self._popup.configure(bg="#2b2b2b")
         n = min(len(items), 6)
         self._listbox = tk.Listbox(
             self._popup, height=n,
             bg="#2b2b2b", fg="#dcdcdc", selectbackground="#2b5797",
-            selectforeground="white", borderwidth=1, relief="solid",
+            selectforeground="white", borderwidth=0, relief="flat",
             font=("Helvetica", 14), activestyle="none",
             selectborderwidth=0, highlightthickness=0)
         for item in items:
             self._listbox.insert(tk.END, f"  {item}")
-        self._listbox.pack()
+        self._listbox.pack(fill="both", expand=True)
         self._listbox.update_idletasks()
         x = self._entry.winfo_rootx()
         y = self._entry.winfo_rooty() + self._entry.winfo_height()
         w = self._entry.winfo_width()
-        h = self._listbox.winfo_reqheight() + 6  # top/bottom breathing room
+        h = self._listbox.winfo_reqheight()
         self._popup.geometry(f"{w}x{h}+{x}+{y}")
         self._listbox.configure(width=0)
-        self._listbox.pack(fill="both", expand=True, pady=3)
         self._listbox.bind("<<ListboxSelect>>", self._on_select)
         self._shown_items = list(items)
 

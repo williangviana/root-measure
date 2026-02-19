@@ -14,9 +14,13 @@ class _AutocompleteEntry(ctk.CTkFrame):
         self._entry.pack(fill="x")
         self._listbox = None
         self._popup = None
-        self._entry.bind("<KeyRelease>", self._on_key)
-        self._entry.bind("<FocusIn>", self._on_focus_in)
-        self._entry.bind("<FocusOut>", self._on_focus_out)
+        self._dismiss_id = None  # pending after() id for delayed hide
+        # bind to the actual tk.Entry inside CTkEntry
+        inner = self._entry._entry
+        inner.bind("<KeyRelease>", self._on_key)
+        inner.bind("<FocusIn>", self._on_focus_in)
+        inner.bind("<FocusOut>", self._on_focus_out)
+        inner.bind("<ButtonPress-1>", self._on_click)
 
     # delegate standard CTkEntry methods
     def get(self):
@@ -75,15 +79,22 @@ class _AutocompleteEntry(ctk.CTkFrame):
         else:
             self._hide_dropdown()
 
-    def _on_focus_in(self, event):
-        if self._history:
+    def _on_click(self, event):
+        """Show dropdown when clicking into the entry."""
+        if self._history and not self._popup:
             matches = self._get_matches()
             if matches:
                 self._show_dropdown(matches)
 
+    def _on_focus_in(self, event):
+        # cancel any pending dismiss
+        if self._dismiss_id:
+            self._entry.after_cancel(self._dismiss_id)
+            self._dismiss_id = None
+
     def _on_focus_out(self, event):
-        # delay so click on listbox can register
-        self._entry.after(150, self._hide_dropdown)
+        # delay hide so click on listbox can register
+        self._dismiss_id = self._entry.after(200, self._hide_dropdown)
 
     def _show_dropdown(self, items):
         self._hide_dropdown()
@@ -110,6 +121,7 @@ class _AutocompleteEntry(ctk.CTkFrame):
         self._listbox.bind("<<ListboxSelect>>", self._on_select)
 
     def _hide_dropdown(self):
+        self._dismiss_id = None
         if self._listbox:
             self._listbox.destroy()
             self._listbox = None
@@ -125,13 +137,16 @@ class _AutocompleteEntry(ctk.CTkFrame):
             val = self._listbox.get(sel[0])
             full = self._entry.get()
             if "," in full:
-                # keep everything before the last comma, append selection
                 prefix = full.rsplit(",", 1)[0] + ", "
             else:
                 prefix = ""
             self._entry.delete(0, 'end')
             self._entry.insert(0, prefix + val)
         self._hide_dropdown()
+        # cancel any pending dismiss before refocusing
+        if self._dismiss_id:
+            self._entry.after_cancel(self._dismiss_id)
+            self._dismiss_id = None
         self._entry.focus_set()
 
     def _select_current(self):

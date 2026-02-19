@@ -533,10 +533,6 @@ class ImageCanvas(ctk.CTkFrame):
                 trow, tcol = self._root_points[ri]
                 tcx, tcy = self.image_to_canvas(tcol, trow)
                 bcx, bcy = self.image_to_canvas(bcol, brow)
-                # dashed line from top to bottom
-                self.canvas.create_line(
-                    tcx, tcy, bcx, bcy,
-                    fill=marker_color, width=1, dash=(4, 4))
                 # bottom dot
                 self.canvas.create_oval(
                     bcx - bot_r, bcy - bot_r, bcx + bot_r, bcy + bot_r,

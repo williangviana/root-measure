@@ -385,8 +385,7 @@ class Sidebar(ctk.CTkScrollableFrame):
         _plates_frame = ctk.CTkFrame(_options_row, fg_color="transparent")
         _plates_frame.grid(row=0, column=0, sticky="w")
         _label_with_tip(_plates_frame, "Plates:",
-                        "How many plates are in this image.\n"
-                        "Auto-advances after selecting this many.",
+                        "Number of plates in this image.",
                         font=ctk.CTkFont(size=11)).pack(anchor="w")
         self.entry_num_plates = ctk.CTkEntry(_plates_frame, width=45,
                                               placeholder_text="1")

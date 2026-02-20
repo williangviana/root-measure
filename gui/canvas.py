@@ -1062,14 +1062,19 @@ class ImageCanvas(ctk.CTkFrame):
                 self._redraw()
             col, row = self.canvas_to_image(event.x, event.y)
             self._rect_start = (row, col)
-        elif (self._mode == self.MODE_MANUAL_TRACE
-              and self._manual_trace_submode == 'freehand'):
-            # Start freehand drawing stroke
-            col, row = self.canvas_to_image(event.x, event.y)
-            self._manual_trace_strokes.append(len(self._manual_trace_points))
-            self._manual_trace_points.append((row, col))
-            self._manual_trace_drawing = True
-            self._redraw()
+        elif self._mode == self.MODE_MANUAL_TRACE:
+            if self._manual_trace_submode == 'freehand':
+                # Start freehand drawing stroke
+                col, row = self.canvas_to_image(event.x, event.y)
+                self._manual_trace_strokes.append(len(self._manual_trace_points))
+                self._manual_trace_points.append((row, col))
+                self._manual_trace_drawing = True
+                self._redraw()
+            else:
+                # Segmented: place point immediately (don't defer)
+                col, row = self.canvas_to_image(event.x, event.y)
+                self._manual_trace_points.append((row, col))
+                self._redraw()
             if self._on_click_callback:
                 self._on_click_callback()
         else:
@@ -1174,11 +1179,9 @@ class ImageCanvas(ctk.CTkFrame):
             if self._on_click_callback:
                 self._on_click_callback()
         elif self._mode == self.MODE_MANUAL_TRACE:
-            col, row = self.canvas_to_image(sx, sy)
-            self._manual_trace_points.append((row, col))
-            self._redraw()
-            if self._on_click_callback:
-                self._on_click_callback()
+            # segmented clicks are handled in _on_left_press directly;
+            # this path only reached for edge cases
+            pass
 
     _PAN_THRESHOLD = 10  # pixels of drag before switching to pan
 

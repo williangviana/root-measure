@@ -216,6 +216,7 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
             return False
         # restore experiment name from session
         settings = data.get('settings', {})
+        self._session_settings = settings  # keep for _restore_completed_view
         self._experiment_name = settings.get('experiment', '')
         exp = self._experiment_name
         # restore offsets and genotype color registry
@@ -292,6 +293,16 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
                 self.sidebar.sec_folder.collapse(summary=self.folder.name)
                 plates = self.canvas.get_plates()
                 points = self.canvas.get_root_points()
+                # populate genotype/condition fields for steps past experiment entry
+                if step >= 2:
+                    _geno = settings.get('genotypes', '')
+                    if _geno and not self.sidebar.entry_genotypes.get().strip():
+                        self.sidebar.entry_genotypes.delete(0, 'end')
+                        self.sidebar.entry_genotypes.insert(0, _geno)
+                    _cond = settings.get('conditions', '')
+                    if _cond and not self.sidebar.entry_condition.get().strip():
+                        self.sidebar.entry_condition.delete(0, 'end')
+                        self.sidebar.entry_condition.insert(0, _cond)
                 # resume into root/marks clicking if saved mid-click
                 if step == 2 and plates and points:
                     cs = data.get('click_state', {})
@@ -300,6 +311,12 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
                     self._current_group = cs.get('current_group', 0)
                     self._split_stage = cs.get('split_stage', 0)
                     self.canvas._current_root_group = self._current_group
+                    # initialize workflow attrs (safety — measure() sets them too)
+                    self._results = []
+                    self._trace_to_result = []
+                    self._binary = None
+                    self._retry_result_indices = []
+                    self._reclick_idx = 0
                     # restore manual endpoints click state
                     self.canvas._click_seq_pos = cs.get('click_seq_pos', 0)
                     manual = self.sidebar.is_manual_endpoints()
@@ -320,6 +337,9 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
                 elif step >= 4 and self.canvas._traces:
                     # measurement done or in review — show action buttons
                     self._split = self.sidebar.is_split_plate()
+                    self._binary = None
+                    self._retry_result_indices = []
+                    self._reclick_idx = 0
                     # rebuild workflow state so review/retrace/manual-trace work
                     self._rebuild_results_from_traces()
                     self.sidebar.set_step(5)
@@ -485,7 +505,23 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
 
     def _restore_completed_view(self):
         """Show completed measurement view for the current image."""
+        # populate genotype/condition fields if empty (e.g. after session resume)
+        ss = getattr(self, '_session_settings', {})
+        if ss:
+            if not self.sidebar.entry_genotypes.get().strip():
+                _geno = ss.get('genotypes', '')
+                if _geno:
+                    self.sidebar.entry_genotypes.delete(0, 'end')
+                    self.sidebar.entry_genotypes.insert(0, _geno)
+            if not self.sidebar.entry_condition.get().strip():
+                _cond = ss.get('conditions', '')
+                if _cond:
+                    self.sidebar.entry_condition.delete(0, 'end')
+                    self.sidebar.entry_condition.insert(0, _cond)
         self._split = self.sidebar.is_split_plate()
+        self._binary = None
+        self._retry_result_indices = []
+        self._reclick_idx = 0
         if self.canvas._traces and not getattr(self, '_results', None):
             self._rebuild_results_from_traces()
         self.sidebar.sec_sessions.hide()
@@ -755,7 +791,6 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
 
     def next_image(self):
         """Return to image selection after finishing measurement."""
-        print("[next_image] called")
         try:
             # re-save CSV/screenshot/metadata in case retrace changed results
             if getattr(self, '_results', None) and hasattr(self, '_scale_val'):
@@ -770,11 +805,8 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
                 self._processed_images.add(self.image_path)
             self._stash_canvas()
             self._auto_save()
-            print(f"[next_image] advancing to images, folder={self.folder}, "
-                  f"n_images={len(self.images)}, n_processed={len(self._processed_images)}")
             self.sidebar.advance_to_images(
                 self.folder.name, self.images, self._processed_images)
-            print("[next_image] done")
         except Exception:
             import traceback; traceback.print_exc()
 

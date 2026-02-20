@@ -1186,7 +1186,7 @@ class ImageCanvas(ctk.CTkFrame):
             # this path only reached for edge cases
             pass
 
-    _PAN_THRESHOLD = 10  # pixels of drag before switching to pan
+    _PAN_THRESHOLD = 20  # pixels of drag before switching to pan
 
     def _on_left_drag(self, event):
         # Freehand drawing: capture points instead of panning
@@ -1215,10 +1215,10 @@ class ImageCanvas(ctk.CTkFrame):
             dx = event.x - self._drag_start[0]
             dy = event.y - self._drag_start[1]
             if not self._is_panning and not self._space_held:
-                # check if drag exceeds threshold before panning
+                # check if drag exceeds threshold before panning (euclidean distance)
                 sx, sy = self._click_start or (event.x, event.y)
-                if abs(event.x - sx) < self._PAN_THRESHOLD and \
-                   abs(event.y - sy) < self._PAN_THRESHOLD:
+                dist = ((event.x - sx) ** 2 + (event.y - sy) ** 2) ** 0.5
+                if dist < self._PAN_THRESHOLD:
                     return
                 self._is_panning = True
                 self.canvas.configure(cursor="fleur")

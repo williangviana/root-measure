@@ -724,6 +724,7 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
             display = _to_uint8(self.image)
             # Use preview method to preserve overlays and zoom
             self.canvas.set_image_preview(display)
+            self.sidebar.set_status("")
 
     # --- Sidebar phase callbacks ---
 

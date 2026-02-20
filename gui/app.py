@@ -859,9 +859,9 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
             on_done=self._plates_done)
         self.sidebar.set_status(
             "Draw rectangle around plate.\n"
-            "Adjust by redrawing.")
+            "Adjust by redrawing. Press Enter when done.")
         self.lbl_bottom.configure(
-            text="Drag=draw plate  |  Redraw=adjust  |  Right-click=undo  |  Scroll=zoom")
+            text="Drag=draw plate  |  Redraw=adjust  |  Right-click=undo  |  Enter=done  |  Scroll=zoom")
 
         self.sidebar.btn_click_roots.configure(state="disabled")
         self.sidebar.btn_measure.configure(state="disabled")
@@ -1024,15 +1024,17 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
                 click_hint = f"Click root TOP, {num_marks} mark(s), then BOTTOM."
             self.sidebar.set_status(
                 f"Plate {pi + 1}/{len(plates)} — {label}\n"
-                f"{click_hint} D+Click=dead, T+Click=touching.")
+                f"{click_hint} D+Click=dead, T+Click=touching.\n"
+                "Press Enter when done.")
             self.lbl_bottom.configure(
-                text="Click=root endpoint  |  D+Click=dead  |  T+Click=touching  |  Right-click=undo  |  Scroll=zoom")
+                text="Click=root endpoint  |  D+Click=dead  |  T+Click=touching  |  Right-click=undo  |  Enter=done  |  Scroll=zoom")
         else:
             self.sidebar.set_status(
                 f"Plate {pi + 1}/{len(plates)} — {label}\n"
-                "Click root tops. D+Click=dead, T+Click=touching.")
+                "Click root tops. D+Click=dead, T+Click=touching.\n"
+                "Press Enter when done.")
             self.lbl_bottom.configure(
-                text="Click=root top  |  D+Click=dead  |  T+Click=touching  |  Right-click=undo  |  Scroll=zoom")
+                text="Click=root top  |  D+Click=dead  |  T+Click=touching  |  Right-click=undo  |  Enter=done  |  Scroll=zoom")
         # Determine button text based on what's next
         is_last = (pi == len(plates) - 1) and (not self._split or self._split_stage == 1)
         if manual:
@@ -1125,7 +1127,7 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
         self.sidebar.set_step(2)
         self._update_marks_status()
         self.lbl_bottom.configure(
-            text="Click=place mark  |  Right-click=undo  |  Scroll=zoom")
+            text="Click=place mark  |  Right-click=undo  |  Enter=done  |  Scroll=zoom")
 
     def _start_marks_phase(self):
         """Enter mark clicking mode for normal roots on the current plate/group."""
@@ -1172,7 +1174,7 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
             self.sidebar.btn_done.pack(pady=(5, 0), padx=15, fill="x")
         self._update_marks_status()
         self.lbl_bottom.configure(
-            text="Click=place mark  |  Right-click=undo  |  Scroll=zoom")
+            text="Click=place mark  |  Right-click=undo  |  Enter=done  |  Scroll=zoom")
 
     def _update_marks_status(self):
         """Update status bar and button with marks progress."""

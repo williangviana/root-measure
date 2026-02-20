@@ -260,6 +260,7 @@ class MeasurementMixin:
         if n_with_segs:
             msg += f"\n{n_with_segs} root(s) with segments."
         msg += "\nClick a bad trace to select for retry."
+        msg += "\nPress Enter to accept and continue."
         self.sidebar.set_status(msg)
         self._hide_action_buttons()
         self._show_action_frame()
@@ -271,7 +272,7 @@ class MeasurementMixin:
         self.btn_continue_later_mid.pack(pady=(10, 5), padx=15, fill="x")
         self.sidebar.show_review_toggles()
         self.lbl_bottom.configure(
-            text="Click trace=select for retry (red)  |  Scroll=zoom")
+            text="Click trace=select for retry (red)  |  Enter=accept  |  Scroll=zoom")
 
 
     def _enable_review(self):
@@ -387,9 +388,10 @@ class MeasurementMixin:
             click_desc = f"click {nums} (top to bottom)"
             bottom_text = f"Click {nums} (top to bottom)"
         self.sidebar.set_status(
-            f"Re-click root {pi}/{n}: {click_desc}.")
+            f"Re-click root {pi}/{n}: {click_desc}.\n"
+            "Press Enter when done.")
         self.lbl_bottom.configure(
-            text=f"{bottom_text}  |  Right-click=undo  |  Scroll=zoom")
+            text=f"{bottom_text}  |  Right-click=undo  |  Enter=done  |  Scroll=zoom")
         # Update button text
         is_last = self._reclick_idx >= n - 1
         btn_text = "Finish" if is_last else "Next Root"
@@ -573,7 +575,7 @@ class MeasurementMixin:
                 f"Right-click=undo stroke, Enter=confirm.")
             self.lbl_bottom.configure(
                 text=f"Manual {pi_idx}/{n}  |  Drag=draw  |  "
-                     f"Right-click=undo stroke  |  Scroll=zoom")
+                     f"Right-click=undo stroke  |  Enter=confirm  |  Scroll=zoom")
         else:
             self.sidebar.set_status(
                 f"Manual trace root {pi_idx}/{n}:\n"
@@ -581,7 +583,7 @@ class MeasurementMixin:
                 f"Right-click=undo, Enter=confirm.")
             self.lbl_bottom.configure(
                 text=f"Manual {pi_idx}/{n}  |  Click=add point  |  "
-                     f"Right-click=undo  |  Scroll=zoom")
+                     f"Right-click=undo  |  Enter=confirm  |  Scroll=zoom")
 
     def _manual_trace_done(self):
         """Called when user presses Enter to confirm a manual trace."""

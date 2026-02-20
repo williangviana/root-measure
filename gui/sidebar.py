@@ -486,7 +486,7 @@ class Sidebar(ctk.CTkScrollableFrame):
             font=ctk.CTkFont(size=12))
         _label_with_tip(b, "Click mode:",
                         "By default you click both top and bottom of each root.\n"
-                        "Check this to only click the top — the tip is found\n"
+                        "Check this to only click the top. The tip is found\n"
                         "automatically (less accurate, may need retrace).",
                         font=ctk.CTkFont(size=11)).pack(padx=15, anchor="w",
                                                          pady=(4, 0))

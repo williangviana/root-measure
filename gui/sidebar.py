@@ -51,6 +51,14 @@ class _AutocompleteEntry(ctk.CTkFrame):
             if item and item not in self._history:
                 self._history.append(item)
 
+    def get_history(self):
+        """Return the autocomplete history list."""
+        return list(self._history)
+
+    def set_history(self, items):
+        """Replace autocomplete history with the given list."""
+        self._history = list(items)
+
     def _current_token(self):
         """Return the text after the last comma (the part being typed)."""
         full = self._entry.get()

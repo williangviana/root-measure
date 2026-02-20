@@ -269,6 +269,9 @@ def _collect_settings(sidebar):
         num_plates = int(sidebar.entry_num_plates.get().strip() or "1")
     except (ValueError, TypeError):
         num_plates = 1
+    # commit current field values into history before saving
+    sidebar.entry_genotypes.commit()
+    sidebar.entry_condition.commit()
     return {
         'dpi': sidebar.entry_dpi.get().strip(),
         'sensitivity': sidebar.var_sensitivity.get(),
@@ -280,6 +283,8 @@ def _collect_settings(sidebar):
         'experiment': sidebar.entry_experiment.get().strip(),
         'genotypes': sidebar.entry_genotypes.get().strip(),
         'conditions': sidebar.entry_condition.get().strip(),
+        'genotype_history': sidebar.entry_genotypes.get_history(),
+        'condition_history': sidebar.entry_condition.get_history(),
         'plot': sidebar.var_plot.get(),
         'manual_endpoints': sidebar.var_manual_endpoints.get(),
     }
@@ -354,16 +359,24 @@ def restore_settings(sidebar, settings):
         sidebar.entry_num_plates.insert(0, str(num_plates))
     sidebar.entry_experiment.delete(0, 'end')
     sidebar.entry_experiment.insert(0, settings.get('experiment', ''))
-    # seed genotype/condition autocomplete history but leave fields empty
-    _geno = settings.get('genotypes', '')
-    if _geno:
-        sidebar.entry_genotypes.insert(0, _geno)
-        sidebar.entry_genotypes.commit()
-        sidebar.entry_genotypes.delete(0, 'end')
-    _cond = settings.get('conditions', '')
-    if _cond:
-        sidebar.entry_condition.insert(0, _cond)
-        sidebar.entry_condition.commit()
-        sidebar.entry_condition.delete(0, 'end')
+    # restore autocomplete history (prefer saved history, fall back to field values)
+    geno_hist = settings.get('genotype_history', [])
+    if geno_hist:
+        sidebar.entry_genotypes.set_history(geno_hist)
+    else:
+        _geno = settings.get('genotypes', '')
+        if _geno:
+            sidebar.entry_genotypes.insert(0, _geno)
+            sidebar.entry_genotypes.commit()
+            sidebar.entry_genotypes.delete(0, 'end')
+    cond_hist = settings.get('condition_history', [])
+    if cond_hist:
+        sidebar.entry_condition.set_history(cond_hist)
+    else:
+        _cond = settings.get('conditions', '')
+        if _cond:
+            sidebar.entry_condition.insert(0, _cond)
+            sidebar.entry_condition.commit()
+            sidebar.entry_condition.delete(0, 'end')
     sidebar.var_plot.set(settings.get('plot', True))
     sidebar.var_manual_endpoints.set(settings.get('manual_endpoints', False))

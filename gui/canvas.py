@@ -1298,11 +1298,8 @@ class ImageCanvas(ctk.CTkFrame):
                 return True
             return False
         elif self._mode == self.MODE_CLICK_ROOTS and self._root_points:
-            current_group = getattr(self, '_current_root_group', 0)
             if not self._manual_endpoints:
                 # Auto mode: undo last root top click
-                if self._root_groups and self._root_groups[-1] != current_group:
-                    return False
                 self._root_points.pop()
                 self._root_flags.pop()
                 self._root_groups.pop()
@@ -1311,8 +1308,6 @@ class ImageCanvas(ctk.CTkFrame):
                 # Manual endpoints: undo depends on position in sequence
                 if self._click_seq_pos == 0:
                     # Completed root or flagged root — step back
-                    if self._root_groups[-1] != current_group:
-                        return False
                     root_idx = len(self._root_points) - 1
                     if self._root_flags[-1] is not None:
                         # Previous root was flagged (only had top) — remove it

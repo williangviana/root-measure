@@ -404,8 +404,11 @@ def _trace_local_phase1(binary_image, top_point, bottom_point,
     comp_sizes = np.bincount(comp_labels)
     kdtree = cKDTree(skel_points)
 
-    top_local = (top_point[0] - rmin, top_point[1] - cmin)
-    bot_local = (bottom_point[0] - rmin, bottom_point[1] - cmin)
+    rh, rw = roi.shape
+    top_local = (max(0, min(top_point[0] - rmin, rh - 1)),
+                 max(0, min(top_point[1] - cmin, rw - 1)))
+    bot_local = (max(0, min(bottom_point[0] - rmin, rh - 1)),
+                 max(0, min(bottom_point[1] - cmin, rw - 1)))
     min_comp = min_component_size(scale)
 
     idx_start = _snap_sparse(kdtree, top_local, comp_labels, comp_sizes,
@@ -448,8 +451,11 @@ def _trace_phase2(binary_image, top_point, bottom_point, scale, plate_bounds):
     if skeleton.sum() == 0:
         return None, 'error'
 
-    top_local = (top_point[0] - rmin, top_point[1] - cmin)
-    bot_local = (bottom_point[0] - rmin, bottom_point[1] - cmin)
+    rh, rw = roi.shape
+    top_local = (max(0, min(top_point[0] - rmin, rh - 1)),
+                 max(0, min(top_point[1] - cmin, rw - 1)))
+    bot_local = (max(0, min(bottom_point[0] - rmin, rh - 1)),
+                 max(0, min(bottom_point[1] - cmin, rw - 1)))
 
     path_local = _hybrid_cost_path(roi, skeleton, top_local, bot_local)
     path_full = path_local + np.array([rmin, cmin])

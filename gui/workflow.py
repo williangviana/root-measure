@@ -680,17 +680,21 @@ class MeasurementMixin:
             count = sum(1 for j in range(ri + 1)
                         if j < len(root_plates) and j < len(root_groups)
                         and root_plates[j] == plate and root_groups[j] == group)
-            # number label at top-right of trace
+            # number label at top-right of trace (horizontal)
             top_row, top_col = path[0]
             color_bgr = self._hex_to_bgr(shades[0])
             num_font_scale = font_scale * 1.8
             num_font_thick = max(1, int(font_thick * 1.5))
-            (tw, th), _ = cv2.getTextSize(str(count), font, num_font_scale,
-                                          num_font_thick + 2)
-            num_offset_x = int(top_col) + th + 4  # shift right of root
-            self._draw_vertical_label(
-                img_bgr, str(count), num_offset_x, int(top_row),
-                font, num_font_scale, num_font_thick, color_bgr)
+            label_text = str(count)
+            (tw, th), baseline = cv2.getTextSize(label_text, font, num_font_scale,
+                                                  num_font_thick + 2)
+            nx = int(top_col) + 6
+            ny = int(top_row) + th // 2
+            # outline then colored text
+            cv2.putText(img_bgr, label_text, (nx, ny), font, num_font_scale,
+                        (0, 0, 0), num_font_thick + 2, cv2.LINE_AA)
+            cv2.putText(img_bgr, label_text, (nx, ny), font, num_font_scale,
+                        color_bgr, num_font_thick, cv2.LINE_AA)
             # cm label at bottom of trace (bigger font)
             res = self._results[ri] if ri < len(self._results) else None
             cm_val = res.get('length_cm') if res else None

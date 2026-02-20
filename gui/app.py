@@ -890,25 +890,19 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
                 # All plates confirmed — auto-advance
                 self.after(100, self._plates_done)
                 return
-            elif expected == 1 and num_confirmed == 0:
-                # Single plate - show confirm button
-                btn_text = "Confirm Plate"
-            elif expected > 1 and num_with_pending < expected:
-                # Multiple plates - show progress
-                btn_text = f"Plate {num_with_pending}/{expected}"
-                if num_confirmed > 0 and not self.canvas._pending_plate:
-                    self.sidebar.set_status(
-                        f"{num_confirmed} plate(s) confirmed.\n"
-                        f"Draw plate {num_confirmed + 1}/{expected}. Press Enter when done.")
-            elif expected > 1:
-                # All plates drawn but pending not yet confirmed
-                btn_text = f"Confirm Plate {num_with_pending}/{expected}"
-            else:
-                btn_text = "Confirm Plates"
 
-            self.sidebar.btn_done.configure(text=btn_text)
-            if not self.sidebar.btn_done.winfo_ismapped():
-                self.sidebar.btn_done.pack(pady=(5, 0), padx=15, fill="x")
+            if self.canvas._pending_plate:
+                # Pending plate drawn — show confirm button
+                btn_text = f"Confirm Plate {num_with_pending}"
+                self.sidebar.btn_done.configure(text=btn_text)
+                if not self.sidebar.btn_done.winfo_ismapped():
+                    self.sidebar.btn_done.pack(pady=(5, 0), padx=15, fill="x")
+            else:
+                # Plate confirmed, need more — hide button, prompt to draw next
+                self.sidebar.btn_done.pack_forget()
+                self.sidebar.set_status(
+                    f"Plate {num_confirmed} confirmed.\n"
+                    f"Draw plate {num_confirmed + 1} of {expected}. Press Enter when done.")
 
     def _on_root_clicked(self):
         """Callback when a root is clicked (button already visible)."""

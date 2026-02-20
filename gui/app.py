@@ -1034,15 +1034,16 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
                 text="Click=root top  |  D+Click=dead  |  T+Click=touching  |  Right-click=undo  |  Enter=done  |  Scroll=zoom")
         # Determine button text based on what's next
         is_last = (pi == len(plates) - 1) and (not self._split or self._split_stage == 1)
+        next_is_genotype = self._split and self._split_stage == 0
         if manual:
             # No separate marks phase in manual mode
-            btn_text = "Start Trace" if is_last else "Next Plate"
+            btn_text = "Start Trace" if is_last else ("Next Genotype" if next_is_genotype else "Next Plate")
         elif num_marks > 0:
             btn_text = "Click 1st Segments"
         elif is_last:
             btn_text = "Start Trace"
         else:
-            btn_text = "Next Plate"
+            btn_text = "Next Genotype" if next_is_genotype else "Next Plate"
         self.sidebar.btn_done.configure(text=btn_text)
         if not self.sidebar.btn_done.winfo_ismapped():
             self.sidebar.btn_done.pack(pady=(5, 0), padx=15, fill="x")

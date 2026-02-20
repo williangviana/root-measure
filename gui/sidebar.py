@@ -406,8 +406,7 @@ class Sidebar(ctk.CTkScrollableFrame):
         _seg_frame.grid(row=0, column=2, sticky="e")
         _label_with_tip(_seg_frame, "Segments:",
                         "Number of segments per root (default 1 = whole root).\n"
-                        "Use 2+ to measure root in parts (tip, middle, base).\n"
-                        "You'll click segment boundaries after root tops.",
+                        "Use 2+ to measure root in parts (tip, middle, base).",
                         font=ctk.CTkFont(size=11)).pack(anchor="e")
         self.entry_segments = ctk.CTkEntry(_seg_frame, width=45,
                                             placeholder_text="1")

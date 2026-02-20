@@ -702,8 +702,9 @@ class MeasurementMixin:
                 bot_row, bot_col = path[-1]
                 cm_font_scale = font_scale * 1.8
                 cm_font_thick = max(1, int(font_thick * 1.5))
+                gap = max(10, int(scale / 40))
                 self._draw_vertical_label(
-                    img_bgr, f"{cm_val:.2f}cm", int(bot_col), int(bot_row),
+                    img_bgr, f"{cm_val:.2f}cm", int(bot_col), int(bot_row) + gap,
                     font, cm_font_scale, cm_font_thick, color_bgr,
                     anchor="top")
 

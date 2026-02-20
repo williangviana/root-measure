@@ -449,8 +449,8 @@ class Sidebar(ctk.CTkScrollableFrame):
         _label_with_tip(b, "Root detection:",
                         "Click Preview to see detected roots.\n"
                         "Adjust slider until the full root is visible.\n"
-                        "Lower = detect more (may add noise).\n"
-                        "Higher = detect less (may miss thin roots).",
+                        "Left = detect more (may add noise).\n"
+                        "Right = detect less (may miss thin roots).",
                         font=ctk.CTkFont(size=11)).pack(padx=15, anchor="w")
         self._thresh_frame = ctk.CTkFrame(b, fg_color="transparent")
         self._thresh_frame.pack(pady=(2, 8), padx=15, fill="x")

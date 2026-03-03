@@ -395,7 +395,7 @@ class Sidebar(ctk.CTkScrollableFrame):
         _geno_frame.grid(row=0, column=1)
         _label_with_tip(_geno_frame, "Genotypes:",
                         "Genotypes per plate (default 1).\n"
-                        "Use 2 if plate has two genotypes side by side.\n"
+                        "Use 2+ if a plate has multiple genotypes.\n"
                         "You'll click roots for each genotype separately.",
                         font=ctk.CTkFont(size=11)).pack(anchor="center")
         self.entry_genotypes_per_plate = ctk.CTkEntry(_geno_frame, width=45,
@@ -486,7 +486,7 @@ class Sidebar(ctk.CTkScrollableFrame):
             onvalue=False, offvalue=True,
             font=ctk.CTkFont(size=12))
         _label_with_tip(b, "Click mode:",
-                        "By default you click both top and bottom of each root.\n"
+                        "By default you click the top and tip of each root.\n"
                         "Check this to only click the top. The tip is found\n"
                         "automatically (less accurate, may need retrace).",
                         font=ctk.CTkFont(size=11)).pack(padx=15, anchor="w",
@@ -513,7 +513,7 @@ class Sidebar(ctk.CTkScrollableFrame):
         _label_with_tip(b, "Genotypes:",
                         "Comma-separated list (e.g. 'WT, mutant1, mutant2').\n"
                         "Assigned to plates in order (plate 1 = first genotype).\n"
-                        "With split plates, list pairs: 'WT, mutant' for each plate.",
+                        "With split plates, list groups matching genotypes per plate.",
                         font=ctk.CTkFont(size=11)).pack(padx=15, anchor="w")
         self.entry_genotypes = _AutocompleteEntry(
             b, placeholder_text="e.g. WT, crd-1")

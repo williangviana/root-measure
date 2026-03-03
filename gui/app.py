@@ -918,21 +918,21 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
         plates = canvas.get_plates()
         pi = self._current_plate_idx
         if canvas._manual_endpoints:
-            # Manual endpoints: top → marks → bottom
+            # Manual endpoints: top → dividers → tip
             if seq == 0:
                 hint = f"ROOT {n_roots + 1} — click TOP"
             elif cpr == 2:
-                hint = f"ROOT {n_roots} — click BOTTOM"
+                hint = f"ROOT {n_roots} — click TIP"
             elif seq < cpr - 1:
-                hint = f"ROOT {n_roots} — click MARK {seq}"
+                hint = f"ROOT {n_roots} — click DIVIDER (seg {seq}|{seq + 1})"
             else:
-                hint = f"ROOT {n_roots} — click BOTTOM"
+                hint = f"ROOT {n_roots} — click TIP"
         else:
-            # Auto-detect with marks: top → marks
+            # Auto-detect with dividers: top → dividers
             if seq == 0:
                 hint = f"ROOT {n_roots + 1} — click TOP"
             else:
-                hint = f"ROOT {n_roots} — click MARK {seq}"
+                hint = f"ROOT {n_roots} — click DIVIDER (seg {seq}|{seq + 1})"
         self.sidebar.set_status(
             f"Plate {pi + 1}/{len(plates)}\n{hint}")
 
@@ -1030,23 +1030,23 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
             label_parts.append(cond)
         label = " / ".join(label_parts)
         if manual:
-            click_hint = "Click root TOP then BOTTOM for each root."
+            click_hint = "Click root TOP then TIP for each root."
             if num_marks > 0:
-                click_hint = f"Click root TOP, {num_marks} mark(s), then BOTTOM."
+                click_hint = f"Click TOP, {num_marks} divider(s), then TIP for each root."
             self.sidebar.set_status(
                 f"Plate {pi + 1}/{len(plates)} — {label}\n"
                 f"{click_hint} D+Click=dead, T+Click=touching.\n"
                 "Press Enter when done.")
             self.lbl_bottom.configure(
-                text="Click=root endpoint  |  D+Click=dead  |  T+Click=touching  |  Right-click=undo  |  Enter=done  |  Scroll=zoom")
+                text="Click=root top/divider/tip  |  D+Click=dead  |  T+Click=touching  |  Right-click=undo  |  Enter=done  |  Scroll=zoom")
         elif num_marks > 0:
-            click_hint = f"Click root TOP then {num_marks} mark(s) for each root."
+            click_hint = f"Click TOP then {num_marks} divider(s) for each root."
             self.sidebar.set_status(
                 f"Plate {pi + 1}/{len(plates)} — {label}\n"
                 f"{click_hint} D+Click=dead, T+Click=touching.\n"
                 "Press Enter when done.")
             self.lbl_bottom.configure(
-                text="Click=root top/mark  |  D+Click=dead  |  T+Click=touching  |  Right-click=undo  |  Enter=done  |  Scroll=zoom")
+                text="Click=root top/divider  |  D+Click=dead  |  T+Click=touching  |  Right-click=undo  |  Enter=done  |  Scroll=zoom")
         else:
             self.sidebar.set_status(
                 f"Plate {pi + 1}/{len(plates)} — {label}\n"

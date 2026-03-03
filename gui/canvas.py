@@ -848,27 +848,27 @@ class ImageCanvas(ctk.CTkFrame):
                 ("Right-click", "Undo last plate"),
             ],
             self.MODE_CLICK_ROOTS: [
-                ("Click", "Place root top / mark / bottom"
+                ("Click", "Place top / divider / tip"
                           if self._manual_endpoints
-                          else ("Place root top / mark"
+                          else ("Place top / divider"
                                 if self._clicks_per_root > 1
                                 else "Place root top")),
-                ("D + Click", "Mark as dead"),
-                ("T + Click", "Mark as touching"),
+                ("D + Click", "Flag as dead"),
+                ("T + Click", "Flag as touching"),
                 ("Enter", "Next genotype / plate"),
                 ("Right-click", "Undo last click"),
             ],
             self.MODE_CLICK_MARKS: [
-                ("Click", "Place mark point"),
-                ("Enter", "Confirm marks"),
-                ("Right-click", "Undo last mark"),
+                ("Click", "Place divider point"),
+                ("Enter", "Confirm dividers"),
+                ("Right-click", "Undo last divider"),
             ],
             self.MODE_REVIEW: [
                 ("Click trace", "Select / deselect for retry"),
                 ("Enter", "Accept all / retry selected"),
             ],
             self.MODE_RECLICK: [
-                ("Click", "Place top / mark / bottom"),
+                ("Click", "Place top / divider / tip"),
                 ("Enter", "Confirm re-click"),
                 ("Right-click", "Undo last click"),
             ],
@@ -882,7 +882,7 @@ class ImageCanvas(ctk.CTkFrame):
             self.MODE_VIEW: "View",
             self.MODE_SELECT_PLATES: "Select Plates",
             self.MODE_CLICK_ROOTS: "Click Roots",
-            self.MODE_CLICK_MARKS: "Click Marks",
+            self.MODE_CLICK_MARKS: "Click Dividers",
             self.MODE_REVIEW: "Review",
             self.MODE_RECLICK: "Re-click",
             self.MODE_MANUAL_TRACE: "Manual Trace",

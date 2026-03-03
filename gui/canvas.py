@@ -789,13 +789,20 @@ class ImageCanvas(ctk.CTkFrame):
                         bb[0] - _pad, bb[1] - _pad, bb[2] + _pad, bb[3] + _pad,
                         fill=_bg, outline=_bg)
                     self.canvas.tag_lower(bg, tid)
-                # genotype labels evenly spaced on bottom line
+                # genotype labels on bottom line
                 n = len(geno_items)
                 for gi, (label, color) in enumerate(geno_items):
-                    x = cw * (gi + 1) / (n + 1)
+                    if n == 2:
+                        # two genotypes: pin to left/right corners
+                        x = 15 if gi == 0 else cw - 15
+                        anchor = "sw" if gi == 0 else "se"
+                    else:
+                        # 3+: evenly spaced
+                        x = cw * (gi + 1) / (n + 1)
+                        anchor = "s"
                     tid = self.canvas.create_text(
                         x, y_geno, text=label,
-                        fill=color, anchor="s", font=_fnt)
+                        fill=color, anchor=anchor, font=_fnt)
                     bb = self.canvas.bbox(tid)
                     if bb:
                         bg = self.canvas.create_rectangle(

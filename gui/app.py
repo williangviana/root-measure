@@ -924,7 +924,10 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
             elif cpr == 2:
                 hint = f"ROOT {n_roots} — click TIP"
             elif seq < cpr - 1:
-                hint = f"ROOT {n_roots} — click SEGMENT {seq}|{seq + 1}"
+                num_marks = cpr - 2
+                hint = (f"ROOT {n_roots} — click SEGMENT boundary"
+                        if num_marks == 1 else
+                        f"ROOT {n_roots} — click SEGMENT boundary {seq}/{num_marks}")
             else:
                 hint = f"ROOT {n_roots} — click TIP"
         else:
@@ -932,7 +935,10 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
             if seq == 0:
                 hint = f"ROOT {n_roots + 1} — click TOP"
             else:
-                hint = f"ROOT {n_roots} — click SEGMENT {seq}|{seq + 1}"
+                num_marks = cpr - 1
+                hint = (f"ROOT {n_roots} — click SEGMENT boundary"
+                        if num_marks == 1 else
+                        f"ROOT {n_roots} — click SEGMENT boundary {seq}/{num_marks}")
         self.sidebar.set_status(
             f"Plate {pi + 1}/{len(plates)}\n{hint}")
 

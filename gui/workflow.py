@@ -336,6 +336,7 @@ class MeasurementMixin:
         n = len(self._retry_result_indices)
         _log(f"  {n} roots to retry, {self._reclick_clicks_per_root} clicks per root")
         self.canvas._reclick_expected = n * self._reclick_clicks_per_root
+        self.canvas._retry_result_indices_ref = list(self._retry_result_indices)
         self.canvas.set_mode(
             ImageCanvas.MODE_RECLICK,
             on_done=self._reclick_enter)

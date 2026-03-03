@@ -693,22 +693,40 @@ class ImageCanvas(ctk.CTkFrame):
                     fill=marker_color, anchor="w",
                     font=("Helvetica", 9, "bold"))
 
-        # reclick markers
+        # reclick markers — styled like normal clicking:
+        # top = large dot with root number, segment/tip = small pastel dot
         if self._mode == self.MODE_RECLICK and self._reclick_points:
             cpr = getattr(self, '_reclick_clicks_per_root', 2)
+            manual = getattr(self, '_manual_endpoints', False)
             self._reclick_marker_ids.clear()
             for i, (row, col) in enumerate(self._reclick_points):
                 cx, cy = self.image_to_canvas(col, row)
-                r = 5
-                label = str((i % cpr) + 1)
-                rid = self.canvas.create_oval(
-                    cx - r, cy - r, cx + r, cy + r,
-                    outline="white", fill="#1a7a1a", width=1)
-                tid = self.canvas.create_text(
-                    cx + 10, cy - 8, text=label,
-                    fill="#1a7a1a", anchor="w",
-                    font=("Helvetica", 8, "bold"))
-                self._reclick_marker_ids.extend([rid, tid])
+                pos_in_root = i % cpr
+                ri_offset = i // cpr
+                # determine which retry root this is
+                retry_indices = getattr(self, '_retry_result_indices_ref', [])
+                if ri_offset < len(retry_indices):
+                    ri = retry_indices[ri_offset]
+                    group = (self._root_groups[ri]
+                             if ri < len(self._root_groups) else 0)
+                else:
+                    group = 0
+                bright = GROUP_MARKER_COLORS[group % len(GROUP_MARKER_COLORS)]
+                pastel = GROUP_MARK_COLORS[group % len(GROUP_MARK_COLORS)]
+                if pos_in_root == 0:
+                    # TOP click — large dot with root number
+                    r = 5
+                    rid = self.canvas.create_oval(
+                        cx - r, cy - r, cx + r, cy + r,
+                        outline="white", fill=bright, width=1)
+                    self._reclick_marker_ids.append(rid)
+                else:
+                    # segment boundary or tip — small pastel dot, no label
+                    r = 3
+                    rid = self.canvas.create_oval(
+                        cx - r, cy - r, cx + r, cy + r,
+                        outline="white", fill=pastel, width=1)
+                    self._reclick_marker_ids.append(rid)
             for rid in self._reclick_marker_ids:
                 self.canvas.tag_raise(rid)
 

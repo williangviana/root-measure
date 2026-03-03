@@ -363,9 +363,9 @@ def plot_results(csv_path, value_col=None, ylabel=None, csv_format='R',
         group_width = max(n_genotypes * 0.4, 1.0)
         fig_width = 1.5 + n_conditions * group_width + 1.2  # margin + conditions + legend
     else:
-        fig_width = 1.5 + n_genotypes * 0.7  # margin + genotypes
+        fig_width = 1.5 + n_genotypes * 0.55  # margin + genotypes
     fig_width = max(fig_width, 3.0)  # minimum width
-    fig, ax = plt.subplots(figsize=(fig_width, 6))
+    fig, ax = plt.subplots(figsize=(fig_width, 5))
 
     genotypes = sort_genotypes_wt_first(df['Genotype'].unique().tolist())
     positions_map = {}

@@ -599,7 +599,7 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
                 gname = (genotypes[gi] if gi < len(genotypes)
                          else f"group_{gi}")
                 label = f"{gname} {cond}".strip() if cond else gname
-                cidx = self._genotype_colors.get(gname, gi)
+                cidx = self._register_genotype(gname)
                 color = GROUP_MARKER_COLORS[cidx % len(GROUP_MARKER_COLORS)]
                 geno_items.append((label, color))
             info['genotypes'] = geno_items
@@ -607,7 +607,7 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
             geno = (genotypes[pi] if pi < len(genotypes)
                     else genotypes[-1] if genotypes else "genotype")
             info['left'] = f"{geno} {cond}".strip() if cond else geno
-            idx = self._genotype_colors.get(geno, pi)
+            idx = self._register_genotype(geno)
             info['left_color'] = GROUP_MARKER_COLORS[idx % len(GROUP_MARKER_COLORS)]
         self.canvas._plate_info = info
 

@@ -666,6 +666,7 @@ class MeasurementMixin:
         for ti, (path, shades, mark_indices) in enumerate(self.canvas._traces):
             if len(path) < 2:
                 continue
+            path = np.asarray(path)
             if mark_indices:
                 boundaries = [0] + list(mark_indices) + [len(path) - 1]
                 for j in range(len(boundaries) - 1):

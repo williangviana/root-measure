@@ -71,6 +71,7 @@ WT_NAMES = {'wt', 'col-0', 'col0', 'a10.1', 'me034v'}
 
 def sort_genotypes_wt_first(genotypes):
     """Sort genotypes so wild-type names come first, others keep original order."""
+    genotypes = [g for g in genotypes if isinstance(g, str)]
     wt = [g for g in genotypes if g.lower() in WT_NAMES]
     non_wt = [g for g in genotypes if g.lower() not in WT_NAMES]
     return wt + non_wt

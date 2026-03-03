@@ -547,7 +547,7 @@ class ImageCanvas(ctk.CTkFrame):
             mark_r = 3 if is_view else 4
             for ri, marks in self._all_marks.items():
                 group = self._root_groups[ri] if ri < len(self._root_groups) else 0
-                color = GROUP_MARKER_COLORS[group % len(GROUP_MARKER_COLORS)]
+                color = GROUP_MARK_COLORS[group % len(GROUP_MARK_COLORS)]
                 for mi, (row, col) in enumerate(marks):
                     cx, cy = self.image_to_canvas(col, row)
                     self.canvas.create_oval(

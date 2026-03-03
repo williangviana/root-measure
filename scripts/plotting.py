@@ -298,8 +298,9 @@ def plot_results(csv_path, value_col=None, ylabel=None, csv_format='R',
         print("  No valid data to plot.")
         return
 
-    # detect experiment type
-    is_factorial = 'Condition' in df.columns and df['Condition'].notna().any()
+    # detect experiment type — factorial only with 2+ distinct conditions
+    is_factorial = ('Condition' in df.columns
+                    and df['Condition'].nunique(dropna=True) >= 2)
 
     # find plottable columns
     numeric_cols = ['Length_cm']

@@ -1,17 +1,20 @@
 Root Measure - Installation Instructions
 ========================================
 
+Requires macOS (Apple Silicon or Intel) or Windows 10+.
+The installer will set up Python 3.12, dependencies, and the app automatically.
+
 Open the Terminal (Mac) or PowerShell (Windows) and paste the command below.
 
 
 Mac
 ---
-curl -sL https://raw.githubusercontent.com/williangviana/root-measure/stable/install/install.sh | bash
+curl -sL https://raw.githubusercontent.com/williangviana/root-measure/v1.0/install/install.sh | bash
 
 
 Windows
 -------
-powershell -ExecutionPolicy Bypass -c "irm https://raw.githubusercontent.com/williangviana/root-measure/stable/install/install.ps1 | iex"
+powershell -ExecutionPolicy Bypass -c "irm https://raw.githubusercontent.com/williangviana/root-measure/v1.0/install/install.ps1 | iex"
 
 
 After installation:

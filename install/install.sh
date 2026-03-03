@@ -19,12 +19,13 @@ echo ""
 if ! command -v brew &>/dev/null; then
     echo "[1/7] Installing Homebrew..."
     NONINTERACTIVE=1 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+fi
 
-    if [ -f /opt/homebrew/bin/brew ]; then
-        eval "$(/opt/homebrew/bin/brew shellenv)"
-    elif [ -f /usr/local/bin/brew ]; then
-        eval "$(/usr/local/bin/brew shellenv)"
-    fi
+# Ensure Homebrew bin is in PATH (curl|bash doesn't load shell profile)
+if [ -f /opt/homebrew/bin/brew ]; then
+    eval "$(/opt/homebrew/bin/brew shellenv)"
+elif [ -f /usr/local/bin/brew ]; then
+    eval "$(/usr/local/bin/brew shellenv)"
 fi
 
 if ! brew list python@3.12 &>/dev/null; then
@@ -36,6 +37,10 @@ fi
 # Prefer Homebrew python3.12 over system python3
 if command -v python3.12 &>/dev/null; then
     PY=python3.12
+elif [ -x /opt/homebrew/bin/python3.12 ]; then
+    PY=/opt/homebrew/bin/python3.12
+elif [ -x /usr/local/bin/python3.12 ]; then
+    PY=/usr/local/bin/python3.12
 else
     PY=python3
 fi

@@ -9,12 +9,12 @@ Open the Terminal (Mac) or PowerShell (Windows) and paste the command below.
 
 Mac
 ---
-curl -sL https://raw.githubusercontent.com/williangviana/root-measure/v1.0/install/install.sh | bash
+curl -sL https://raw.githubusercontent.com/williangviana/root-measure/stable/install/install.sh | bash
 
 
 Windows
 -------
-powershell -ExecutionPolicy Bypass -c "irm https://raw.githubusercontent.com/williangviana/root-measure/v1.0/install/install.ps1 | iex"
+powershell -ExecutionPolicy Bypass -c "irm https://raw.githubusercontent.com/williangviana/root-measure/stable/install/install.ps1 | iex"
 
 
 After installation:

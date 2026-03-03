@@ -14,26 +14,33 @@ echo "  Root Measure — Installer"
 echo "============================================"
 echo ""
 
-# --- 1. Ensure Python 3 is installed ---
-if ! command -v python3 &>/dev/null; then
-    echo "[1/7] Installing Python..."
+# --- 1. Ensure Homebrew Python 3 is installed ---
+# macOS system Python (3.9) has a slow Tcl/Tk — always use Homebrew Python
+if ! command -v brew &>/dev/null; then
+    echo "[1/7] Installing Homebrew..."
+    NONINTERACTIVE=1 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
 
-    if ! command -v brew &>/dev/null; then
-        echo "       Installing Homebrew first..."
-        NONINTERACTIVE=1 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-
-        if [ -f /opt/homebrew/bin/brew ]; then
-            eval "$(/opt/homebrew/bin/brew shellenv)"
-        elif [ -f /usr/local/bin/brew ]; then
-            eval "$(/usr/local/bin/brew shellenv)"
-        fi
+    if [ -f /opt/homebrew/bin/brew ]; then
+        eval "$(/opt/homebrew/bin/brew shellenv)"
+    elif [ -f /usr/local/bin/brew ]; then
+        eval "$(/usr/local/bin/brew shellenv)"
     fi
+fi
 
-    brew install python
+if ! brew list python@3.12 &>/dev/null; then
+    echo "[1/7] Installing Python 3.12..."
+    brew install python@3.12
     hash -r
 fi
 
-PY_VERSION=$(python3 -c "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}')")
+# Prefer Homebrew python3.12 over system python3
+if command -v python3.12 &>/dev/null; then
+    PY=python3.12
+else
+    PY=python3
+fi
+
+PY_VERSION=$($PY -c "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}')")
 echo "[1/7] Python $PY_VERSION ✓"
 
 # --- 2. Download project from GitHub ---
@@ -45,7 +52,7 @@ cd "$WORK_DIR"
 echo "[2/7] Downloaded ✓"
 
 # --- 3. Create virtual environment ---
-python3 -m venv .venv
+$PY -m venv .venv
 source .venv/bin/activate
 echo "[3/7] Virtual environment ✓"
 

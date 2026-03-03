@@ -1076,11 +1076,24 @@ class MeasurementMixin:
             tidy_path = data_dir(folder, exp) / 'tidy_data.csv'
             generate_tidy(raw_path, tidy_path, csv_format='R')
             # plot from raw data (always tall/R format)
+            geno_colors = getattr(self, '_genotype_colors', None)
             plot_results(raw_path,
                          value_col='Length_cm',
                          ylabel='Primary root length (cm)',
                          csv_format='R',
-                         genotype_colors=getattr(self, '_genotype_colors', None))
+                         genotype_colors=geno_colors)
+            # plot each segment column if present
+            import pandas as _pd
+            _cols = list(_pd.read_csv(raw_path, nrows=0).columns)
+            seg_cols = [c for c in _cols
+                        if c.startswith('Segment_') and c.endswith('_cm')]
+            for sc in seg_cols:
+                seg_num = sc.replace('Segment_', '').replace('_cm', '')
+                plot_results(raw_path,
+                             value_col=sc,
+                             ylabel=f'Segment {seg_num} length (cm)',
+                             csv_format='R',
+                             genotype_colors=geno_colors)
             self.sidebar.set_status(
                 self.sidebar.lbl_status.cget("text") +
                 f"\nSaved tidy_data.csv and plot")

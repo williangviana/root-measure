@@ -448,8 +448,12 @@ def plot_results(csv_path, value_col=None, ylabel=None, csv_format='R',
 
     plt.tight_layout()
 
-    # save PNG
-    png_path = csv_path.with_suffix('.png')
+    # save PNG — use value_col in filename for segment plots
+    if value_col and value_col != 'Length_cm':
+        stem = csv_path.stem + '_' + value_col.replace('_cm', '')
+        png_path = csv_path.with_name(stem + '.png')
+    else:
+        png_path = csv_path.with_suffix('.png')
     fig.savefig(png_path, dpi=300, bbox_inches='tight', facecolor='white')
     print(f"\n  Plot saved to: {png_path}")
 

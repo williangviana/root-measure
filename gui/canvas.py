@@ -771,44 +771,62 @@ class ImageCanvas(ctk.CTkFrame):
                                     self.MODE_MANUAL_TRACE):
             cw = self.canvas.winfo_width()
             ch = self.canvas.winfo_height()
-            y = ch - 6
             _fnt = ("Helvetica", 16, "bold")
             _bg = "#d8d8d8"
             _pad = 3
-            # center: "Plate N"
-            tid = self.canvas.create_text(
-                cw / 2, y, text=info.get('center', ''),
-                fill="black", anchor="s", font=_fnt)
-            bb = self.canvas.bbox(tid)
-            if bb:
-                bg = self.canvas.create_rectangle(
-                    bb[0] - _pad, bb[1] - _pad, bb[2] + _pad, bb[3] + _pad,
-                    fill=_bg, outline=_bg)
-                self.canvas.tag_lower(bg, tid)
-            # left: genotype A + condition
-            if info.get('left'):
+            geno_items = info.get('genotypes', [])
+            if geno_items:
+                # split plate: "Plate N" on top line, genotypes evenly spaced below
+                y_geno = ch - 6
+                y_plate = y_geno - 24
+                # plate label centered on top line
                 tid = self.canvas.create_text(
-                    15, y, text=info['left'],
-                    fill=info.get('left_color', '#cccccc'), anchor="sw",
-                    font=_fnt)
+                    cw / 2, y_plate, text=info.get('center', ''),
+                    fill="black", anchor="s", font=_fnt)
                 bb = self.canvas.bbox(tid)
                 if bb:
                     bg = self.canvas.create_rectangle(
                         bb[0] - _pad, bb[1] - _pad, bb[2] + _pad, bb[3] + _pad,
                         fill=_bg, outline=_bg)
                     self.canvas.tag_lower(bg, tid)
-            # right: genotype B + condition (split plates only)
-            if info.get('right'):
+                # genotype labels evenly spaced on bottom line
+                n = len(geno_items)
+                for gi, (label, color) in enumerate(geno_items):
+                    x = cw * (gi + 1) / (n + 1)
+                    tid = self.canvas.create_text(
+                        x, y_geno, text=label,
+                        fill=color, anchor="s", font=_fnt)
+                    bb = self.canvas.bbox(tid)
+                    if bb:
+                        bg = self.canvas.create_rectangle(
+                            bb[0] - _pad, bb[1] - _pad, bb[2] + _pad, bb[3] + _pad,
+                            fill=_bg, outline=_bg)
+                        self.canvas.tag_lower(bg, tid)
+            else:
+                # non-split plate: single line layout
+                y = ch - 6
+                # center: "Plate N"
                 tid = self.canvas.create_text(
-                    cw - 15, y, text=info['right'],
-                    fill=info.get('right_color', '#cccccc'), anchor="se",
-                    font=_fnt)
+                    cw / 2, y, text=info.get('center', ''),
+                    fill="black", anchor="s", font=_fnt)
                 bb = self.canvas.bbox(tid)
                 if bb:
                     bg = self.canvas.create_rectangle(
                         bb[0] - _pad, bb[1] - _pad, bb[2] + _pad, bb[3] + _pad,
                         fill=_bg, outline=_bg)
                     self.canvas.tag_lower(bg, tid)
+                # left: genotype + condition
+                if info.get('left'):
+                    tid = self.canvas.create_text(
+                        15, y, text=info['left'],
+                        fill=info.get('left_color', '#cccccc'), anchor="sw",
+                        font=_fnt)
+                    bb = self.canvas.bbox(tid)
+                    if bb:
+                        bg = self.canvas.create_rectangle(
+                            bb[0] - _pad, bb[1] - _pad, bb[2] + _pad, bb[3] + _pad,
+                            fill=_bg, outline=_bg)
+                        self.canvas.tag_lower(bg, tid)
 
         # help overlay
         if self._help_visible:

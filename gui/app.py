@@ -593,14 +593,16 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
 
         info = {'center': f"Plate {pi + 1}"}
         if self._split:
-            geno_a = genotypes[0] if genotypes else "genotype_A"
-            geno_b = genotypes[1] if len(genotypes) >= 2 else "genotype_B"
-            info['left'] = f"{geno_a} {cond}".strip() if cond else geno_a
-            info['right'] = f"{geno_b} {cond}".strip() if cond else geno_b
-            idx_a = self._genotype_colors.get(geno_a, 0)
-            idx_b = self._genotype_colors.get(geno_b, 1)
-            info['left_color'] = GROUP_MARKER_COLORS[idx_a % len(GROUP_MARKER_COLORS)]
-            info['right_color'] = GROUP_MARKER_COLORS[idx_b % len(GROUP_MARKER_COLORS)]
+            gpp = self.sidebar.get_genotypes_per_plate()
+            geno_items = []
+            for gi in range(gpp):
+                gname = (genotypes[gi] if gi < len(genotypes)
+                         else f"group_{gi}")
+                label = f"{gname} {cond}".strip() if cond else gname
+                cidx = self._genotype_colors.get(gname, gi)
+                color = GROUP_MARKER_COLORS[cidx % len(GROUP_MARKER_COLORS)]
+                geno_items.append((label, color))
+            info['genotypes'] = geno_items
         else:
             geno = (genotypes[pi] if pi < len(genotypes)
                     else genotypes[-1] if genotypes else "genotype")
@@ -1053,8 +1055,9 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
             self.lbl_bottom.configure(
                 text="Click=root top  |  D+Click=dead  |  T+Click=touching  |  Right-click=undo  |  Enter=done  |  Scroll=zoom")
         # Determine button text based on what's next
-        is_last = (pi == len(plates) - 1) and (not self._split or self._split_stage == 1)
-        next_is_genotype = self._split and self._split_stage == 0
+        gpp = self.sidebar.get_genotypes_per_plate()
+        is_last = (pi == len(plates) - 1) and (not self._split or self._split_stage == gpp - 1)
+        next_is_genotype = self._split and self._split_stage < gpp - 1
         btn_text = "Start Trace" if is_last else ("Next Genotype" if next_is_genotype else "Next Plate")
         self.sidebar.btn_done.configure(text=btn_text)
         if not self.sidebar.btn_done.winfo_ismapped():
@@ -1068,9 +1071,10 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
     def _advance_to_next_stage(self):
         """Advance to next genotype group or next plate."""
         plates = self.canvas.get_plates()
-        if self._split and self._split_stage == 0:
-            # stay on same plate, switch to genotype B
-            self._split_stage = 1
+        gpp = self.sidebar.get_genotypes_per_plate()
+        if self._split and self._split_stage < gpp - 1:
+            # stay on same plate, switch to next genotype
+            self._split_stage += 1
             self._enter_root_click_stage()
             return
         # advance to next plate

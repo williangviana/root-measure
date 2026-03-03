@@ -1003,18 +1003,20 @@ class MeasurementMixin:
         group_to_plate = {}
         root_plates_list = list(self.canvas._root_plates)
         root_groups_list = self.canvas.get_root_groups()
+        gpp = self.sidebar.get_genotypes_per_plate()
         if split:
-            geno_a = genotypes[0]
-            geno_b = genotypes[1] if len(genotypes) >= 2 else "genotype_B"
+            geno_names = []
+            for gi in range(gpp):
+                gname = (genotypes[gi] if gi < len(genotypes)
+                         else f"group_{gi}")
+                geno_names.append(gname)
             for pi in range(len(plates)):
                 cond = conditions[pi] if pi < len(conditions) else (
                     conditions[-1] if conditions else None)
-                idx_a = self._genotype_colors.get(geno_a, pi * 2)
-                idx_b = self._genotype_colors.get(geno_b, pi * 2 + 1)
-                plate_labels[(pi, idx_a)] = (geno_a, cond)
-                plate_labels[(pi, idx_b)] = (geno_b, cond)
-                group_to_plate[(pi, idx_a)] = pi
-                group_to_plate[(pi, idx_b)] = pi
+                for gname in geno_names:
+                    cidx = self._genotype_colors.get(gname, pi * gpp)
+                    plate_labels[(pi, cidx)] = (gname, cond)
+                    group_to_plate[(pi, cidx)] = pi
             # build point_plates with matching (plate, group) tuple keys
             point_plates = []
             for i in range(len(root_groups_list)):
@@ -1037,7 +1039,7 @@ class MeasurementMixin:
                 root_offset=self._root_offset,
                 point_plates=point_plates,
                 num_marks=self._get_num_marks(),
-                split_plate=self.sidebar.is_split_plate(),
+                split_plate=gpp,
                 image_name=img_name,
                 group_to_plate=group_to_plate)
             self._plate_offset = new_plate_offset

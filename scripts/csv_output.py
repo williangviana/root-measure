@@ -15,7 +15,8 @@ def _build_rows(results, plate_labels, plate_offset, root_offset,
     if group_to_plate is None:
         unique_groups = sorted(set(point_plates)) if point_plates else []
         if split_plate:
-            group_to_plate = {g: idx // 2 for idx, g in enumerate(unique_groups)}
+            gpp = int(split_plate) if isinstance(split_plate, int) and split_plate > 1 else 2
+            group_to_plate = {g: idx // gpp for idx, g in enumerate(unique_groups)}
         else:
             group_to_plate = {g: idx for idx, g in enumerate(unique_groups)}
 

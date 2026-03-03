@@ -848,9 +848,9 @@ class ImageCanvas(ctk.CTkFrame):
                 ("Right-click", "Undo last plate"),
             ],
             self.MODE_CLICK_ROOTS: [
-                ("Click", "Place top / divider / tip"
+                ("Click", "Place top / segment / tip"
                           if self._manual_endpoints
-                          else ("Place top / divider"
+                          else ("Place top / segment"
                                 if self._clicks_per_root > 1
                                 else "Place root top")),
                 ("D + Click", "Flag as dead"),
@@ -859,16 +859,16 @@ class ImageCanvas(ctk.CTkFrame):
                 ("Right-click", "Undo last click"),
             ],
             self.MODE_CLICK_MARKS: [
-                ("Click", "Place divider point"),
-                ("Enter", "Confirm dividers"),
-                ("Right-click", "Undo last divider"),
+                ("Click", "Place segment boundary"),
+                ("Enter", "Confirm segments"),
+                ("Right-click", "Undo last segment"),
             ],
             self.MODE_REVIEW: [
                 ("Click trace", "Select / deselect for retry"),
                 ("Enter", "Accept all / retry selected"),
             ],
             self.MODE_RECLICK: [
-                ("Click", "Place top / divider / tip"),
+                ("Click", "Place top / segment / tip"),
                 ("Enter", "Confirm re-click"),
                 ("Right-click", "Undo last click"),
             ],
@@ -882,7 +882,7 @@ class ImageCanvas(ctk.CTkFrame):
             self.MODE_VIEW: "View",
             self.MODE_SELECT_PLATES: "Select Plates",
             self.MODE_CLICK_ROOTS: "Click Roots",
-            self.MODE_CLICK_MARKS: "Click Dividers",
+            self.MODE_CLICK_MARKS: "Click Segments",
             self.MODE_REVIEW: "Review",
             self.MODE_RECLICK: "Re-click",
             self.MODE_MANUAL_TRACE: "Manual Trace",

@@ -380,19 +380,19 @@ class MeasurementMixin:
         n = len(self._retry_result_indices)
         pi = self._reclick_idx + 1
         cpr = self._reclick_clicks_per_root
-        num_dividers = cpr - 2 if self.canvas._manual_endpoints else cpr - 1
+        num_seg_clicks = cpr - 2 if self.canvas._manual_endpoints else cpr - 1
         if cpr == 1:
             click_desc = "click TOP"
             bottom_text = "Click=top"
         elif cpr == 2 and self.canvas._manual_endpoints:
             click_desc = "click TOP then TIP"
             bottom_text = "Click 1=top, 2=tip"
-        elif num_dividers > 0 and self.canvas._manual_endpoints:
-            click_desc = f"click TOP, {num_dividers} divider(s), then TIP"
-            bottom_text = f"Click: top, {num_dividers} divider(s), tip"
+        elif num_seg_clicks > 0 and self.canvas._manual_endpoints:
+            click_desc = f"click TOP, {num_seg_clicks} segment boundary(s), then TIP"
+            bottom_text = f"Click: top, {num_seg_clicks} segment(s), tip"
         else:
-            click_desc = f"click TOP then {num_dividers} divider(s)"
-            bottom_text = f"Click: top, {num_dividers} divider(s)"
+            click_desc = f"click TOP then {num_seg_clicks} segment boundary(s)"
+            bottom_text = f"Click: top, {num_seg_clicks} segment(s)"
         self.sidebar.set_status(
             f"Re-click root {pi}/{n}: {click_desc}.\n"
             "Press Enter when done.")

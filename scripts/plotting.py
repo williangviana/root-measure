@@ -359,7 +359,8 @@ def plot_results(csv_path, value_col=None, ylabel=None, csv_format='R',
     box_width = 0.5  # consistent box width for all plots
     if is_factorial:
         n_conditions = len(df['Condition'].unique())
-        fig_width = 1.5 + n_conditions * 1.0 + 1.2  # margin + conditions + legend
+        group_width = max(n_genotypes * 0.4, 1.0)
+        fig_width = 1.5 + n_conditions * group_width + 1.2  # margin + conditions + legend
     else:
         fig_width = 1.5 + n_genotypes * 0.7  # margin + genotypes
     fig_width = max(fig_width, 3.0)  # minimum width
@@ -377,7 +378,7 @@ def plot_results(csv_path, value_col=None, ylabel=None, csv_format='R',
         conditions = df['Condition'].unique().tolist()
         n_geno = len(genotypes)
         n_cond = len(conditions)
-        box_width = 0.6 / n_geno
+        box_width = max(0.6 / n_geno, 0.15)
 
         for ci, cond in enumerate(conditions):
             for gi, geno in enumerate(genotypes):

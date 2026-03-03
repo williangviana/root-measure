@@ -316,6 +316,7 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
                     self._trace_to_result = []
                     self._binary = None
                     self._retry_result_indices = []
+                    self.canvas._retry_result_indices_ref = self._retry_result_indices
                     self._reclick_idx = 0
                     # restore manual endpoints click state
                     self.canvas._click_seq_pos = cs.get('click_seq_pos', 0)
@@ -338,6 +339,7 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
                     self._split = self.sidebar.is_split_plate()
                     self._binary = None
                     self._retry_result_indices = []
+                    self.canvas._retry_result_indices_ref = self._retry_result_indices
                     self._reclick_idx = 0
                     # rebuild workflow state so review/retrace/manual-trace work
                     self._rebuild_results_from_traces()

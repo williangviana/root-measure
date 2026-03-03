@@ -543,7 +543,10 @@ class ImageCanvas(ctk.CTkFrame):
 
         # mark circles (hide in review mode or when measurement done)
         self._mark_marker_ids.clear()
-        if self._mode not in (self.MODE_REVIEW,) and not self._measurement_done:
+        if (self._mode not in (self.MODE_REVIEW, self.MODE_RECLICK,
+                               self.MODE_MANUAL_TRACE)
+                and not self._measurement_done
+                and len(self._traces) == 0):
             mark_r = 3 if is_view else 4
             for ri, marks in self._all_marks.items():
                 group = self._root_groups[ri] if ri < len(self._root_groups) else 0

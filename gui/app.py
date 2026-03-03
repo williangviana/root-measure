@@ -322,14 +322,13 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
                     manual = self.sidebar.is_manual_endpoints()
                     self.canvas._manual_endpoints = manual
                     num_marks = self._get_num_marks()
-                    self.canvas._clicks_per_root = (2 + num_marks) if manual else 1
-                    # restore in-progress mark points
-                    mark_pts = canvas_data.get('mark_points', [])
-                    if mark_pts:
-                        self.canvas._mark_points = [tuple(p) for p in mark_pts]
-                        self._resume_marks_phase()
+                    if manual:
+                        self.canvas._clicks_per_root = 2 + num_marks
+                    elif num_marks > 0:
+                        self.canvas._clicks_per_root = 1 + num_marks
                     else:
-                        self.click_roots(resume=True)
+                        self.canvas._clicks_per_root = 1
+                    self.click_roots(resume=True)
                     self.sidebar.set_status(
                         f"Session restored: {len(points)} root(s) on "
                         f"{len(plates)} plate(s).\n"
@@ -907,24 +906,31 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
 
     def _on_root_clicked(self):
         """Callback when a root is clicked (button already visible)."""
-        if not self.canvas._manual_endpoints:
-            return
-        # Update status to show what to click next
         canvas = self.canvas
         cpr = canvas._clicks_per_root
+        if not canvas._manual_endpoints and cpr == 1:
+            return
+        # Update status to show what to click next
         seq = canvas._click_seq_pos
         n_roots = len(canvas._root_points)
         plates = canvas.get_plates()
         pi = self._current_plate_idx
-        if seq == 0:
-            # About to start a new root
-            hint = f"ROOT {n_roots + 1} — click TOP"
-        elif cpr == 2:
-            hint = f"ROOT {n_roots} — click BOTTOM"
-        elif seq < cpr - 1:
-            hint = f"ROOT {n_roots} — click MARK {seq}"
+        if canvas._manual_endpoints:
+            # Manual endpoints: top → marks → bottom
+            if seq == 0:
+                hint = f"ROOT {n_roots + 1} — click TOP"
+            elif cpr == 2:
+                hint = f"ROOT {n_roots} — click BOTTOM"
+            elif seq < cpr - 1:
+                hint = f"ROOT {n_roots} — click MARK {seq}"
+            else:
+                hint = f"ROOT {n_roots} — click BOTTOM"
         else:
-            hint = f"ROOT {n_roots} — click BOTTOM"
+            # Auto-detect with marks: top → marks
+            if seq == 0:
+                hint = f"ROOT {n_roots + 1} — click TOP"
+            else:
+                hint = f"ROOT {n_roots} — click MARK {seq}"
         self.sidebar.set_status(
             f"Plate {pi + 1}/{len(plates)}\n{hint}")
 
@@ -1002,7 +1008,12 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
         manual = self.sidebar.is_manual_endpoints()
         num_marks = self._get_num_marks()
         self.canvas._manual_endpoints = manual
-        self.canvas._clicks_per_root = (2 + num_marks) if manual else 1
+        if manual:
+            self.canvas._clicks_per_root = 2 + num_marks
+        elif num_marks > 0:
+            self.canvas._clicks_per_root = 1 + num_marks
+        else:
+            self.canvas._clicks_per_root = 1
         self.canvas._click_seq_pos = 0
 
         self.canvas.set_mode(
@@ -1026,6 +1037,14 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
                 "Press Enter when done.")
             self.lbl_bottom.configure(
                 text="Click=root endpoint  |  D+Click=dead  |  T+Click=touching  |  Right-click=undo  |  Enter=done  |  Scroll=zoom")
+        elif num_marks > 0:
+            click_hint = f"Click root TOP then {num_marks} mark(s) for each root."
+            self.sidebar.set_status(
+                f"Plate {pi + 1}/{len(plates)} — {label}\n"
+                f"{click_hint} D+Click=dead, T+Click=touching.\n"
+                "Press Enter when done.")
+            self.lbl_bottom.configure(
+                text="Click=root top/mark  |  D+Click=dead  |  T+Click=touching  |  Right-click=undo  |  Enter=done  |  Scroll=zoom")
         else:
             self.sidebar.set_status(
                 f"Plate {pi + 1}/{len(plates)} — {label}\n"
@@ -1036,15 +1055,7 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
         # Determine button text based on what's next
         is_last = (pi == len(plates) - 1) and (not self._split or self._split_stage == 1)
         next_is_genotype = self._split and self._split_stage == 0
-        if manual:
-            # No separate marks phase in manual mode
-            btn_text = "Start Trace" if is_last else ("Next Genotype" if next_is_genotype else "Next Plate")
-        elif num_marks > 0:
-            btn_text = "Click 1st Segments"
-        elif is_last:
-            btn_text = "Start Trace"
-        else:
-            btn_text = "Next Genotype" if next_is_genotype else "Next Plate"
+        btn_text = "Start Trace" if is_last else ("Next Genotype" if next_is_genotype else "Next Plate")
         self.sidebar.btn_done.configure(text=btn_text)
         if not self.sidebar.btn_done.winfo_ismapped():
             self.sidebar.btn_done.pack(pady=(5, 0), padx=15, fill="x")
@@ -1052,12 +1063,6 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
     def _plate_roots_done(self):
         """Called when user presses Enter after clicking roots on a plate."""
         self._auto_save()
-        # In manual endpoints mode, marks are collected during click_roots
-        if not self.sidebar.is_manual_endpoints():
-            num_marks = self._get_num_marks()
-            if num_marks > 0:
-                self._start_marks_phase()
-                return
         self._advance_to_next_stage()
 
     def _advance_to_next_stage(self):
@@ -1084,143 +1089,6 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
         self.sidebar.btn_measure.configure(state="normal")
         self.measure()
 
-    # --- Marks phase ---
-
-    def _resume_marks_phase(self):
-        """Resume mark clicking with saved mark points."""
-        plates = self.canvas.get_plates()
-        pi = self._current_plate_idx
-        r1, r2, c1, c2 = plates[pi]
-        points = self.canvas.get_root_points()
-        flags = self.canvas.get_root_flags()
-        groups = self.canvas.get_root_groups()
-        current_group = self._current_group
-        self._marks_plate_roots = []
-        display_numbers = []
-        position = 0
-        for i, ((row, col), flag) in enumerate(zip(points, flags)):
-            if not (r1 <= row <= r2 and c1 <= col <= c2):
-                continue
-            if self._split and i < len(groups) and groups[i] != current_group:
-                continue
-            position += 1
-            if flag is not None:
-                continue
-            self._marks_plate_roots.append(i)
-            display_numbers.append(position)
-        num_marks = self._get_num_marks()
-        self.canvas._marks_expected = len(self._marks_plate_roots) * num_marks
-        self.canvas._marks_display_numbers = display_numbers
-        # Clear callback before setting new one
-        self.canvas._on_click_callback = None
-        self.canvas._on_click_callback = self._update_marks_status
-        self._set_plate_info(pi)
-        self.canvas.set_mode(
-            ImageCanvas.MODE_CLICK_MARKS,
-            on_done=self._plate_marks_done)
-        self.canvas.zoom_to_region(r1, r2, c1, c2)
-        self._hide_action_buttons()
-        self._show_action_frame()
-        self.sidebar.btn_done.pack(pady=(5, 0), padx=15, fill="x")
-        self.btn_continue_later_mid.pack(pady=(10, 5), padx=15, fill="x")
-        self.sidebar.set_step(2)
-        self._update_marks_status()
-        self.lbl_bottom.configure(
-            text="Click=place mark  |  Right-click=undo  |  Enter=done  |  Scroll=zoom")
-
-    def _start_marks_phase(self):
-        """Enter mark clicking mode for normal roots on the current plate/group."""
-        plates = self.canvas.get_plates()
-        pi = self._current_plate_idx
-        r1, r2, c1, c2 = plates[pi]
-        points = self.canvas.get_root_points()
-        flags = self.canvas.get_root_flags()
-        groups = self.canvas.get_root_groups()
-        current_group = self._current_group
-        self._marks_plate_roots = []
-        display_numbers = []
-        position = 0
-        for i, ((row, col), flag) in enumerate(zip(points, flags)):
-            if not (r1 <= row <= r2 and c1 <= col <= c2):
-                continue
-            if self._split and i < len(groups) and groups[i] != current_group:
-                continue
-            position += 1
-            if flag is not None:
-                continue
-            self._marks_plate_roots.append(i)
-            display_numbers.append(position)
-        if not self._marks_plate_roots:
-            self._advance_to_next_stage()
-            return
-        num_marks = self._get_num_marks()
-        self.canvas._marks_expected = len(self._marks_plate_roots) * num_marks
-        self.canvas._marks_display_numbers = display_numbers
-        # Only clear temporary mark points, not _all_marks (preserves other plates)
-        for rid in self.canvas._mark_marker_ids:
-            self.canvas.canvas.delete(rid)
-        self.canvas._mark_points.clear()
-        self.canvas._mark_marker_ids.clear()
-        # Clear callback before setting new one
-        self.canvas._on_click_callback = None
-        self.canvas._on_click_callback = self._update_marks_status
-        self._set_plate_info(pi)
-        self.canvas.set_mode(
-            ImageCanvas.MODE_CLICK_MARKS,
-            on_done=self._plate_marks_done)
-        self.canvas.zoom_to_region(r1, r2, c1, c2)
-        if not self.sidebar.btn_done.winfo_ismapped():
-            self.sidebar.btn_done.pack(pady=(5, 0), padx=15, fill="x")
-        self._update_marks_status()
-        self.lbl_bottom.configure(
-            text="Click=place mark  |  Right-click=undo  |  Enter=done  |  Scroll=zoom")
-
-    def _update_marks_status(self):
-        """Update status bar and button with marks progress."""
-        pi = self._current_plate_idx
-        plates = self.canvas.get_plates()
-        num_marks = self._get_num_marks()
-        n_roots = len(self._marks_plate_roots)
-        expected = self.canvas._marks_expected
-        placed = len(self.canvas.get_mark_points())
-        is_last_plate = (pi == len(plates) - 1) and (not self._split or self._split_stage == 1)
-        if placed >= expected:
-            self.sidebar.set_status(
-                f"Plate {pi + 1} — All {expected} mark(s) placed.\n"
-                "Press Enter to continue.")
-            btn_text = "Start Trace" if is_last_plate else "Next Plate"
-        else:
-            current_root_seq = placed // num_marks
-            current_mark_in_root = placed % num_marks + 1
-            display_nums = self.canvas._marks_display_numbers
-            if current_root_seq < len(display_nums):
-                root_label = str(display_nums[current_root_seq])
-            else:
-                root_label = str(current_root_seq + 1)
-            self.sidebar.set_status(
-                f"Plate {pi + 1} — Marks: {placed}/{expected}.\n"
-                f"Root {root_label}/{n_roots}, "
-                f"mark {current_mark_in_root}/{num_marks}.\n"
-                "Right-click=undo. Enter when all placed.")
-            # Mark number + 1 because roots are "1st segments"
-            ordinal = self._ordinal(current_mark_in_root + 1)
-            btn_text = f"Click {ordinal} Segments"
-        self.sidebar.btn_done.configure(text=btn_text)
-
-    def _plate_marks_done(self):
-        """Called when user presses Enter after clicking marks for a plate."""
-        all_marks = self.canvas.get_mark_points()
-        if len(all_marks) < self.canvas._marks_expected:
-            self.sidebar.set_status(
-                f"Need {self.canvas._marks_expected} mark(s), "
-                f"only {len(all_marks)} placed. Click more marks.")
-            return
-        num_marks = self._get_num_marks()
-        for j, ri in enumerate(self._marks_plate_roots):
-            start = j * num_marks
-            self.canvas._all_marks[ri] = all_marks[start:start + num_marks]
-        self._auto_save()
-        self._advance_to_next_stage()
 
 
 def main():

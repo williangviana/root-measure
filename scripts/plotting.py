@@ -403,6 +403,11 @@ def plot_results(csv_path, value_col=None, ylabel=None, csv_format='R',
 
         ax.set_xticks(range(n_cond))
         ax.set_xticklabels(conditions, fontsize=12)
+        # tighten x-axis around actual box positions
+        all_pos = list(positions_map.values())
+        if all_pos:
+            margin = box_width + 0.3
+            ax.set_xlim(min(all_pos) - margin, max(all_pos) + margin)
         handles = [plt.Rectangle((0, 0), 1, 1, facecolor=_geno_color(genotypes[i], i),
                                  edgecolor='black') for i in range(n_geno)]
         ax.legend(handles, genotypes, loc='upper left', bbox_to_anchor=(1.02, 1),

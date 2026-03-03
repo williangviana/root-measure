@@ -775,11 +775,34 @@ class ImageCanvas(ctk.CTkFrame):
             _bg = "#d8d8d8"
             _pad = 3
             geno_items = info.get('genotypes', [])
-            if geno_items:
-                # split plate: "Plate N" on top line, genotypes evenly spaced below
+            if geno_items and len(geno_items) == 2:
+                # 2 genotypes: single line — left | Plate N | right
+                y = ch - 6
+                tid = self.canvas.create_text(
+                    cw / 2, y, text=info.get('center', ''),
+                    fill="black", anchor="s", font=_fnt)
+                bb = self.canvas.bbox(tid)
+                if bb:
+                    bg = self.canvas.create_rectangle(
+                        bb[0] - _pad, bb[1] - _pad, bb[2] + _pad, bb[3] + _pad,
+                        fill=_bg, outline=_bg)
+                    self.canvas.tag_lower(bg, tid)
+                for gi, (label, color) in enumerate(geno_items):
+                    x = 15 if gi == 0 else cw - 15
+                    anchor = "sw" if gi == 0 else "se"
+                    tid = self.canvas.create_text(
+                        x, y, text=label,
+                        fill=color, anchor=anchor, font=_fnt)
+                    bb = self.canvas.bbox(tid)
+                    if bb:
+                        bg = self.canvas.create_rectangle(
+                            bb[0] - _pad, bb[1] - _pad, bb[2] + _pad, bb[3] + _pad,
+                            fill=_bg, outline=_bg)
+                        self.canvas.tag_lower(bg, tid)
+            elif geno_items:
+                # 3+ genotypes: "Plate N" on top, genotypes evenly spaced below
                 y_geno = ch - 6
                 y_plate = y_geno - 24
-                # plate label centered on top line
                 tid = self.canvas.create_text(
                     cw / 2, y_plate, text=info.get('center', ''),
                     fill="black", anchor="s", font=_fnt)
@@ -789,20 +812,12 @@ class ImageCanvas(ctk.CTkFrame):
                         bb[0] - _pad, bb[1] - _pad, bb[2] + _pad, bb[3] + _pad,
                         fill=_bg, outline=_bg)
                     self.canvas.tag_lower(bg, tid)
-                # genotype labels on bottom line
                 n = len(geno_items)
                 for gi, (label, color) in enumerate(geno_items):
-                    if n == 2:
-                        # two genotypes: pin to left/right corners
-                        x = 15 if gi == 0 else cw - 15
-                        anchor = "sw" if gi == 0 else "se"
-                    else:
-                        # 3+: evenly spaced
-                        x = cw * (gi + 1) / (n + 1)
-                        anchor = "s"
+                    x = cw * (gi + 1) / (n + 1)
                     tid = self.canvas.create_text(
                         x, y_geno, text=label,
-                        fill=color, anchor=anchor, font=_fnt)
+                        fill=color, anchor="s", font=_fnt)
                     bb = self.canvas.bbox(tid)
                     if bb:
                         bg = self.canvas.create_rectangle(

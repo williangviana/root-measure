@@ -829,7 +829,6 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
         self.sidebar.set_status(
             self.sidebar.lbl_status.cget("text") +
             "\nAll done!")
-        self.destroy()
 
     # --- Plate & root clicking flow ---
 

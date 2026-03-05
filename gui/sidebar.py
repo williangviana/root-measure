@@ -335,24 +335,6 @@ class Sidebar(ctk.CTkScrollableFrame):
                          **kwargs)
         self.app = app
 
-        # Fix: subclassing CTkScrollableFrame breaks the widget.master chain
-        # that check_if_master_is_canvas() walks, so the built-in scroll handler
-        # silently drops all events. Repairing the chain fixes it.
-        # (see: github.com/TomSchimansky/CustomTkinter/issues/1816)
-        self.master = self._parent_canvas
-
-        # Tk 9 / macOS: <MouseWheel> only fires on the focused widget,
-        # not via bind_all. Add a bindtag "SidebarScroll" to every widget
-        # inside the sidebar so they all forward scroll events.
-        self.bindtags(self.bindtags() + ('SidebarScroll',))
-        self._parent_canvas.bind_class('SidebarScroll', '<MouseWheel>',
-                                        self._sidebar_scroll)
-        self._parent_canvas.bind("<MouseWheel>", self._sidebar_scroll)
-        # Tag new children automatically via periodic scan
-        self._tagged_widgets = set()
-        self._tag_sidebar_children()
-        self._retag_loop()
-
         # --- Header ---
         ctk.CTkLabel(self, text="Root Measuring Tool",
                      font=ctk.CTkFont(size=18, weight="bold")).pack(
@@ -810,33 +792,6 @@ class Sidebar(ctk.CTkScrollableFrame):
         """Update slider and label to show auto-detected threshold."""
         self.slider_thresh.set(val)
         self.lbl_thresh_val.configure(text=str(int(val)))
-
-    def _retag_loop(self):
-        """Periodically tag new sidebar children for scroll events."""
-        self._tag_sidebar_children()
-        self.after(3000, self._retag_loop)
-
-    def _tag_sidebar_children(self):
-        """Add 'SidebarScroll' bindtag to all widgets inside the sidebar."""
-        def _tag(w):
-            wid = str(w)
-            if wid not in self._tagged_widgets:
-                self._tagged_widgets.add(wid)
-                tags = w.bindtags()
-                if 'SidebarScroll' not in tags:
-                    w.bindtags(tags + ('SidebarScroll',))
-            for child in w.winfo_children():
-                _tag(child)
-        try:
-            _tag(self._parent_frame)
-        except Exception:
-            pass
-
-    def _sidebar_scroll(self, event):
-        """Scroll sidebar canvas on mousewheel."""
-        if self._parent_canvas.yview() != (0.0, 1.0):
-            self._parent_canvas.yview("scroll", -event.delta, "units")
-            return "break"
 
     def set_status(self, text):
         self.lbl_status.configure(text=text)

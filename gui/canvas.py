@@ -993,19 +993,6 @@ class ImageCanvas(ctk.CTkFrame):
 
     def _on_scroll(self, event):
         """Two-finger scroll = pan vertically."""
-        # Tk 9/macOS: scroll events go to focused widget (canvas) even when
-        # mouse is over the sidebar. Redirect to sidebar if mouse is there.
-        sidebar = getattr(self.master, 'sidebar', None)
-        if sidebar is not None:
-            try:
-                pf = sidebar._parent_frame
-                mx = pf.winfo_pointerx() - pf.winfo_rootx()
-                my = pf.winfo_pointery() - pf.winfo_rooty()
-                if 0 <= mx <= pf.winfo_width() and 0 <= my <= pf.winfo_height():
-                    sidebar._sidebar_scroll(event)
-                    return
-            except Exception:
-                pass
         if self._image_np is None or self._manual_trace_drawing:
             return
         # macOS delta is ±1..±N per tick; multiply for smooth pan speed

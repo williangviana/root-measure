@@ -361,7 +361,7 @@ def plot_results(csv_path, value_col=None, ylabel=None, csv_format='R',
     if is_factorial:
         n_conditions = len(df['Condition'].unique())
         group_width = max(n_genotypes * 0.4, 1.0)
-        fig_width = 1.5 + n_conditions * group_width + 1.2  # margin + conditions + legend
+        fig_width = 0.8 + n_conditions * group_width + 1.2  # margin + conditions + legend
     else:
         fig_width = 1.5 + n_genotypes * 0.55  # margin + genotypes
     fig_width = max(fig_width, 3.0)  # minimum width
@@ -381,13 +381,18 @@ def plot_results(csv_path, value_col=None, ylabel=None, csv_format='R',
         n_cond = len(conditions)
         box_width = max(0.6 / n_geno, 0.15)
 
+        box_gap = 0.05
+        group_half = ((n_geno - 1) / 2) * (box_width + box_gap) + box_width / 2
+        cond_spacing = group_half * 2 + 0.5  # gap between condition groups
+
         for ci, cond in enumerate(conditions):
+            cx = ci * cond_spacing
             for gi, geno in enumerate(genotypes):
                 d = df.loc[(df['Genotype'] == geno) & (df['Condition'] == cond),
                            value_col].dropna().values
                 if len(d) == 0:
                     continue
-                pos = ci + (gi - (n_geno - 1) / 2) * (box_width + 0.05)
+                pos = cx + (gi - (n_geno - 1) / 2) * (box_width + box_gap)
                 positions_map[(geno, cond)] = pos
 
                 bp = ax.boxplot([d], positions=[pos], widths=box_width,
@@ -402,12 +407,12 @@ def plot_results(csv_path, value_col=None, ylabel=None, csv_format='R',
                 ax.scatter(pos + jitter, d, color='black', s=12, alpha=0.6,
                            zorder=3, edgecolors='none')
 
-        ax.set_xticks(range(n_cond))
+        ax.set_xticks([ci * cond_spacing for ci in range(n_cond)])
         ax.set_xticklabels(conditions, fontsize=12)
         # tighten x-axis around actual box positions
         all_pos = list(positions_map.values())
         if all_pos:
-            margin = box_width + 0.3
+            margin = box_width * 0.5 + 0.15
             ax.set_xlim(min(all_pos) - margin, max(all_pos) + margin)
         handles = [plt.Rectangle((0, 0), 1, 1, facecolor=_geno_color(genotypes[i], i),
                                  edgecolor='black') for i in range(n_geno)]

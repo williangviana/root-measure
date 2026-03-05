@@ -660,6 +660,7 @@ class MeasurementMixin:
         font = cv2.FONT_HERSHEY_SIMPLEX
         font_scale = max(0.8, scale / 300)
         font_thick = max(2, int(scale / 200))
+        trace_thick = max(2, int(scale / 150))
         root_plates = list(self.canvas._root_plates)
         root_groups = list(self.canvas._root_groups)
         trace_to_result = list(self._trace_to_result)
@@ -677,11 +678,11 @@ class MeasurementMixin:
                     color_hex = shades[j % len(shades)]
                     bgr = self._hex_to_bgr(color_hex)
                     pts = path[start:end, [1, 0]].astype(np.int32)
-                    cv2.polylines(img_bgr, [pts], False, bgr, thickness=3)
+                    cv2.polylines(img_bgr, [pts], False, bgr, thickness=trace_thick)
             else:
                 bgr = self._hex_to_bgr(shades[0])
                 pts = path[:, [1, 0]].astype(np.int32)
-                cv2.polylines(img_bgr, [pts], False, bgr, thickness=3)
+                cv2.polylines(img_bgr, [pts], False, bgr, thickness=trace_thick)
             # Add number + cm label (vertical) next to trace
             ri = trace_to_result[ti] if ti < len(trace_to_result) else ti
             plate = root_plates[ri] if ri < len(root_plates) else 0

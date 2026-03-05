@@ -292,7 +292,7 @@ def _place_cld_letters(ax, is_factorial, df, value_col, genotypes, conditions,
             q25 = np.percentile(d, 25)
             iqr = q75 - q25
             upper_whisker = min(q75 + 1.5 * iqr, d.max())
-            top = max(upper_whisker, d.max())
+            top = upper_whisker
             pos = positions_map[geno]
             ax.text(pos, top + offset, letter, ha='center', va='bottom',
                     fontsize=12, fontweight='normal')
@@ -309,7 +309,7 @@ def _place_cld_letters(ax, is_factorial, df, value_col, genotypes, conditions,
             q25 = np.percentile(d, 25)
             iqr = q75 - q25
             upper_whisker = min(q75 + 1.5 * iqr, d.max())
-            top = max(upper_whisker, d.max())
+            top = upper_whisker
             ax.text(pos, top + offset, letter, ha='center', va='bottom',
                     fontsize=10, fontweight='normal')
 

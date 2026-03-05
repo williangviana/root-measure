@@ -112,45 +112,50 @@ def _run_statistics_simple(df, value_col):
     """Run statistics for simple design (genotype only).
 
     Returns:
-        dict of genotype -> CLD letter string
+        (cld, stats_info) where cld is dict of genotype -> CLD letter string
+        and stats_info is a dict with test details and pairwise results.
     """
     genotypes = sort_genotypes_wt_first(df['Genotype'].unique().tolist())
     groups = [df.loc[df['Genotype'] == g, value_col].dropna().values
               for g in genotypes]
+    info = {'group_keys': genotypes, 'groups': groups, 'pairwise': {}}
 
     if len(genotypes) < 2:
-        return {g: '' for g in genotypes}
+        return {g: '' for g in genotypes}, info
 
     if len(genotypes) == 2:
-        # Welch's t-test
         t_stat, p_val = stats.ttest_ind(groups[0], groups[1], equal_var=False)
-        print(f"  Welch's t-test: t={t_stat:.3f}, p={p_val:.4f}")
+        info['test'] = "Welch's t-test"
+        info['stat_name'] = 't'
+        info['stat_val'] = t_stat
+        info['p_val'] = p_val
         pairwise = {(genotypes[0], genotypes[1]): p_val}
     else:
-        # one-way ANOVA
         f_stat, p_anova = stats.f_oneway(*groups)
-        print(f"  One-way ANOVA: F={f_stat:.3f}, p={p_anova:.4f}")
-        # Tukey HSD
+        info['test'] = 'One-way ANOVA'
+        info['stat_name'] = 'F'
+        info['stat_val'] = f_stat
+        info['p_val'] = p_anova
         result = stats.tukey_hsd(*groups)
         pairwise = {}
         for i, j in combinations(range(len(genotypes)), 2):
-            p_val = result.pvalue[i, j]
-            pairwise[(genotypes[i], genotypes[j])] = p_val
-            print(f"    {genotypes[i]} vs {genotypes[j]}: p={p_val:.4f}")
+            pairwise[(genotypes[i], genotypes[j])] = result.pvalue[i, j]
 
-    return _compact_letter_display(genotypes, pairwise)
+    info['pairwise'] = pairwise
+    cld = _compact_letter_display(genotypes, pairwise)
+    return cld, info
 
 
 def _run_statistics_factorial(df, value_col):
     """Run statistics for factorial design (genotype x condition).
 
     Returns:
-        dict of (genotype, condition) -> CLD letter string
+        (cld, stats_info) where cld is dict of (genotype, condition) -> CLD
+        letter string and stats_info has test details and pairwise results.
     """
     genotypes = sort_genotypes_wt_first(df['Genotype'].unique().tolist())
     conditions = df['Condition'].unique().tolist()
 
-    # build all group combinations that exist in data
     group_keys = []
     groups = []
     for cond in conditions:
@@ -161,23 +166,111 @@ def _run_statistics_factorial(df, value_col):
                 group_keys.append((geno, cond))
                 groups.append(subset)
 
+    info = {'group_keys': group_keys, 'groups': groups, 'pairwise': {}}
+
     if len(group_keys) < 2:
-        return {k: '' for k in group_keys}
+        return {k: '' for k in group_keys}, info
 
-    # one-way ANOVA on all groups (treating each geno×cond as a separate group)
     f_stat, p_anova = stats.f_oneway(*groups)
-    print(f"  ANOVA (all groups): F={f_stat:.3f}, p={p_anova:.4f}")
+    info['test'] = 'One-way ANOVA'
+    info['stat_name'] = 'F'
+    info['stat_val'] = f_stat
+    info['p_val'] = p_anova
 
-    # Tukey HSD on all groups
     result = stats.tukey_hsd(*groups)
     pairwise = {}
     for i, j in combinations(range(len(group_keys)), 2):
-        p_val = result.pvalue[i, j]
-        pairwise[(group_keys[i], group_keys[j])] = p_val
-        gi, gj = group_keys[i], group_keys[j]
-        print(f"    {gi[0]}|{gi[1]} vs {gj[0]}|{gj[1]}: p={p_val:.4f}")
+        pairwise[(group_keys[i], group_keys[j])] = result.pvalue[i, j]
 
-    return _compact_letter_display(group_keys, pairwise)
+    info['pairwise'] = pairwise
+    cld = _compact_letter_display(group_keys, pairwise)
+    return cld, info
+
+
+def format_statistics_summary(df, value_col, is_factorial, stats_info, cld):
+    """Format a human-readable statistics summary."""
+    line = '─' * 45
+    lines = []
+
+    # title
+    title = value_col.replace('_', ' ').upper()
+    if value_col == 'Length_cm':
+        title = 'PRIMARY ROOT LENGTH'
+    elif value_col.startswith('Segment_') and value_col.endswith('_cm'):
+        seg = value_col.replace('Segment_', '').replace('_cm', '')
+        title = f'SEGMENT {seg} LENGTH'
+    lines.append('═' * 45)
+    lines.append(title)
+    lines.append('═' * 45)
+    lines.append('')
+
+    # descriptive statistics
+    lines.append('Descriptive Statistics')
+    lines.append(line)
+    group_keys = stats_info['group_keys']
+    groups = stats_info['groups']
+    # determine label width
+    if is_factorial:
+        labels = [f'{k[0]} | {k[1]}' for k in group_keys]
+    else:
+        labels = list(group_keys)
+    max_lbl = max((len(l) for l in labels), default=10)
+    col_w = max(max_lbl, 10)
+    header = f'{"Group":<{col_w}}  {"n":>3}  {"Mean":>7}  {"SD":>7}  {"SE":>7}'
+    lines.append(header)
+    lines.append(line)
+    for lbl, g in zip(labels, groups):
+        n = len(g)
+        mean = np.mean(g)
+        sd = np.std(g, ddof=1) if n > 1 else 0
+        se = sd / np.sqrt(n) if n > 0 else 0
+        lines.append(f'{lbl:<{col_w}}  {n:>3}  {mean:>7.2f}  {sd:>7.2f}  {se:>7.2f}')
+    lines.append('')
+
+    # overall test
+    lines.append('Overall Test')
+    lines.append(line)
+    test = stats_info.get('test', '')
+    if test:
+        sn = stats_info['stat_name']
+        sv = stats_info['stat_val']
+        pv = stats_info['p_val']
+        sig = ' *' if pv < 0.05 else ''
+        lines.append(f'{test}: {sn} = {sv:.3f}, p = {pv:.4f}{sig}')
+    else:
+        lines.append('Not enough groups for statistical testing.')
+    lines.append('')
+
+    # pairwise comparisons — only for 3+ groups (Tukey HSD)
+    pairwise = stats_info.get('pairwise', {})
+    if len(group_keys) > 2 and pairwise:
+        sig_pairs = {k: v for k, v in pairwise.items() if v < 0.05}
+        lines.append('Significant Pairwise Differences (Tukey HSD, p < 0.05)')
+        lines.append(line)
+        if sig_pairs:
+            for (a, b), p in sorted(sig_pairs.items(), key=lambda x: x[1]):
+                if is_factorial:
+                    la = f'{a[0]} | {a[1]}'
+                    lb = f'{b[0]} | {b[1]}'
+                else:
+                    la, lb = a, b
+                lines.append(f'  {la}  vs  {lb}: p = {p:.4f}')
+        else:
+            lines.append('  No significant differences found.')
+        lines.append('')
+
+    # CLD
+    lines.append('Compact Letter Display')
+    lines.append(line)
+    lines.append('Groups sharing a letter are not significantly')
+    lines.append('different (p > 0.05).')
+    lines.append('')
+    for lbl, key in zip(labels, group_keys):
+        letter = cld.get(key, '')
+        lines.append(f'  {lbl:<{col_w}}  {letter}')
+    lines.append('')
+
+    return '\n'.join(lines)
 
 
 def _place_cld_letters(ax, is_factorial, df, value_col, genotypes, conditions,
@@ -346,13 +439,12 @@ def plot_results(csv_path, value_col=None, ylabel=None, csv_format='R',
     df = df.dropna(subset=[value_col])
 
     # run statistics
-    print("\n  Statistics:")
     if is_factorial:
-        cld = _run_statistics_factorial(df, value_col)
+        cld, stats_info = _run_statistics_factorial(df, value_col)
     else:
-        cld = _run_statistics_simple(df, value_col)
-
-    print("\n  Letters:", cld)
+        cld, stats_info = _run_statistics_simple(df, value_col)
+    summary = format_statistics_summary(
+        df, value_col, is_factorial, stats_info, cld)
 
     # generate plot - dynamic width based on number of groups
     # Fixed box width, figure scales horizontally
@@ -471,3 +563,4 @@ def plot_results(csv_path, value_col=None, ylabel=None, csv_format='R',
     print(f"\n  Plot saved to: {png_path}")
 
     plt.close(fig)
+    return summary

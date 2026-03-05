@@ -412,7 +412,7 @@ def plot_results(csv_path, value_col=None, ylabel=None, csv_format='R',
         # tighten x-axis around actual box positions
         all_pos = list(positions_map.values())
         if all_pos:
-            margin = box_width * 0.5 + 0.15
+            margin = box_width / 2 + 0.25
             ax.set_xlim(min(all_pos) - margin, max(all_pos) + margin)
         handles = [plt.Rectangle((0, 0), 1, 1, facecolor=_geno_color(genotypes[i], i),
                                  edgecolor='black') for i in range(n_geno)]

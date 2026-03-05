@@ -663,6 +663,7 @@ class MeasurementMixin:
         root_plates = list(self.canvas._root_plates)
         root_groups = list(self.canvas._root_groups)
         trace_to_result = list(self._trace_to_result)
+        cm_labels = []
 
         for ti, (path, shades, mark_indices) in enumerate(self.canvas._traces):
             if len(path) < 2:
@@ -703,7 +704,7 @@ class MeasurementMixin:
                         (0, 0, 0), num_font_thick + 2, cv2.LINE_AA)
             cv2.putText(img_bgr, label_text, (nx, ny), font, num_font_scale,
                         color_bgr, num_font_thick, cv2.LINE_AA)
-            # cm label at bottom of trace (bigger font)
+            # collect cm label for deferred drawing (to resolve overlaps)
             res = self._results[ri] if ri < len(self._results) else None
             cm_val = res.get('length_cm') if res else None
             if cm_val:
@@ -711,9 +712,45 @@ class MeasurementMixin:
                 cm_font_scale = font_scale * 1.8
                 cm_font_thick = max(1, int(font_thick * 1.5))
                 gap = max(10, int(scale / 40))
+                cm_labels.append({
+                    'text': f"{cm_val:.2f}cm",
+                    'x': int(bot_col),
+                    'y': int(bot_row) + gap,
+                    'font_scale': cm_font_scale,
+                    'font_thick': cm_font_thick,
+                    'color_bgr': color_bgr,
+                })
+
+        # resolve overlapping cm labels and draw them
+        if cm_labels:
+            pad = 4
+            for lbl in cm_labels:
+                (tw, th), baseline = cv2.getTextSize(
+                    lbl['text'], font, lbl['font_scale'], lbl['font_thick'] + 2)
+                rw = th + baseline + pad * 2  # width on screen after rotation
+                rh = tw + pad * 2             # height on screen after rotation
+                lbl['rw'] = rw
+                lbl['rh'] = rh
+                lbl['x0'] = lbl['x'] - rw // 2
+                lbl['x1'] = lbl['x'] + rw // 2
+                lbl['y0'] = lbl['y']
+                lbl['y1'] = lbl['y'] + rh
+            cm_labels.sort(key=lambda l: l['x'])
+            min_gap = 4
+            for i in range(1, len(cm_labels)):
+                for j in range(i):
+                    a, b = cm_labels[j], cm_labels[i]
+                    if (b['x0'] < a['x1'] + min_gap and
+                            b['x1'] > a['x0'] - min_gap and
+                            b['y0'] < a['y1'] and b['y1'] > a['y0']):
+                        new_x = a['x1'] + b['rw'] // 2 + min_gap
+                        b['x'] = new_x
+                        b['x0'] = new_x - b['rw'] // 2
+                        b['x1'] = new_x + b['rw'] // 2
+            for lbl in cm_labels:
                 self._draw_vertical_label(
-                    img_bgr, f"{cm_val:.2f}cm", int(bot_col), int(bot_row) + gap,
-                    font, cm_font_scale, cm_font_thick, color_bgr,
+                    img_bgr, lbl['text'], lbl['x'], lbl['y'],
+                    font, lbl['font_scale'], lbl['font_thick'], lbl['color_bgr'],
                     anchor="top")
 
         # Draw dead/touching seedling markers

@@ -13,7 +13,7 @@ from image_processing import preprocess
 from root_tracing import find_root_tip, trace_root, build_plate_graph
 from utils import _compute_segments, _find_nearest_path_index
 from csv_output import append_results_to_csv, save_metadata
-from plotting import plot_results
+from plotting import plot_results, plot_segments_facet
 
 from canvas import ImageCanvas
 from session import data_dir, traces_dir
@@ -1145,6 +1145,10 @@ class MeasurementMixin:
                                  genotype_colors=geno_colors)
                 if s:
                     summaries.append(s)
+            # facet plot when 2+ segments
+            if len(seg_cols) >= 2:
+                plot_segments_facet(raw_path, seg_cols, csv_format='R',
+                                   genotype_colors=geno_colors)
             # save statistics summary
             if summaries:
                 stats_path = data_dir(folder, exp) / 'statistics.txt'

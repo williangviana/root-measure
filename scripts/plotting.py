@@ -564,3 +564,141 @@ def plot_results(csv_path, value_col=None, ylabel=None, csv_format='R',
 
     plt.close(fig)
     return summary
+
+
+def plot_segments_facet(csv_path, seg_cols, csv_format='R',
+                        genotype_colors=None):
+    """Generate a facet plot with one subplot per segment, shared y-axis."""
+    if csv_format == 'Prism':
+        df_test = pd.read_csv(csv_path, header=0, nrows=1)
+        first_col = str(df_test.columns[0]).strip()
+        if first_col == '' or first_col.startswith('Unnamed'):
+            df = _read_prism_factorial(csv_path)
+        else:
+            df = _read_prism_simple(csv_path)
+    else:
+        df = pd.read_csv(csv_path)
+
+    if 'Warning' in df.columns:
+        df = df[df['Warning'].fillna('').astype(str).str.strip() == ''].copy()
+    if len(df) == 0:
+        return
+
+    is_factorial = ('Condition' in df.columns
+                    and df['Condition'].nunique(dropna=True) >= 2)
+    genotypes = sort_genotypes_wt_first(df['Genotype'].unique().tolist())
+    conditions = df['Condition'].unique().tolist() if is_factorial else []
+    n_segs = len(seg_cols)
+
+    def _geno_color(geno, fallback_idx):
+        if genotype_colors and geno in genotype_colors:
+            return COLORS[genotype_colors[geno] % len(COLORS)]
+        return COLORS[fallback_idx % len(COLORS)]
+
+    # figure sizing
+    n_geno = len(genotypes)
+    if is_factorial:
+        n_cond = len(conditions)
+        panel_w = max(0.8 + n_cond * max(n_geno * 0.4, 1.0), 2.5)
+    else:
+        panel_w = max(0.8 + n_geno * 0.55, 2.0)
+    legend_w = 1.4 if is_factorial else 0
+    fig_w = panel_w * n_segs + legend_w + 0.5
+    fig, axes = plt.subplots(1, n_segs, sharey=True,
+                             figsize=(fig_w, 5))
+    if n_segs == 1:
+        axes = [axes]
+
+    for si, sc in enumerate(seg_cols):
+        ax = axes[si]
+        seg_num = sc.replace('Segment_', '').replace('_cm', '')
+        df[sc] = pd.to_numeric(df[sc], errors='coerce')
+        positions_map = {}
+
+        if is_factorial:
+            n_cond = len(conditions)
+            box_width = max(0.6 / n_geno, 0.15)
+            box_gap = 0.05
+            group_half = ((n_geno - 1) / 2) * (box_width + box_gap) + box_width / 2
+            inter_gap = 0.25
+            cond_spacing = group_half * 2 + inter_gap
+
+            for ci, cond in enumerate(conditions):
+                cx = ci * cond_spacing
+                for gi, geno in enumerate(genotypes):
+                    d = df.loc[(df['Genotype'] == geno) & (df['Condition'] == cond),
+                               sc].dropna().values
+                    if len(d) == 0:
+                        continue
+                    pos = cx + (gi - (n_geno - 1) / 2) * (box_width + box_gap)
+                    positions_map[(geno, cond)] = pos
+                    ax.boxplot([d], positions=[pos], widths=box_width,
+                               patch_artist=True, showfliers=False, zorder=2,
+                               medianprops=dict(color='black', linewidth=1.5),
+                               boxprops=dict(facecolor=_geno_color(geno, gi),
+                                             edgecolor='black', linewidth=1),
+                               whiskerprops=dict(color='black', linewidth=1),
+                               capprops=dict(color='black', linewidth=1))
+                    jitter = np.random.default_rng(42 + ci * 10 + gi).uniform(
+                        -box_width * 0.3, box_width * 0.3, size=len(d))
+                    ax.scatter(pos + jitter, d, color='black', s=10, alpha=0.6,
+                               zorder=3, edgecolors='none')
+
+            ax.set_xticks([ci * cond_spacing for ci in range(n_cond)])
+            ax.set_xticklabels(conditions, fontsize=10)
+            all_pos = list(positions_map.values())
+            if all_pos:
+                margin = box_width / 2 + inter_gap
+                ax.set_xlim(min(all_pos) - margin, max(all_pos) + margin)
+        else:
+            for gi, geno in enumerate(genotypes):
+                d = df.loc[df['Genotype'] == geno, sc].dropna().values
+                if len(d) == 0:
+                    continue
+                positions_map[geno] = gi
+                ax.boxplot([d], positions=[gi], widths=0.35,
+                           patch_artist=True, showfliers=False, zorder=2,
+                           medianprops=dict(color='black', linewidth=1.5),
+                           boxprops=dict(facecolor=_geno_color(geno, gi),
+                                         edgecolor='black', linewidth=1),
+                           whiskerprops=dict(color='black', linewidth=1),
+                           capprops=dict(color='black', linewidth=1))
+                jitter = np.random.default_rng(42).uniform(-0.1, 0.1, size=len(d))
+                ax.scatter(gi + jitter, d, color='black', s=12, alpha=0.6,
+                           zorder=3, edgecolors='none')
+            ax.set_xticks(range(n_geno))
+            ax.set_xticklabels(genotypes, fontsize=10)
+
+        ax.set_title(f'Segment {seg_num}', fontsize=12, fontweight='bold')
+        ax.set_ylim(bottom=0)
+        for spine in ax.spines.values():
+            spine.set_visible(True)
+            spine.set_linewidth(1.2)
+        ax.tick_params(axis='both', which='major', labelsize=10, width=1.2)
+
+        # CLD letters
+        if is_factorial:
+            cld, _ = _run_statistics_factorial(df, sc)
+        else:
+            cld, _ = _run_statistics_simple(df, sc)
+        ax.autoscale_view()
+        ymin, ymax = ax.get_ylim()
+        ax.set_ylim(0, ymax * 1.1)
+        _place_cld_letters(ax, is_factorial, df, sc, genotypes, conditions,
+                           cld, positions_map)
+
+    axes[0].set_ylabel('Segment length (cm)', fontsize=13)
+
+    # shared legend
+    n_geno = len(genotypes)
+    handles = [plt.Rectangle((0, 0), 1, 1, facecolor=_geno_color(genotypes[i], i),
+                              edgecolor='black') for i in range(n_geno)]
+    axes[-1].legend(handles, genotypes, loc='upper left',
+                    bbox_to_anchor=(1.02, 1), fontsize=10, frameon=True,
+                    edgecolor='black', handlelength=1, handleheight=1)
+
+    plt.tight_layout()
+    png_path = csv_path.with_name('segments_facet.png')
+    fig.savefig(png_path, dpi=300, bbox_inches='tight', facecolor='white')
+    print(f"\n  Facet plot saved to: {png_path}")
+    plt.close(fig)

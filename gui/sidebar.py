@@ -341,10 +341,11 @@ class Sidebar(ctk.CTkScrollableFrame):
         # (see: github.com/TomSchimansky/CustomTkinter/issues/1816)
         self.master = self._parent_canvas
 
-        # Tk 9 / macOS: bind_all("<MouseWheel>") doesn't fire when hovering
-        # over child widgets. Explicitly bind on every new child widget.
-        self._orig_nametowidget = self.nametowidget
-        self.after(500, self._bind_scroll_recursive)
+        # Tk 9 / macOS: <MouseWheel> only fires on the focused widget.
+        # Give the sidebar canvas focus when mouse enters, restore on leave.
+        self._parent_frame.bind("<Enter>", self._on_sidebar_enter, add="+")
+        self._parent_frame.bind("<Leave>", self._on_sidebar_leave, add="+")
+        self._parent_canvas.bind("<MouseWheel>", self._sidebar_scroll)
 
         # --- Header ---
         ctk.CTkLabel(self, text="Root Measuring Tool",
@@ -804,21 +805,21 @@ class Sidebar(ctk.CTkScrollableFrame):
         self.slider_thresh.set(val)
         self.lbl_thresh_val.configure(text=str(int(val)))
 
+    def _on_sidebar_enter(self, event):
+        """Give scroll focus to sidebar canvas when mouse enters."""
+        self._parent_canvas.focus_set()
+
+    def _on_sidebar_leave(self, event):
+        """Return focus to main app when mouse leaves sidebar."""
+        try:
+            self.app.focus_set()
+        except Exception:
+            pass
+
     def _sidebar_scroll(self, event):
         """Scroll sidebar canvas on mousewheel."""
         if self._parent_canvas.yview() != (0.0, 1.0):
             self._parent_canvas.yview("scroll", -event.delta, "units")
-
-    def _bind_scroll_recursive(self):
-        """Bind mousewheel to all sidebar children (Tk 9/macOS fix)."""
-        def _bind_widget(w):
-            try:
-                w.bind("<MouseWheel>", self._sidebar_scroll)
-            except Exception:
-                pass
-            for child in w.winfo_children():
-                _bind_widget(child)
-        _bind_widget(self._parent_frame)
 
     def set_status(self, text):
         self.lbl_status.configure(text=text)

@@ -85,18 +85,34 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
         self.grid_columnconfigure(1, weight=1)
         self.grid_rowconfigure(0, weight=1)
 
-        # Left column: sidebar + action buttons at bottom
+        # Left column: fixed header + scrollable sidebar + action buttons
         self._left_frame = ctk.CTkFrame(self, fg_color="transparent")
         self._left_frame.grid(row=0, column=0, sticky="nsw", padx=0, pady=0)
-        self._left_frame.grid_rowconfigure(0, weight=1)
+        self._left_frame.grid_rowconfigure(1, weight=1)
+
+        # Fixed header (non-scrolling)
+        self._header_frame = ctk.CTkFrame(self._left_frame, fg_color=("gray86", "gray17"),
+                                          corner_radius=0)
+        self._header_frame.grid(row=0, column=0, sticky="ew", padx=0, pady=0)
+        ctk.CTkLabel(self._header_frame, text="Root Measuring Tool",
+                     font=ctk.CTkFont(size=18, weight="bold")).pack(
+            pady=(10, 0), padx=15, anchor="w")
+        ctk.CTkLabel(self._header_frame, text="Willian Viana — Dinneny Lab",
+                     font=ctk.CTkFont(size=11, weight="bold"),
+                     text_color="gray").pack(padx=15, pady=(2, 0), anchor="w")
+        ctk.CTkLabel(self._header_frame, text="Contact: williangviana@outlook.com",
+                     font=ctk.CTkFont(size=11),
+                     text_color="gray50").pack(padx=15, anchor="w")
+        ctk.CTkFrame(self._header_frame, height=1,
+                     fg_color="gray50").pack(fill="x", padx=10, pady=(8, 0))
 
         self.sidebar = Sidebar(self._left_frame, app=self)
-        self.sidebar.grid(row=0, column=0, sticky="nsew", padx=0, pady=0)
+        self.sidebar.grid(row=1, column=0, sticky="nsew", padx=0, pady=0)
 
         # Action buttons frame - fixed at bottom of left column (hidden initially)
         # Match sidebar background color (CTkScrollableFrame default)
         self._action_frame = ctk.CTkFrame(self._left_frame, fg_color=("gray86", "gray17"))
-        self._action_frame.grid(row=1, column=0, sticky="ew", padx=0, pady=0)
+        self._action_frame.grid(row=2, column=0, sticky="ew", padx=0, pady=0)
         self._action_frame.grid_remove()
 
         self.btn_next_image = ctk.CTkButton(
@@ -133,6 +149,9 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
         self.bind_class("TButton", "<KeyRelease-space>", lambda e: "break")
         self.bind_class("Button", "<space>", lambda e: "break")
         self.bind_class("Button", "<KeyRelease-space>", lambda e: "break")
+        # Tk 9/macOS: trackpad scroll is <TouchpadScroll>, not <MouseWheel>.
+        # Route to sidebar or canvas based on mouse position.
+        self.bind_all("<TouchpadScroll>", self._on_touchpad_scroll)
 
         # try to auto-resume last session after window is drawn
         self.after(200, self._try_auto_resume)
@@ -156,6 +175,36 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
             self.canvas.handle_key_release(event)
             return "break"
         self.canvas.handle_key_release(event)
+
+    def _on_touchpad_scroll(self, event):
+        """Tk 9/macOS: route trackpad scroll to sidebar or canvas."""
+        # delta packs X (high 16 bits) and Y (low 16 bits)
+        y = event.delta & 0xFFFF
+        if y >= 0x8000:
+            y -= 0x10000
+        if y == 0:
+            return
+        mx = event.x_root - self.winfo_rootx()
+        if mx < self._left_frame.winfo_width():
+            pc = self.sidebar._parent_canvas
+            top, bot = pc.yview()
+            # Block scroll if already at boundary
+            if y > 0 and top <= 0:
+                return
+            if y < 0 and bot >= 1:
+                return
+            pc.yview_scroll(-y, 'units')
+            # Clamp after scroll
+            top, bot = pc.yview()
+            if top < 0:
+                pc.yview_moveto(0)
+            elif bot > 1:
+                pc.yview_moveto(1.0 - (bot - top))
+        else:
+            if self.canvas._image_np is not None and not self.canvas._manual_trace_drawing:
+                self.canvas._offset_y += y * 3
+                self.canvas._user_zoomed = True
+                self.canvas._fast_redraw()
 
     # --- Image loading ---
 

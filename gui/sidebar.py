@@ -329,24 +329,13 @@ class Sidebar(ctk.CTkScrollableFrame):
 
     def __init__(self, parent, app, **kwargs):
         # Make scrollbar subtle - blend with background until hovered
-        super().__init__(parent, width=280,
+        super().__init__(parent, width=280, corner_radius=0,
                          scrollbar_button_color="gray20",
                          scrollbar_button_hover_color="gray40",
                          **kwargs)
         self.app = app
 
-        # --- Header ---
-        ctk.CTkLabel(self, text="Root Measuring Tool",
-                     font=ctk.CTkFont(size=18, weight="bold")).pack(
-            pady=(15, 0), padx=15, anchor="w")
-        ctk.CTkLabel(self, text="Willian Viana — Dinneny Lab",
-                     font=ctk.CTkFont(size=11, weight="bold"),
-                     text_color="gray").pack(padx=15, pady=(2, 0), anchor="w")
-        ctk.CTkLabel(self, text="Contact: williangviana@outlook.com",
-                     font=ctk.CTkFont(size=11),
-                     text_color="gray50").pack(padx=15, anchor="w")
-
-        self._add_separator()
+        # --- Header is in app._header_frame (fixed, non-scrolling) ---
 
         # ===== SECTION: FOLDER =====
         self.sec_folder = _Section(self, "FOLDER")

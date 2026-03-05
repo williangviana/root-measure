@@ -335,6 +335,12 @@ class Sidebar(ctk.CTkScrollableFrame):
                          **kwargs)
         self.app = app
 
+        # macOS fix: ensure mousewheel scrolls the sidebar when cursor is over it
+        self._mouse_over_sidebar = False
+        self._parent_canvas.bind("<Enter>", lambda e: setattr(self, '_mouse_over_sidebar', True))
+        self._parent_canvas.bind("<Leave>", lambda e: setattr(self, '_mouse_over_sidebar', False))
+        self.bind_all("<MouseWheel>", self._sidebar_scroll, add="+")
+
         # --- Header ---
         ctk.CTkLabel(self, text="Root Measuring Tool",
                      font=ctk.CTkFont(size=18, weight="bold")).pack(
@@ -792,6 +798,11 @@ class Sidebar(ctk.CTkScrollableFrame):
         """Update slider and label to show auto-detected threshold."""
         self.slider_thresh.set(val)
         self.lbl_thresh_val.configure(text=str(int(val)))
+
+    def _sidebar_scroll(self, event):
+        """Handle mousewheel scroll when cursor is over the sidebar."""
+        if self._mouse_over_sidebar and self._parent_canvas.yview() != (0.0, 1.0):
+            self._parent_canvas.yview("scroll", -event.delta, "units")
 
     def set_status(self, text):
         self.lbl_status.configure(text=text)

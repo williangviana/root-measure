@@ -341,11 +341,17 @@ class Sidebar(ctk.CTkScrollableFrame):
         # (see: github.com/TomSchimansky/CustomTkinter/issues/1816)
         self.master = self._parent_canvas
 
-        # Tk 9 / macOS: <MouseWheel> only fires on the focused widget.
-        # Give the sidebar canvas focus when mouse enters, restore on leave.
-        self._parent_frame.bind("<Enter>", self._on_sidebar_enter, add="+")
-        self._parent_frame.bind("<Leave>", self._on_sidebar_leave, add="+")
+        # Tk 9 / macOS: <MouseWheel> only fires on the focused widget,
+        # not via bind_all. Add a bindtag "SidebarScroll" to every widget
+        # inside the sidebar so they all forward scroll events.
+        self.bindtags(self.bindtags() + ('SidebarScroll',))
+        self._parent_canvas.bind_class('SidebarScroll', '<MouseWheel>',
+                                        self._sidebar_scroll)
         self._parent_canvas.bind("<MouseWheel>", self._sidebar_scroll)
+        # Tag new children automatically via periodic scan
+        self._tagged_widgets = set()
+        self._tag_sidebar_children()
+        self._retag_loop()
 
         # --- Header ---
         ctk.CTkLabel(self, text="Root Measuring Tool",
@@ -805,14 +811,24 @@ class Sidebar(ctk.CTkScrollableFrame):
         self.slider_thresh.set(val)
         self.lbl_thresh_val.configure(text=str(int(val)))
 
-    def _on_sidebar_enter(self, event):
-        """Give scroll focus to sidebar canvas when mouse enters."""
-        self._parent_canvas.focus_set()
+    def _retag_loop(self):
+        """Periodically tag new sidebar children for scroll events."""
+        self._tag_sidebar_children()
+        self.after(3000, self._retag_loop)
 
-    def _on_sidebar_leave(self, event):
-        """Return focus to main app when mouse leaves sidebar."""
+    def _tag_sidebar_children(self):
+        """Add 'SidebarScroll' bindtag to all widgets inside the sidebar."""
+        def _tag(w):
+            wid = str(w)
+            if wid not in self._tagged_widgets:
+                self._tagged_widgets.add(wid)
+                tags = w.bindtags()
+                if 'SidebarScroll' not in tags:
+                    w.bindtags(tags + ('SidebarScroll',))
+            for child in w.winfo_children():
+                _tag(child)
         try:
-            self.app.focus_set()
+            _tag(self._parent_frame)
         except Exception:
             pass
 
@@ -820,6 +836,7 @@ class Sidebar(ctk.CTkScrollableFrame):
         """Scroll sidebar canvas on mousewheel."""
         if self._parent_canvas.yview() != (0.0, 1.0):
             self._parent_canvas.yview("scroll", -event.delta, "units")
+            return "break"
 
     def set_status(self, text):
         self.lbl_status.configure(text=text)

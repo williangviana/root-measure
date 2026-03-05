@@ -341,6 +341,11 @@ class Sidebar(ctk.CTkScrollableFrame):
         # (see: github.com/TomSchimansky/CustomTkinter/issues/1816)
         self.master = self._parent_canvas
 
+        # Tk 9 / macOS: bind_all("<MouseWheel>") doesn't fire when hovering
+        # over child widgets. Explicitly bind on every new child widget.
+        self._orig_nametowidget = self.nametowidget
+        self.after(500, self._bind_scroll_recursive)
+
         # --- Header ---
         ctk.CTkLabel(self, text="Root Measuring Tool",
                      font=ctk.CTkFont(size=18, weight="bold")).pack(
@@ -798,6 +803,22 @@ class Sidebar(ctk.CTkScrollableFrame):
         """Update slider and label to show auto-detected threshold."""
         self.slider_thresh.set(val)
         self.lbl_thresh_val.configure(text=str(int(val)))
+
+    def _sidebar_scroll(self, event):
+        """Scroll sidebar canvas on mousewheel."""
+        if self._parent_canvas.yview() != (0.0, 1.0):
+            self._parent_canvas.yview("scroll", -event.delta, "units")
+
+    def _bind_scroll_recursive(self):
+        """Bind mousewheel to all sidebar children (Tk 9/macOS fix)."""
+        def _bind_widget(w):
+            try:
+                w.bind("<MouseWheel>", self._sidebar_scroll)
+            except Exception:
+                pass
+            for child in w.winfo_children():
+                _bind_widget(child)
+        _bind_widget(self._parent_frame)
 
     def set_status(self, text):
         self.lbl_status.configure(text=text)

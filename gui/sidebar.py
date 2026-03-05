@@ -336,9 +336,6 @@ class Sidebar(ctk.CTkScrollableFrame):
         self.app = app
 
         # macOS fix: ensure mousewheel scrolls the sidebar when cursor is over it
-        self._mouse_over_sidebar = False
-        self._parent_canvas.bind("<Enter>", lambda e: setattr(self, '_mouse_over_sidebar', True))
-        self._parent_canvas.bind("<Leave>", lambda e: setattr(self, '_mouse_over_sidebar', False))
         self.bind_all("<MouseWheel>", self._sidebar_scroll, add="+")
 
         # --- Header ---
@@ -801,8 +798,16 @@ class Sidebar(ctk.CTkScrollableFrame):
 
     def _sidebar_scroll(self, event):
         """Handle mousewheel scroll when cursor is over the sidebar."""
-        if self._mouse_over_sidebar and self._parent_canvas.yview() != (0.0, 1.0):
-            self._parent_canvas.yview("scroll", -event.delta, "units")
+        try:
+            # check if mouse is within the sidebar's parent frame
+            pf = self._parent_frame
+            mx = pf.winfo_pointerx() - pf.winfo_rootx()
+            my = pf.winfo_pointery() - pf.winfo_rooty()
+            if 0 <= mx <= pf.winfo_width() and 0 <= my <= pf.winfo_height():
+                if self._parent_canvas.yview() != (0.0, 1.0):
+                    self._parent_canvas.yview("scroll", -event.delta, "units")
+        except Exception:
+            pass
 
     def set_status(self, text):
         self.lbl_status.configure(text=text)

@@ -40,7 +40,7 @@ build_options = {
 
 bdist_mac_options = {
     "bundle_name": "Root Measure",
-    "iconfile": str(icon_dir / "root_measure_icon.icns"),
+    "iconfile": str(icon_dir / "icon.icns"),
     "codesign_identity": "-",
     "codesign_deep": True,
 }
@@ -50,12 +50,12 @@ if sys.platform == "win32":
     # Windows: use Win32GUI base to hide console window
     exe_base = "Win32GUI"
     target_name = "RootMeasure.exe"
-    icon_file = str(icon_dir / "root_measure_icon.ico")
+    icon_file = str(icon_dir / "icon.ico")
 else:
     # macOS/Linux
     exe_base = "gui"
     target_name = "RootMeasure"
-    icon_file = str(icon_dir / "root_measure_icon.icns")
+    icon_file = str(icon_dir / "icon.icns")
 
 setup(
     name="RootMeasure",

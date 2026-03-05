@@ -609,6 +609,7 @@ def plot_segments_facet(csv_path, seg_cols, csv_format='R',
     if n_segs == 1:
         axes = [axes]
 
+    facet_data = []
     for si, sc in enumerate(seg_cols):
         ax = axes[si]
         seg_num = sc.replace('Segment_', '').replace('_cm', '')
@@ -676,16 +677,30 @@ def plot_segments_facet(csv_path, seg_cols, csv_format='R',
             spine.set_linewidth(1.2)
         ax.tick_params(axis='both', which='major', labelsize=10, width=1.2)
 
-        # CLD letters
+        # collect CLD for deferred placement
         if is_factorial:
-            cld, _ = _run_statistics_factorial(df, sc)
+            cld_i, _ = _run_statistics_factorial(df, sc)
         else:
-            cld, _ = _run_statistics_simple(df, sc)
-        ax.autoscale_view()
-        ymin, ymax = ax.get_ylim()
-        ax.set_ylim(0, ymax * 1.1)
+            cld_i, _ = _run_statistics_simple(df, sc)
+        facet_data.append((ax, sc, cld_i, positions_map))
+
+    # compute shared ylim: find max whisker across all panels, add headroom
+    global_max = 0
+    for _, sc, _, _ in facet_data:
+        vals = pd.to_numeric(df[sc], errors='coerce').dropna().values
+        if len(vals) == 0:
+            continue
+        q75 = np.percentile(vals, 75)
+        q25 = np.percentile(vals, 25)
+        iqr = q75 - q25
+        whisker = min(q75 + 1.5 * iqr, vals.max())
+        global_max = max(global_max, whisker)
+    shared_ymax = global_max * 1.15  # 15% headroom for letters
+
+    for ax, sc, cld_i, positions_map in facet_data:
+        ax.set_ylim(0, shared_ymax)
         _place_cld_letters(ax, is_factorial, df, sc, genotypes, conditions,
-                           cld, positions_map)
+                           cld_i, positions_map)
 
     axes[0].set_ylabel('Segment length (cm)', fontsize=13)
 

@@ -335,8 +335,11 @@ class Sidebar(ctk.CTkScrollableFrame):
                          **kwargs)
         self.app = app
 
-        # macOS fix: ensure mousewheel scrolls the sidebar when cursor is over it
-        self.bind_all("<MouseWheel>", self._sidebar_scroll, add="+")
+        # Fix: subclassing CTkScrollableFrame breaks the widget.master chain
+        # that check_if_master_is_canvas() walks, so the built-in scroll handler
+        # silently drops all events. Repairing the chain fixes it.
+        # (see: github.com/TomSchimansky/CustomTkinter/issues/1816)
+        self.master = self._parent_canvas
 
         # --- Header ---
         ctk.CTkLabel(self, text="Root Measuring Tool",
@@ -795,19 +798,6 @@ class Sidebar(ctk.CTkScrollableFrame):
         """Update slider and label to show auto-detected threshold."""
         self.slider_thresh.set(val)
         self.lbl_thresh_val.configure(text=str(int(val)))
-
-    def _sidebar_scroll(self, event):
-        """Handle mousewheel scroll when cursor is over the sidebar."""
-        try:
-            # check if mouse is within the sidebar's parent frame
-            pf = self._parent_frame
-            mx = pf.winfo_pointerx() - pf.winfo_rootx()
-            my = pf.winfo_pointery() - pf.winfo_rooty()
-            if 0 <= mx <= pf.winfo_width() and 0 <= my <= pf.winfo_height():
-                if self._parent_canvas.yview() != (0.0, 1.0):
-                    self._parent_canvas.yview("scroll", -event.delta, "units")
-        except Exception:
-            pass
 
     def set_status(self, text):
         self.lbl_status.configure(text=text)

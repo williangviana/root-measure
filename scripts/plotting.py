@@ -383,7 +383,7 @@ def plot_results(csv_path, value_col=None, ylabel=None, csv_format='R',
 
         box_gap = 0.05
         group_half = ((n_geno - 1) / 2) * (box_width + box_gap) + box_width / 2
-        inter_gap = 0.5
+        inter_gap = 0.25
         cond_spacing = group_half * 2 + inter_gap
 
         for ci, cond in enumerate(conditions):

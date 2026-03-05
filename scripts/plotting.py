@@ -383,7 +383,8 @@ def plot_results(csv_path, value_col=None, ylabel=None, csv_format='R',
 
         box_gap = 0.05
         group_half = ((n_geno - 1) / 2) * (box_width + box_gap) + box_width / 2
-        cond_spacing = group_half * 2 + 0.5  # gap between condition groups
+        inter_gap = 0.5
+        cond_spacing = group_half * 2 + inter_gap
 
         for ci, cond in enumerate(conditions):
             cx = ci * cond_spacing
@@ -412,7 +413,7 @@ def plot_results(csv_path, value_col=None, ylabel=None, csv_format='R',
         # tighten x-axis around actual box positions
         all_pos = list(positions_map.values())
         if all_pos:
-            margin = box_width / 2 + 0.25
+            margin = box_width / 2 + inter_gap
             ax.set_xlim(min(all_pos) - margin, max(all_pos) + margin)
         handles = [plt.Rectangle((0, 0), 1, 1, facecolor=_geno_color(genotypes[i], i),
                                  edgecolor='black') for i in range(n_geno)]

@@ -977,7 +977,14 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
             self._current_plate_idx = 0
             self._split = self.sidebar.is_split_plate()
             self._split_stage = 0
-            # _current_group set per-plate in _enter_root_click_stage via registry
+            # Pre-register genotype names so they get sequential color indices
+            # (clears stale fallback names like "genotype" from previous images)
+            genotypes = [g.strip() for g in
+                         self.sidebar.entry_genotypes.get().split(",")
+                         if g.strip()]
+            self._genotype_colors = {}
+            for name in genotypes:
+                self._register_genotype(name)
         self.sidebar.btn_measure.configure(state="disabled")
         self.sidebar.btn_review.configure(state="disabled")
         self._hide_action_buttons()

@@ -230,6 +230,15 @@ def _run_statistics_factorial(df, value_col):
     return cld, info
 
 
+def _fmt_p(p):
+    """Format p-value: use scientific notation when very small."""
+    if np.isnan(p):
+        return 'NA'
+    if p < 0.0001:
+        return f'{p:.2e}'
+    return f'{p:.4f}'
+
+
 def format_statistics_summary(df, value_col, is_factorial, stats_info, cld):
     """Format a human-readable statistics summary."""
     line = '─' * 45
@@ -284,7 +293,7 @@ def format_statistics_summary(df, value_col, is_factorial, stats_info, cld):
             for e in effects:
                 sig = ' *' if e['p'] < 0.05 else ''
                 f_str = f"{e['F']:.3f}" if not np.isnan(e['F']) else 'NA'
-                p_str = f"{e['p']:.4f}" if not np.isnan(e['p']) else 'NA'
+                p_str = _fmt_p(e['p'])
                 lines.append(
                     f"{e['source']:<25} {int(e['df']):>4}  {f_str:>8}  {p_str:>8}{sig}")
         else:
@@ -292,7 +301,7 @@ def format_statistics_summary(df, value_col, is_factorial, stats_info, cld):
             sv = stats_info['stat_val']
             pv = stats_info['p_val']
             sig = ' *' if pv < 0.05 else ''
-            lines.append(f'{test}: {sn} = {sv:.3f}, p = {pv:.4f}{sig}')
+            lines.append(f'{test}: {sn} = {sv:.3f}, p = {_fmt_p(pv)}{sig}')
     else:
         lines.append('Not enough groups for statistical testing.')
     lines.append('')
@@ -310,7 +319,7 @@ def format_statistics_summary(df, value_col, is_factorial, stats_info, cld):
                     lb = f'{b[0]} | {b[1]}'
                 else:
                     la, lb = a, b
-                lines.append(f'  {la}  vs  {lb}: p = {p:.4f}')
+                lines.append(f'  {la}  vs  {lb}: p = {_fmt_p(p)}')
         else:
             lines.append('  No significant differences found.')
         lines.append('')

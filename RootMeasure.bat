@@ -1,3 +1,3 @@
 @echo off
 cd /d "%~dp0"
-.venv\Scripts\python.exe gui\app.py
+start "" .venv\Scripts\pythonw.exe gui\app.py

@@ -149,6 +149,9 @@ def _run_statistics_simple(df, value_col):
 def _run_statistics_factorial(df, value_col):
     """Run statistics for factorial design (genotype x condition).
 
+    Uses two-way ANOVA (Type II) for main effects and interaction,
+    then Tukey HSD for pairwise comparisons and CLD.
+
     Returns:
         (cld, stats_info) where cld is dict of (genotype, condition) -> CLD
         letter string and stats_info has test details and pairwise results.
@@ -171,12 +174,52 @@ def _run_statistics_factorial(df, value_col):
     if len(group_keys) < 2:
         return {k: '' for k in group_keys}, info
 
-    f_stat, p_anova = stats.f_oneway(*groups)
-    info['test'] = 'One-way ANOVA'
-    info['stat_name'] = 'F'
-    info['stat_val'] = f_stat
-    info['p_val'] = p_anova
+    # Two-way ANOVA (Type II) via statsmodels
+    try:
+        import statsmodels.api as sm
+        from statsmodels.formula.api import ols
 
+        df_anova = df[['Genotype', 'Condition', value_col]].dropna().copy()
+        df_anova.columns = ['Genotype', 'Condition', 'Y']
+        model = ols('Y ~ C(Genotype) * C(Condition)', data=df_anova).fit()
+        anova_table = sm.stats.anova_lm(model, typ=2)
+
+        info['test'] = 'Two-way ANOVA (Type II)'
+        info['anova_table'] = anova_table
+        # store main effects and interaction for summary display
+        info['effects'] = []
+        for source in ['C(Genotype)', 'C(Condition)', 'C(Genotype):C(Condition)']:
+            if source in anova_table.index:
+                row = anova_table.loc[source]
+                label = source.replace('C(', '').replace(')', '')
+                label = label.replace(':', ' × ')
+                info['effects'].append({
+                    'source': label,
+                    'F': row['F'],
+                    'p': row['PR(>F)'],
+                    'df': row['df'],
+                    'SS': row['sum_sq'],
+                })
+        # overall p from interaction (or genotype main effect as fallback)
+        if 'C(Genotype):C(Condition)' in anova_table.index:
+            info['stat_name'] = 'F'
+            info['stat_val'] = anova_table.loc['C(Genotype):C(Condition)', 'F']
+            info['p_val'] = anova_table.loc['C(Genotype):C(Condition)', 'PR(>F)']
+        else:
+            info['stat_name'] = 'F'
+            info['stat_val'] = anova_table.loc['C(Genotype)', 'F']
+            info['p_val'] = anova_table.loc['C(Genotype)', 'PR(>F)']
+    except Exception:
+        # fallback to one-way if statsmodels fails
+        import traceback
+        traceback.print_exc()
+        f_stat, p_anova = stats.f_oneway(*groups)
+        info['test'] = 'One-way ANOVA (fallback)'
+        info['stat_name'] = 'F'
+        info['stat_val'] = f_stat
+        info['p_val'] = p_anova
+
+    # Tukey HSD pairwise comparisons (always via scipy for CLD)
     result = stats.tukey_hsd(*groups)
     pairwise = {}
     for i, j in combinations(range(len(group_keys)), 2):
@@ -232,11 +275,24 @@ def format_statistics_summary(df, value_col, is_factorial, stats_info, cld):
     lines.append(line)
     test = stats_info.get('test', '')
     if test:
-        sn = stats_info['stat_name']
-        sv = stats_info['stat_val']
-        pv = stats_info['p_val']
-        sig = ' *' if pv < 0.05 else ''
-        lines.append(f'{test}: {sn} = {sv:.3f}, p = {pv:.4f}{sig}')
+        effects = stats_info.get('effects')
+        if effects:
+            # Two-way ANOVA table
+            lines.append(test)
+            lines.append(f'{"Source":<25} {"df":>4}  {"F":>8}  {"p":>8}')
+            lines.append('─' * 50)
+            for e in effects:
+                sig = ' *' if e['p'] < 0.05 else ''
+                f_str = f"{e['F']:.3f}" if not np.isnan(e['F']) else 'NA'
+                p_str = f"{e['p']:.4f}" if not np.isnan(e['p']) else 'NA'
+                lines.append(
+                    f"{e['source']:<25} {int(e['df']):>4}  {f_str:>8}  {p_str:>8}{sig}")
+        else:
+            sn = stats_info['stat_name']
+            sv = stats_info['stat_val']
+            pv = stats_info['p_val']
+            sig = ' *' if pv < 0.05 else ''
+            lines.append(f'{test}: {sn} = {sv:.3f}, p = {pv:.4f}{sig}')
     else:
         lines.append('Not enough groups for statistical testing.')
     lines.append('')

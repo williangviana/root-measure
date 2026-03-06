@@ -151,7 +151,10 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
         self.bind_class("Button", "<KeyRelease-space>", lambda e: "break")
         # Tk 9/macOS: trackpad scroll is <TouchpadScroll>, not <MouseWheel>.
         # Route to sidebar or canvas based on mouse position.
-        self.bind_all("<TouchpadScroll>", self._on_touchpad_scroll)
+        try:
+            self.bind_all("<TouchpadScroll>", self._on_touchpad_scroll)
+        except Exception:
+            pass  # Tk 8.x doesn't have <TouchpadScroll>
 
         # try to auto-resume last session after window is drawn
         self.after(200, self._try_auto_resume)

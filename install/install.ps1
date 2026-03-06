@@ -63,15 +63,20 @@ Write-Host "[3/6] Virtual environment OK"
 # --- 4. Install dependencies ---
 Write-Host "[4/6] Installing dependencies..."
 & python -m pip install -r install/requirements.txt -q
-& python -m pip install cx_Freeze -q
+& python -m pip install pyinstaller -q
 Write-Host "[4/6] Dependencies OK"
 
 # --- 5. Build executable ---
 Write-Host "[5/6] Building app..."
-& python install/setup.py build_exe
+& python -m PyInstaller --name RootMeasure --windowed --noconfirm `
+    --paths gui --paths scripts `
+    --additional-hooks-dir install/pyinstaller-hooks `
+    --collect-all customtkinter `
+    --icon icon/icon.ico `
+    gui/app.py
 
-$builtDir = Get-ChildItem "build" -Directory | Where-Object { $_.Name -match "exe" } | Select-Object -First 1
-if (-not $builtDir) {
+$builtDir = "dist\RootMeasure"
+if (-not (Test-Path "$builtDir\RootMeasure.exe")) {
     Write-Host "ERROR: Build failed."
     exit 1
 }
@@ -79,14 +84,14 @@ Write-Host "[5/6] Build OK"
 
 # --- 6. Install to local app directory ---
 if (Test-Path $InstallDir) { Remove-Item $InstallDir -Recurse -Force }
-Move-Item $builtDir.FullName $InstallDir
+Move-Item $builtDir $InstallDir
 
 # Create desktop shortcut
-$exePath = Get-ChildItem $InstallDir -Filter "RootMeasure.exe" -Recurse | Select-Object -First 1
-if ($exePath) {
+$exePath = "$InstallDir\RootMeasure.exe"
+if (Test-Path $exePath) {
     $desktop = [Environment]::GetFolderPath("Desktop")
     $shortcut = (New-Object -ComObject WScript.Shell).CreateShortcut("$desktop\Root Measure.lnk")
-    $shortcut.TargetPath = $exePath.FullName
+    $shortcut.TargetPath = $exePath
     $shortcut.WorkingDirectory = $InstallDir
     $shortcut.Description = $AppName
     $shortcut.Save()

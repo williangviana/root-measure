@@ -1,8 +1,15 @@
 #!/usr/bin/env python3
 """Root Measure GUI — CustomTkinter app shell."""
 
+import os
 import sys
 from pathlib import Path
+
+# cx_Freeze Win32GUI sets sys.stdout/stderr to None — redirect to devnull
+if sys.stdout is None:
+    sys.stdout = open(os.devnull, "w")
+if sys.stderr is None:
+    sys.stderr = open(os.devnull, "w")
 
 import customtkinter as ctk
 import cv2

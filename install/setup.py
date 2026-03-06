@@ -10,11 +10,29 @@ scripts_dir = Path("scripts")
 gui_dir = Path("gui")
 icon_dir = Path("icon")
 
+# On Windows, numpy ships .dll files in numpy.libs or numpy._core that
+# cx_Freeze may miss. Find and include them.
+_extra_includes = []
+if sys.platform == "win32":
+    try:
+        import numpy as _np
+        np_dir = Path(_np.__file__).parent
+        # numpy 2.x stores DLLs in numpy.libs/ or numpy/_core/
+        for dll_dir in [np_dir / ".libs", np_dir.parent / "numpy.libs",
+                        np_dir / "_core"]:
+            if dll_dir.is_dir():
+                for dll in dll_dir.glob("*.dll"):
+                    _extra_includes.append((str(dll), str(Path("lib") / dll.name)))
+    except Exception:
+        pass
+
 build_options = {
     "packages": [
         "customtkinter",
         "cv2",
         "numpy",
+        "numpy._core",
+        "numpy.core",
         "scipy",
         "skimage",
         "pandas",
@@ -22,6 +40,7 @@ build_options = {
         "matplotlib",
         "PIL",
         "tkinter",
+        "statsmodels",
     ],
     "excludes": [
         "torch", "torchvision", "torchaudio",
@@ -34,7 +53,7 @@ build_options = {
         (str(gui_dir / "canvas.py"), str(Path("lib") / "gui" / "canvas.py")),
         (str(gui_dir / "sidebar.py"), str(Path("lib") / "gui" / "sidebar.py")),
         (str(gui_dir / "workflow.py"), str(Path("lib") / "gui" / "workflow.py")),
-    ],
+    ] + _extra_includes,
     "path": sys.path + [str(scripts_dir), str(gui_dir)],
 }
 

@@ -205,7 +205,12 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
                 pc.yview_moveto(1.0 - (bot - top))
         else:
             if self.canvas._image_np is not None and not self.canvas._manual_trace_drawing:
-                self.canvas._offset_y += y * 3
+                factor = 1.05 if y > 0 else 0.95
+                mx = event.x_root - self.canvas.canvas.winfo_rootx()
+                my = event.y_root - self.canvas.canvas.winfo_rooty()
+                self.canvas._offset_x = mx - factor * (mx - self.canvas._offset_x)
+                self.canvas._offset_y = my - factor * (my - self.canvas._offset_y)
+                self.canvas._scale *= factor
                 self.canvas._user_zoomed = True
                 self.canvas._fast_redraw()
 

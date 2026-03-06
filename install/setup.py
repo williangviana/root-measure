@@ -10,19 +10,22 @@ scripts_dir = Path("scripts")
 gui_dir = Path("gui")
 icon_dir = Path("icon")
 
-# On Windows, numpy ships .dll files in numpy.libs or numpy._core that
-# cx_Freeze may miss. Find and include them.
-_extra_includes = []
+# On Windows, numpy 2.x ships DLLs in a separate numpy.libs/ directory.
+# cx_Freeze needs bin_path_includes to find them during dependency analysis.
+_bin_path_includes = []
 if sys.platform == "win32":
     try:
         import numpy as _np
         np_dir = Path(_np.__file__).parent
-        # numpy 2.x stores DLLs in numpy.libs/ or numpy/_core/
-        for dll_dir in [np_dir / ".libs", np_dir.parent / "numpy.libs",
-                        np_dir / "_core"]:
+        for dll_dir in [np_dir / ".libs", np_dir.parent / "numpy.libs"]:
             if dll_dir.is_dir():
-                for dll in dll_dir.glob("*.dll"):
-                    _extra_includes.append((str(dll), str(Path("lib") / dll.name)))
+                _bin_path_includes.append(str(dll_dir))
+        # Also include scipy.libs if present
+        import scipy as _sp
+        sp_dir = Path(_sp.__file__).parent
+        for dll_dir in [sp_dir / ".libs", sp_dir.parent / "scipy.libs"]:
+            if dll_dir.is_dir():
+                _bin_path_includes.append(str(dll_dir))
     except Exception:
         pass
 
@@ -53,7 +56,8 @@ build_options = {
         (str(gui_dir / "canvas.py"), str(Path("lib") / "gui" / "canvas.py")),
         (str(gui_dir / "sidebar.py"), str(Path("lib") / "gui" / "sidebar.py")),
         (str(gui_dir / "workflow.py"), str(Path("lib") / "gui" / "workflow.py")),
-    ] + _extra_includes,
+    ],
+    "bin_path_includes": _bin_path_includes,
     "path": sys.path + [str(scripts_dir), str(gui_dir)],
 }
 

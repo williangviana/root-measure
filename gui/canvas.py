@@ -992,7 +992,7 @@ class ImageCanvas(ctk.CTkFrame):
             self._redraw()
 
     def _on_scroll(self, event):
-        """Mouse wheel scroll = pan vertically, or scroll sidebar if mouse is over it."""
+        """Mouse wheel scroll = zoom, or scroll sidebar if mouse is over it."""
         # Redirect to sidebar when mouse is over the sidebar area
         app = self.master
         if hasattr(app, 'sidebar') and hasattr(app, '_left_frame'):
@@ -1003,11 +1003,7 @@ class ImageCanvas(ctk.CTkFrame):
                 return
         if self._image_np is None or self._manual_trace_drawing:
             return
-        # macOS delta is ±1..±N per tick; multiply for smooth pan speed
-        dy = event.delta * 3
-        self._offset_y += dy
-        self._user_zoomed = True
-        self._fast_redraw()
+        self._do_zoom(event)
 
     def _on_scroll_h(self, event):
         """Shift + scroll = pan horizontally."""

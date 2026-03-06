@@ -104,7 +104,7 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
                      font=ctk.CTkFont(size=11),
                      text_color="gray50").pack(padx=15, anchor="w")
         ctk.CTkFrame(self._header_frame, height=1,
-                     fg_color="gray50").pack(fill="x", padx=10, pady=(8, 0))
+                     fg_color=("gray70", "gray30")).pack(fill="x", padx=10, pady=(8, 0))
 
         self.sidebar = Sidebar(self._left_frame, app=self)
         self.sidebar.grid(row=1, column=0, sticky="nsew", padx=0, pady=0)
@@ -181,38 +181,47 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
 
     def _on_touchpad_scroll(self, event):
         """Tk 9/macOS: route trackpad scroll to sidebar or canvas."""
-        # delta packs X (high 16 bits) and Y (low 16 bits)
-        y = event.delta & 0xFFFF
-        if y >= 0x8000:
-            y -= 0x10000
-        if y == 0:
-            return
-        mx = event.x_root - self.winfo_rootx()
-        if mx < self._left_frame.winfo_width():
-            pc = self.sidebar._parent_canvas
-            top, bot = pc.yview()
-            # Block scroll if already at boundary
-            if y > 0 and top <= 0:
+        try:
+            # delta packs X (high 16 bits) and Y (low 16 bits)
+            y = event.delta & 0xFFFF
+            if y >= 0x8000:
+                y -= 0x10000
+            if y == 0:
                 return
-            if y < 0 and bot >= 1:
-                return
-            pc.yview_scroll(-y, 'units')
-            # Clamp after scroll
-            top, bot = pc.yview()
-            if top < 0:
-                pc.yview_moveto(0)
-            elif bot > 1:
-                pc.yview_moveto(1.0 - (bot - top))
-        else:
-            if self.canvas._image_np is not None and not self.canvas._manual_trace_drawing:
-                factor = 1.05 if y > 0 else 0.95
-                mx = event.x_root - self.canvas.canvas.winfo_rootx()
-                my = event.y_root - self.canvas.canvas.winfo_rooty()
-                self.canvas._offset_x = mx - factor * (mx - self.canvas._offset_x)
-                self.canvas._offset_y = my - factor * (my - self.canvas._offset_y)
-                self.canvas._scale *= factor
-                self.canvas._user_zoomed = True
-                self.canvas._fast_redraw()
+            lw = self._left_frame.winfo_width()
+            if lw < 10:
+                return  # widget not mapped yet
+            mx = event.x_root - self.winfo_rootx()
+            if mx < lw:
+                pc = self.sidebar._parent_canvas
+                top, bot = pc.yview()
+                # Block scroll if already at boundary
+                if y > 0 and top <= 0:
+                    return
+                if y < 0 and bot >= 1:
+                    return
+                pc.yview_scroll(-y, 'units')
+                # Clamp after scroll
+                top, bot = pc.yview()
+                if top < 0:
+                    pc.yview_moveto(0)
+                elif bot > 1:
+                    pc.yview_moveto(1.0 - (bot - top))
+            else:
+                if self.canvas._image_np is not None and not self.canvas._manual_trace_drawing:
+                    factor = 1.05 if y > 0 else 0.95
+                    new_scale = self.canvas._scale * factor
+                    if new_scale < 0.01 or new_scale > 50.0:
+                        return
+                    mx = event.x_root - self.canvas.canvas.winfo_rootx()
+                    my = event.y_root - self.canvas.canvas.winfo_rooty()
+                    self.canvas._offset_x = mx - factor * (mx - self.canvas._offset_x)
+                    self.canvas._offset_y = my - factor * (my - self.canvas._offset_y)
+                    self.canvas._scale = new_scale
+                    self.canvas._user_zoomed = True
+                    self.canvas._fast_redraw()
+        except Exception:
+            pass  # never crash from a scroll event
 
     # --- Image loading ---
 

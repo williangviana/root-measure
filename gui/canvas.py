@@ -993,17 +993,21 @@ class ImageCanvas(ctk.CTkFrame):
 
     def _on_scroll(self, event):
         """Mouse wheel scroll = zoom, or scroll sidebar if mouse is over it."""
-        # Redirect to sidebar when mouse is over the sidebar area
-        app = self.master
-        if hasattr(app, 'sidebar') and hasattr(app, '_left_frame'):
-            mx = event.x_root - app.winfo_rootx()
-            if mx < app._left_frame.winfo_width():
-                pc = app.sidebar._parent_canvas
-                pc.yview_scroll(-event.delta, 'units')
-                return
-        if self._image_np is None or self._manual_trace_drawing:
-            return
-        self._do_zoom(event)
+        try:
+            app = self.master
+            if hasattr(app, 'sidebar') and hasattr(app, '_left_frame'):
+                lw = app._left_frame.winfo_width()
+                if lw >= 10:
+                    mx = event.x_root - app.winfo_rootx()
+                    if mx < lw:
+                        app.sidebar._parent_canvas.yview_scroll(-event.delta, 'units')
+                        return "break"
+            if self._image_np is None or self._manual_trace_drawing:
+                return "break"
+            self._do_zoom(event)
+        except Exception:
+            pass
+        return "break"  # prevent bind_all TouchpadScroll from double-firing
 
     def _on_scroll_h(self, event):
         """Shift + scroll = pan horizontally."""
@@ -1026,7 +1030,10 @@ class ImageCanvas(ctk.CTkFrame):
         mx, my = event.x, event.y
         self._offset_x = mx - factor * (mx - self._offset_x)
         self._offset_y = my - factor * (my - self._offset_y)
-        self._scale *= factor
+        new_scale = self._scale * factor
+        if new_scale < 0.01 or new_scale > 50.0:
+            return
+        self._scale = new_scale
         self._user_zoomed = True
         self._fast_redraw()
 

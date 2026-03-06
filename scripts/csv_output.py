@@ -108,7 +108,9 @@ def save_raw(df_new, csv_path, is_factorial, num_marks):
         if col not in col_order:
             col_order.append(col)
     df = df[col_order]
-    df.to_csv(csv_path, index=False)
+    tmp = csv_path.with_suffix('.tmp')
+    df.to_csv(tmp, index=False)
+    tmp.replace(csv_path)
 
 
 # ---------------------------------------------------------------------------
@@ -162,7 +164,9 @@ def _write_tidy_r(df, tidy_path):
     if 'Root_ID' in df.columns:
         df['Root_ID'] = range(1, len(df) + 1)
 
-    df.to_csv(tidy_path, index=False)
+    tmp = tidy_path.with_suffix('.tmp')
+    df.to_csv(tmp, index=False)
+    tmp.replace(tidy_path)
 
 
 def _write_tidy_prism(df, tidy_path):
@@ -187,7 +191,9 @@ def _write_tidy_prism(df, tidy_path):
 def _write_tidy_prism_simple(df, tidy_path):
     """Prism simple (Column format): genotype columns, Length_cm values."""
     if 'Genotype' not in df.columns:
-        df.to_csv(tidy_path, index=False)
+        tmp = tidy_path.with_suffix('.tmp')
+        df.to_csv(tmp, index=False)
+        tmp.replace(tidy_path)
         return
 
     genotypes = sort_genotypes_wt_first(df['Genotype'].unique().tolist())
@@ -199,13 +205,17 @@ def _write_tidy_prism_simple(df, tidy_path):
     for geno in data:
         data[geno] = data[geno] + [np.nan] * (max_len - len(data[geno]))
 
-    pd.DataFrame(data).to_csv(tidy_path, index=False)
+    tmp = tidy_path.with_suffix('.tmp')
+    pd.DataFrame(data).to_csv(tmp, index=False)
+    tmp.replace(tidy_path)
 
 
 def _write_tidy_prism_by_condition(df, tidy_path):
     """Prism simple (Column format): condition columns, Length_cm values."""
     if 'Condition' not in df.columns:
-        df.to_csv(tidy_path, index=False)
+        tmp = tidy_path.with_suffix('.tmp')
+        df.to_csv(tmp, index=False)
+        tmp.replace(tidy_path)
         return
 
     conditions = df['Condition'].unique().tolist()
@@ -217,7 +227,9 @@ def _write_tidy_prism_by_condition(df, tidy_path):
     for cond in data:
         data[cond] = data[cond] + [np.nan] * (max_len - len(data[cond]))
 
-    pd.DataFrame(data).to_csv(tidy_path, index=False)
+    tmp = tidy_path.with_suffix('.tmp')
+    pd.DataFrame(data).to_csv(tmp, index=False)
+    tmp.replace(tidy_path)
 
 
 def _write_tidy_prism_factorial(df, tidy_path):
@@ -249,7 +261,9 @@ def _write_tidy_prism_factorial(df, tidy_path):
         header.append(geno)
         header.extend([''] * (max_reps[geno] - 1))
 
-    pd.DataFrame(rows, columns=header).to_csv(tidy_path, index=False)
+    tmp = tidy_path.with_suffix('.tmp')
+    pd.DataFrame(rows, columns=header).to_csv(tmp, index=False)
+    tmp.replace(tidy_path)
 
 
 # ---------------------------------------------------------------------------
@@ -327,4 +341,6 @@ def save_metadata(meta_path, **kwargs):
     for c in df.columns:
         if c not in cols:
             cols.append(c)
-    df[cols].to_csv(meta_path, index=False)
+    tmp = meta_path.with_suffix('.tmp')
+    df[cols].to_csv(tmp, index=False)
+    tmp.replace(meta_path)

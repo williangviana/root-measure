@@ -427,6 +427,13 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
                         f"{len(points)} root(s).\n"
                         f"Click Review Traces to review.")
                 else:
+                    # initialize workflow attrs for mid-workflow resume
+                    self._split = self.sidebar.is_split_plate()
+                    self._binary = None
+                    self._results = []
+                    self._trace_to_result = []
+                    self._retry_result_indices = []
+                    self._reclick_idx = 0
                     self.sidebar.set_status(
                         f"Session restored: {len(plates)} plate(s), "
                         f"{len(points)} root(s).\n"
@@ -1064,6 +1071,8 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
         """Set up the canvas for the current root clicking stage."""
         plates = self.canvas.get_plates()
         pi = self._current_plate_idx
+        if pi >= len(plates):
+            return
         r1, r2, c1, c2 = plates[pi]
 
         # resolve genotype name and register for stable color index

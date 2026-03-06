@@ -460,6 +460,9 @@ def plot_results(csv_path, value_col=None, ylabel=None, csv_format='R',
     fig, ax = plt.subplots(figsize=(fig_width, 5))
 
     genotypes = sort_genotypes_wt_first(df['Genotype'].unique().tolist())
+    if len(genotypes) == 0:
+        plt.close(fig)
+        return
     positions_map = {}
 
     def _geno_color(geno, fallback_idx):
@@ -587,6 +590,8 @@ def plot_segments_facet(csv_path, seg_cols, csv_format='R',
     is_factorial = ('Condition' in df.columns
                     and df['Condition'].nunique(dropna=True) >= 2)
     genotypes = sort_genotypes_wt_first(df['Genotype'].unique().tolist())
+    if len(genotypes) == 0:
+        return
     conditions = df['Condition'].unique().tolist() if is_factorial else []
     n_segs = len(seg_cols)
 

@@ -5,7 +5,6 @@ $ErrorActionPreference = "Stop"
 
 $AppName = "Root Measure"
 $Repo = "williangviana/root-measure"
-$WorkDir = "$env:TEMP\root-measure-install"
 $InstallDir = "$env:LOCALAPPDATA\Root Measure"
 
 Write-Host ""
@@ -27,7 +26,7 @@ foreach ($cmd in @("python", "python3")) {
 }
 
 if (-not $py) {
-    Write-Host "[1/6] Python not found. Installing Python..."
+    Write-Host "[1/4] Python not found. Installing Python..."
     $pyInstaller = "$env:TEMP\python-installer.exe"
     Invoke-WebRequest -Uri "https://www.python.org/ftp/python/3.12.7/python-3.12.7-amd64.exe" -OutFile $pyInstaller
     Start-Process -Wait -FilePath $pyInstaller -ArgumentList "/quiet", "InstallAllUsers=0", "PrependPath=1", "Include_pip=1"
@@ -38,64 +37,47 @@ if (-not $py) {
 }
 
 $pyVersion = & $py -c "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}')"
-Write-Host "[1/6] Python $pyVersion OK"
+Write-Host "[1/4] Python $pyVersion OK"
 
 # --- 2. Download project from GitHub ---
-Write-Host "[2/6] Downloading Root Measure..."
-if (Test-Path $WorkDir) { Remove-Item $WorkDir -Recurse -Force }
-New-Item -ItemType Directory -Path $WorkDir -Force | Out-Null
+Write-Host "[2/4] Downloading Root Measure..."
+if (Test-Path $InstallDir) { Remove-Item $InstallDir -Recurse -Force }
+New-Item -ItemType Directory -Path $InstallDir -Force | Out-Null
 $zipPath = "$env:TEMP\root-measure.zip"
 Invoke-WebRequest -Uri "https://github.com/$Repo/archive/refs/heads/stable.zip" -OutFile $zipPath
-Expand-Archive -Path $zipPath -DestinationPath $WorkDir -Force
+Expand-Archive -Path $zipPath -DestinationPath $env:TEMP\root-measure-tmp -Force
+# Move contents out of the nested folder into install dir
+$nested = Get-ChildItem "$env:TEMP\root-measure-tmp" -Directory | Select-Object -First 1
+Get-ChildItem $nested.FullName | Move-Item -Destination $InstallDir -Force
+Remove-Item "$env:TEMP\root-measure-tmp" -Recurse -Force
 Remove-Item $zipPath -Force
-# Move contents out of the nested folder
-$nested = Get-ChildItem $WorkDir -Directory | Select-Object -First 1
-Get-ChildItem $nested.FullName | Move-Item -Destination $WorkDir -Force
-Remove-Item $nested.FullName -Recurse -Force
-Write-Host "[2/6] Downloaded OK"
+Write-Host "[2/4] Downloaded OK"
 
-# --- 3. Create virtual environment ---
-Set-Location $WorkDir
+# --- 3. Create virtual environment and install dependencies ---
+Set-Location $InstallDir
 & $py -m venv .venv
-& .venv\Scripts\Activate.ps1
-Write-Host "[3/6] Virtual environment OK"
+Write-Host "[3/4] Virtual environment OK"
+Write-Host "[3/4] Installing dependencies (this may take a few minutes)..."
+& .venv\Scripts\python.exe -m pip install -r install\requirements.txt -q
+Write-Host "[3/4] Dependencies OK"
 
-# --- 4. Install dependencies ---
-Write-Host "[4/6] Installing dependencies..."
-& python -m pip install -r install/requirements.txt -q
-& python -m pip install cx_Freeze -q
-Write-Host "[4/6] Dependencies OK"
+# --- 4. Create desktop shortcut ---
+$pythonw = "$InstallDir\.venv\Scripts\pythonw.exe"
+$appScript = "$InstallDir\gui\app.py"
 
-# --- 5. Build executable ---
-Write-Host "[5/6] Building app..."
-& python install/setup.py build_exe
-
-$builtDir = Get-ChildItem "build" -Directory | Where-Object { $_.Name -match "exe" } | Select-Object -First 1
-if (-not $builtDir) {
-    Write-Host "ERROR: Build failed."
-    exit 1
+$desktop = [Environment]::GetFolderPath("Desktop")
+$shortcut = (New-Object -ComObject WScript.Shell).CreateShortcut("$desktop\Root Measure.lnk")
+$shortcut.TargetPath = $pythonw
+$shortcut.Arguments = "`"$appScript`""
+$shortcut.WorkingDirectory = $InstallDir
+$shortcut.Description = $AppName
+# Use icon if available
+$icoPath = "$InstallDir\icon\icon.ico"
+if (Test-Path $icoPath) {
+    $shortcut.IconLocation = $icoPath
 }
-Write-Host "[5/6] Build OK"
-
-# --- 6. Install to local app directory ---
-if (Test-Path $InstallDir) { Remove-Item $InstallDir -Recurse -Force }
-Move-Item $builtDir.FullName $InstallDir
-
-# Create desktop shortcut
-$exePath = Get-ChildItem $InstallDir -Filter "RootMeasure.exe" -Recurse | Select-Object -First 1
-if ($exePath) {
-    $desktop = [Environment]::GetFolderPath("Desktop")
-    $shortcut = (New-Object -ComObject WScript.Shell).CreateShortcut("$desktop\Root Measure.lnk")
-    $shortcut.TargetPath = $exePath.FullName
-    $shortcut.WorkingDirectory = $InstallDir
-    $shortcut.Description = $AppName
-    $shortcut.Save()
-}
-Write-Host "[6/6] Installed OK"
-
-# Clean up
-Set-Location $env:USERPROFILE
-Remove-Item $WorkDir -Recurse -Force
+$shortcut.Save()
+Write-Host "[4/4] Shortcut created"
 
 Write-Host ""
 Write-Host "============================================"

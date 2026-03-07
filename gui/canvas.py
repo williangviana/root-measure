@@ -62,6 +62,7 @@ class ImageCanvas(ctk.CTkFrame):
         self._mode = self.MODE_VIEW
         self._on_click_callback = None
         self._on_done_callback = None
+        self._on_back_callback = None
 
         # plate selection state
         self._rect_start = None  # image coords of rect drag start
@@ -147,6 +148,7 @@ class ImageCanvas(ctk.CTkFrame):
         self._drag_start = None
         self._mode = mode
         self._on_done_callback = on_done
+        self._on_back_callback = None
         self.canvas.focus_set()
 
     def _trigger_done(self):
@@ -1510,6 +1512,10 @@ class ImageCanvas(ctk.CTkFrame):
                 return True
             elif event.keysym.lower() == 't':
                 self._pending_flag = 'touching'
+                return True
+        if event.keysym == 'Escape':
+            if self._on_back_callback:
+                self._on_back_callback()
                 return True
         if event.keysym == 'Return':
             if self._mode == self.MODE_SELECT_PLATES:

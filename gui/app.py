@@ -704,8 +704,9 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
         self.btn_stop.pack_forget()
         self.btn_continue_later_mid.pack_forget()
         self._action_frame.grid_remove()
-        # Hide sidebar Done button and manual trace button too
+        # Hide sidebar Done button, prev plate button, and manual trace button too
         self.sidebar.btn_done.pack_forget()
+        self.sidebar.btn_prev_plate.pack_forget()
         self.sidebar.btn_manual_trace.pack_forget()
         self.sidebar.hide_manual_trace_modes()
         self.sidebar.hide_review_toggles()
@@ -1117,6 +1118,8 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
         self.canvas.set_mode(
             ImageCanvas.MODE_CLICK_ROOTS,
             on_done=self._plate_roots_done)
+        can_go_back = self._current_plate_idx > 0 or (self._split and self._split_stage > 0)
+        self.canvas._on_back_callback = self._go_back_plate if can_go_back else None
         self.canvas.zoom_to_region(r1, r2, c1, c2)
 
         # build status label
@@ -1125,6 +1128,12 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
             cond = conditions[pi] if pi < len(conditions) else conditions[-1]
             label_parts.append(cond)
         label = " / ".join(label_parts)
+        # Determine button text and back-nav availability
+        gpp = self.sidebar.get_genotypes_per_plate()
+        is_last = (pi == len(plates) - 1) and (not self._split or self._split_stage == gpp - 1)
+        next_is_genotype = self._split and self._split_stage < gpp - 1
+        can_go_back = self._current_plate_idx > 0 or (self._split and self._split_stage > 0)
+        esc_hint = "  |  Esc=prev plate" if can_go_back else ""
         if manual:
             click_hint = "Click root TOP then TIP for each root."
             if num_marks > 0:
@@ -1134,7 +1143,7 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
                 f"{click_hint} D+Click=dead, T+Click=touching.\n"
                 "Press Enter when done.")
             self.lbl_bottom.configure(
-                text="Click=top/segment/tip  |  D+Click=dead  |  T+Click=touching  |  Right-click=undo  |  Enter=done  |  Scroll=zoom")
+                text=f"Click=top/segment/tip  |  D+Click=dead  |  T+Click=touching  |  Right-click=undo  |  Enter=done{esc_hint}  |  Scroll=zoom")
         elif num_marks > 0:
             click_hint = f"Click TOP then {num_marks} segment boundary(s)."
             self.sidebar.set_status(
@@ -1142,27 +1151,46 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
                 f"{click_hint} D+Click=dead, T+Click=touching.\n"
                 "Press Enter when done.")
             self.lbl_bottom.configure(
-                text="Click=top/segment  |  D+Click=dead  |  T+Click=touching  |  Right-click=undo  |  Enter=done  |  Scroll=zoom")
+                text=f"Click=top/segment  |  D+Click=dead  |  T+Click=touching  |  Right-click=undo  |  Enter=done{esc_hint}  |  Scroll=zoom")
         else:
             self.sidebar.set_status(
                 f"Plate {pi + 1}/{len(plates)} — {label}\n"
                 "Click root tops. D+Click=dead, T+Click=touching.\n"
                 "Press Enter when done.")
             self.lbl_bottom.configure(
-                text="Click=root top  |  D+Click=dead  |  T+Click=touching  |  Right-click=undo  |  Enter=done  |  Scroll=zoom")
-        # Determine button text based on what's next
-        gpp = self.sidebar.get_genotypes_per_plate()
-        is_last = (pi == len(plates) - 1) and (not self._split or self._split_stage == gpp - 1)
-        next_is_genotype = self._split and self._split_stage < gpp - 1
+                text=f"Click=root top  |  D+Click=dead  |  T+Click=touching  |  Right-click=undo  |  Enter=done{esc_hint}  |  Scroll=zoom")
         btn_text = "Start Trace" if is_last else ("Next Genotype" if next_is_genotype else "Next Plate")
         self.sidebar.btn_done.configure(text=btn_text)
         if not self.sidebar.btn_done.winfo_ismapped():
             self.sidebar.btn_done.pack(pady=(5, 0), padx=15, fill="x")
+        # show/hide Prev Plate button
+        if can_go_back:
+            back_text = "← Prev Genotype" if (self._split and self._split_stage > 0) else "← Prev Plate"
+            self.sidebar.btn_prev_plate.configure(text=back_text)
+            if not self.sidebar.btn_prev_plate.winfo_ismapped():
+                self.sidebar.btn_prev_plate.pack(pady=(3, 0), padx=15, fill="x")
+        else:
+            self.sidebar.btn_prev_plate.pack_forget()
 
     def _plate_roots_done(self):
         """Called when user presses Enter after clicking roots on a plate."""
         self._auto_save()
         self._advance_to_next_stage()
+
+    def _go_back_plate(self):
+        """Go back to the previous plate/genotype for more root clicking."""
+        gpp = self.sidebar.get_genotypes_per_plate()
+        if self._split and self._split_stage > 0:
+            # go back to previous genotype on same plate
+            self._split_stage -= 1
+            self._enter_root_click_stage()
+            return
+        if self._current_plate_idx > 0:
+            self._current_plate_idx -= 1
+            # go back to last genotype of previous plate if split
+            if self._split:
+                self._split_stage = gpp - 1
+            self._enter_root_click_stage()
 
     def _advance_to_next_stage(self):
         """Advance to next genotype group or next plate."""
@@ -1179,12 +1207,58 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
         if self._current_plate_idx < len(plates):
             self._enter_root_click_stage()
             return
-        # all plates done — auto-measure
+        # all plates done — show ready-to-trace state (don't auto-measure)
         points = self.canvas.get_root_points()
         if not points:
             self.sidebar.set_status("No roots clicked. Click at least one root top.")
             self._current_plate_idx = 0
             return
+        self._show_ready_to_trace()
+
+    def _show_ready_to_trace(self):
+        """Show intermediate state before tracing, allowing user to go back."""
+        points = self.canvas.get_root_points()
+        plates = self.canvas.get_plates()
+        # build per-plate root count summary
+        root_plates = self.canvas._root_plates
+        plate_counts = {}
+        for rp in root_plates:
+            plate_counts[rp] = plate_counts.get(rp, 0) + 1
+        summary_parts = []
+        for pi in range(len(plates)):
+            count = plate_counts.get(pi, 0)
+            summary_parts.append(f"P{pi + 1}: {count}")
+        summary = ", ".join(summary_parts)
+        self.sidebar.set_status(
+            f"Ready to trace {len(points)} root{'s' if len(points) != 1 else ''} "
+            f"({summary}).\n"
+            "Press Enter to start tracing, or ← Prev Plate to go back.")
+        self.lbl_bottom.configure(
+            text="Enter=start tracing  |  Esc/← Prev Plate=go back")
+        # show Start Trace button + Prev Plate button
+        self.sidebar.btn_done.configure(text="Start Trace")
+        if not self.sidebar.btn_done.winfo_ismapped():
+            self.sidebar.btn_done.pack(pady=(5, 0), padx=15, fill="x")
+        self.sidebar.btn_prev_plate.configure(text="← Prev Plate")
+        if not self.sidebar.btn_prev_plate.winfo_ismapped():
+            self.sidebar.btn_prev_plate.pack(pady=(3, 0), padx=15, fill="x")
+        # set canvas done callback to actually start tracing
+        self.canvas._on_done_callback = self._start_trace_from_ready
+        self.canvas._on_back_callback = self._go_back_from_ready
+
+    def _go_back_from_ready(self):
+        """Go back to clicking on the last plate from ready-to-trace state."""
+        plates = self.canvas.get_plates()
+        self._current_plate_idx = len(plates) - 1
+        gpp = self.sidebar.get_genotypes_per_plate()
+        if self._split:
+            self._split_stage = gpp - 1
+        self._enter_root_click_stage()
+
+    def _start_trace_from_ready(self):
+        """Start tracing from the ready-to-trace state."""
+        self.sidebar.btn_prev_plate.pack_forget()
+        self.canvas._on_back_callback = None
         self.canvas.set_mode(ImageCanvas.MODE_VIEW)
         self.sidebar.btn_measure.configure(state="normal")
         self.measure()

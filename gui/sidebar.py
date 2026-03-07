@@ -599,6 +599,12 @@ class Sidebar(ctk.CTkScrollableFrame):
             command=lambda: app.canvas._trigger_done())
         # starts hidden
 
+        # Prev Plate button (hidden by default, shown during root clicking on plate 2+)
+        self.btn_prev_plate = ctk.CTkButton(
+            self._status_frame, text="← Prev Plate", fg_color="#555555",
+            command=lambda: app._go_back_plate())
+        # starts hidden
+
         # Manual trace button (hidden by default, shown in review when traces selected)
         self.btn_manual_trace = ctk.CTkButton(
             self._status_frame, text="Manual Trace", fg_color="#7b4f8a",

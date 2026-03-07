@@ -601,7 +601,7 @@ class Sidebar(ctk.CTkScrollableFrame):
 
         # Prev Plate button (hidden by default, shown during root clicking on plate 2+)
         self.btn_prev_plate = ctk.CTkButton(
-            self._status_frame, text="← Prev Plate", fg_color="#555555",
+            self._status_frame, text="← Previous Plate", fg_color="#2b5797",
             command=lambda: app._go_back_plate())
         # starts hidden
 

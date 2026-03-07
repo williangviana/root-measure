@@ -1165,7 +1165,7 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
             self.sidebar.btn_done.pack(pady=(5, 0), padx=15, fill="x")
         # show/hide Prev Plate button
         if can_go_back:
-            back_text = "← Prev Genotype" if (self._split and self._split_stage > 0) else "← Prev Plate"
+            back_text = "← Previous Genotype" if (self._split and self._split_stage > 0) else "← Previous Plate"
             self.sidebar.btn_prev_plate.configure(text=back_text)
             if not self.sidebar.btn_prev_plate.winfo_ismapped():
                 self.sidebar.btn_prev_plate.pack(pady=(3, 0), padx=15, fill="x")
@@ -1229,7 +1229,7 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
             count = plate_counts.get(pi, 0)
             summary_parts.append(f"P{pi + 1}: {count}")
         summary = ", ".join(summary_parts)
-        back_label = "← Add More Roots" if len(plates) == 1 else "← Prev Plate"
+        back_label = "← Add More Roots" if len(plates) == 1 else "← Previous Plate"
         self.sidebar.set_status(
             f"Ready to trace {len(points)} root{'s' if len(points) != 1 else ''} "
             f"({summary}).\n"

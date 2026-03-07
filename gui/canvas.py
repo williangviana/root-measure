@@ -89,6 +89,7 @@ class ImageCanvas(ctk.CTkFrame):
         # manual endpoints state (per-root top+bottom clicking)
         self._root_bottoms = {}    # {root_index: (row, col)} bottom click per root
         self._click_seq_pos = 0    # position in click sequence: 0=top, 1..N-2=marks, N-1=bottom
+        self._undo_mid_idx = None  # root index being undone when not at end of list
         self._clicks_per_root = 1  # 1=auto mode (top only), 2+=manual (top+marks+bottom)
         self._manual_endpoints = False  # True when manual endpoints mode is active
 
@@ -1392,8 +1393,9 @@ class ImageCanvas(ctk.CTkFrame):
                 return True
             return False
         elif self._mode == self.MODE_CLICK_ROOTS and self._root_points:
-            # Per-plate undo: when not mid-sequence, find last root on current plate
+            # Determine which root to undo (per-plate aware)
             if self._click_seq_pos == 0:
+                # Find last root on current plate
                 target = None
                 for i in range(len(self._root_plates) - 1, -1, -1):
                     if self._root_plates[i] == self._current_plate_idx:
@@ -1401,57 +1403,34 @@ class ImageCanvas(ctk.CTkFrame):
                         break
                 if target is None:
                     return False
-                if target < len(self._root_points) - 1:
-                    # root is in the middle (went back to earlier plate) — remove entirely
-                    self._remove_root_at(target)
-                    self._redraw()
-                    if self._on_click_callback:
-                        self._on_click_callback()
-                    return True
-            # Last root is on current plate (or mid-sequence) — existing logic
+                self._undo_mid_idx = target if target < len(self._root_points) - 1 else None
+            root_idx = self._undo_mid_idx if self._undo_mid_idx is not None else len(self._root_points) - 1
             if not self._manual_endpoints and self._clicks_per_root == 1:
-                # Auto mode, no marks: undo last root top click
-                self._root_points.pop()
-                self._root_flags.pop()
-                self._root_groups.pop()
-                self._root_plates.pop()
+                # Auto mode, no marks: remove the root
+                self._remove_root_at(root_idx)
+                self._undo_mid_idx = None
             elif not self._manual_endpoints:
                 # Auto mode with marks: undo depends on position in sequence
                 cpr = self._clicks_per_root
                 if self._click_seq_pos == 0:
-                    # Completed root or flagged root — step back
-                    root_idx = len(self._root_points) - 1
-                    if self._root_flags[-1] is not None:
-                        # Previous root was flagged (only had top) — remove it
-                        self._root_points.pop()
-                        self._root_flags.pop()
-                        self._root_groups.pop()
-                        self._root_plates.pop()
+                    if self._root_flags[root_idx] is not None:
+                        self._remove_root_at(root_idx)
+                        self._undo_mid_idx = None
                     elif root_idx in self._all_marks and self._all_marks[root_idx]:
-                        # Undo last mark of completed root
                         self._all_marks[root_idx].pop()
                         if not self._all_marks[root_idx]:
                             del self._all_marks[root_idx]
                         self._click_seq_pos = cpr - 1
                     else:
-                        # Root only had top (shouldn't happen)
-                        self._root_points.pop()
-                        self._root_flags.pop()
-                        self._root_groups.pop()
-                        self._root_plates.pop()
+                        self._remove_root_at(root_idx)
+                        self._undo_mid_idx = None
                 elif self._click_seq_pos == 1:
-                    # Undo top click of current root
-                    root_idx = len(self._root_points) - 1
                     if root_idx in self._all_marks:
                         del self._all_marks[root_idx]
-                    self._root_points.pop()
-                    self._root_flags.pop()
-                    self._root_groups.pop()
-                    self._root_plates.pop()
+                    self._remove_root_at(root_idx)
+                    self._undo_mid_idx = None
                     self._click_seq_pos = 0
                 else:
-                    # Undo a mark click
-                    root_idx = len(self._root_points) - 1
                     if root_idx in self._all_marks and self._all_marks[root_idx]:
                         self._all_marks[root_idx].pop()
                         if not self._all_marks[root_idx]:
@@ -1460,34 +1439,20 @@ class ImageCanvas(ctk.CTkFrame):
             else:
                 # Manual endpoints: undo depends on position in sequence
                 if self._click_seq_pos == 0:
-                    # Completed root or flagged root — step back
-                    root_idx = len(self._root_points) - 1
-                    if self._root_flags[-1] is not None:
-                        # Previous root was flagged (only had top) — remove it
-                        self._root_points.pop()
-                        self._root_flags.pop()
-                        self._root_groups.pop()
-                        self._root_plates.pop()
+                    if self._root_flags[root_idx] is not None:
+                        self._remove_root_at(root_idx)
+                        self._undo_mid_idx = None
                     elif root_idx in self._root_bottoms:
-                        # Undo bottom click
                         del self._root_bottoms[root_idx]
                         self._click_seq_pos = self._clicks_per_root - 1
                     else:
-                        # Root only had top (shouldn't happen if seq completed)
-                        self._root_points.pop()
-                        self._root_flags.pop()
-                        self._root_groups.pop()
-                        self._root_plates.pop()
+                        self._remove_root_at(root_idx)
+                        self._undo_mid_idx = None
                 elif self._click_seq_pos == 1:
-                    # Undo top click of current root
-                    self._root_points.pop()
-                    self._root_flags.pop()
-                    self._root_groups.pop()
-                    self._root_plates.pop()
+                    self._remove_root_at(root_idx)
+                    self._undo_mid_idx = None
                     self._click_seq_pos = 0
                 else:
-                    # Undo a mark click
-                    root_idx = len(self._root_points) - 1
                     if root_idx in self._all_marks and self._all_marks[root_idx]:
                         self._all_marks[root_idx].pop()
                         if not self._all_marks[root_idx]:

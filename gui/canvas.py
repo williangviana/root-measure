@@ -1356,6 +1356,29 @@ class ImageCanvas(ctk.CTkFrame):
         """Right-click / two-finger click: undo last action."""
         self._undo()
 
+    def _remove_root_at(self, idx):
+        """Remove root at given index, re-keying marks and bottoms."""
+        self._root_points.pop(idx)
+        self._root_flags.pop(idx)
+        self._root_groups.pop(idx)
+        self._root_plates.pop(idx)
+        # shift _all_marks keys above idx down by 1
+        new_marks = {}
+        for k, v in self._all_marks.items():
+            if k < idx:
+                new_marks[k] = v
+            elif k > idx:
+                new_marks[k - 1] = v
+        self._all_marks = new_marks
+        # shift _root_bottoms keys above idx down by 1
+        new_bottoms = {}
+        for k, v in self._root_bottoms.items():
+            if k < idx:
+                new_bottoms[k] = v
+            elif k > idx:
+                new_bottoms[k - 1] = v
+        self._root_bottoms = new_bottoms
+
     def _undo(self):
         """Undo last action in current mode."""
         if self._mode == self.MODE_SELECT_PLATES:
@@ -1369,9 +1392,23 @@ class ImageCanvas(ctk.CTkFrame):
                 return True
             return False
         elif self._mode == self.MODE_CLICK_ROOTS and self._root_points:
-            # Don't undo roots from a different plate
-            if self._click_seq_pos == 0 and self._root_plates[-1] != self._current_plate_idx:
-                return False
+            # Per-plate undo: when not mid-sequence, find last root on current plate
+            if self._click_seq_pos == 0:
+                target = None
+                for i in range(len(self._root_plates) - 1, -1, -1):
+                    if self._root_plates[i] == self._current_plate_idx:
+                        target = i
+                        break
+                if target is None:
+                    return False
+                if target < len(self._root_points) - 1:
+                    # root is in the middle (went back to earlier plate) — remove entirely
+                    self._remove_root_at(target)
+                    self._redraw()
+                    if self._on_click_callback:
+                        self._on_click_callback()
+                    return True
+            # Last root is on current plate (or mid-sequence) — existing logic
             if not self._manual_endpoints and self._clicks_per_root == 1:
                 # Auto mode, no marks: undo last root top click
                 self._root_points.pop()

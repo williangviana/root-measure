@@ -1369,6 +1369,9 @@ class ImageCanvas(ctk.CTkFrame):
                 return True
             return False
         elif self._mode == self.MODE_CLICK_ROOTS and self._root_points:
+            # Don't undo roots from a different plate
+            if self._click_seq_pos == 0 and self._root_plates[-1] != self._current_plate_idx:
+                return False
             if not self._manual_endpoints and self._clicks_per_root == 1:
                 # Auto mode, no marks: undo last root top click
                 self._root_points.pop()

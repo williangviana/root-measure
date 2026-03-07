@@ -1229,17 +1229,18 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
             count = plate_counts.get(pi, 0)
             summary_parts.append(f"P{pi + 1}: {count}")
         summary = ", ".join(summary_parts)
+        back_label = "← Add More Roots" if len(plates) == 1 else "← Prev Plate"
         self.sidebar.set_status(
             f"Ready to trace {len(points)} root{'s' if len(points) != 1 else ''} "
             f"({summary}).\n"
-            "Press Enter to start tracing, or ← Prev Plate to go back.")
+            f"Press Enter to start tracing, or {back_label} to go back.")
         self.lbl_bottom.configure(
-            text="Enter=start tracing  |  Esc/← Prev Plate=go back")
-        # show Start Trace button + Prev Plate button
+            text=f"Enter=start tracing  |  Esc/{back_label}=go back")
+        # show Start Trace button + back button
         self.sidebar.btn_done.configure(text="Start Trace")
         if not self.sidebar.btn_done.winfo_ismapped():
             self.sidebar.btn_done.pack(pady=(5, 0), padx=15, fill="x")
-        self.sidebar.btn_prev_plate.configure(text="← Prev Plate")
+        self.sidebar.btn_prev_plate.configure(text=back_label)
         if not self.sidebar.btn_prev_plate.winfo_ismapped():
             self.sidebar.btn_prev_plate.pack(pady=(3, 0), padx=15, fill="x")
         # set canvas done callback to actually start tracing

@@ -880,7 +880,13 @@ class Sidebar(ctk.CTkScrollableFrame):
         self.sec_sessions.expand()
 
     def _delete_session(self, folder, experiment):
-        """Delete a session and refresh the session list."""
+        """Delete a session after user confirmation."""
+        from tkinter import messagebox
+        name = experiment or Path(folder).name
+        if not messagebox.askyesno("Delete Session",
+                                   f"Delete session \"{name}\"?\n"
+                                   "This cannot be undone."):
+            return
         from session import delete_session, get_recent_folders, get_session_summaries
         delete_session(folder, experiment)
         # rebuild session list

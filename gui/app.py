@@ -1197,8 +1197,10 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
         conditions = [c.strip() for c in cond_text.split(",")
                       if c.strip()] if cond_text else []
         if self._split:
-            geno_name = (genotypes[self._split_stage]
-                         if self._split_stage < len(genotypes)
+            gpp = self.sidebar.get_genotypes_per_plate()
+            flat_idx = pi * gpp + self._split_stage
+            geno_name = (genotypes[flat_idx]
+                         if flat_idx < len(genotypes)
                          else f"group_{self._split_stage}")
         else:
             geno_name = (genotypes[pi] if pi < len(genotypes)

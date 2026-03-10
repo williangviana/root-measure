@@ -60,6 +60,14 @@ def session_dir(folder, experiment=''):
     return folder / _ROOT / '.session'
 
 
+def delete_session(folder, experiment=''):
+    """Delete a session's .session directory from disk."""
+    import shutil
+    sd = session_dir(Path(folder), experiment)
+    if sd.exists():
+        shutil.rmtree(sd, ignore_errors=True)
+
+
 def save_last_folder(folder):
     """Remember the last opened folder path."""
     try:

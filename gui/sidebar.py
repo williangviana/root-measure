@@ -852,23 +852,44 @@ class Sidebar(ctk.CTkScrollableFrame):
             frame = ctk.CTkFrame(b, fg_color="gray20", corner_radius=6,
                                  cursor="hand2")
             frame.pack(fill="x", padx=15, pady=3)
-            ctk.CTkLabel(frame, text=title,
+            # top row: title + delete button
+            top = ctk.CTkFrame(frame, fg_color="transparent")
+            top.pack(fill="x", padx=10, pady=(6, 0))
+            ctk.CTkLabel(top, text=title,
                          font=ctk.CTkFont(size=12, weight="bold"),
-                         text_color="white").pack(padx=10, pady=(6, 0),
-                                                   anchor="w")
+                         text_color="white").pack(side="left")
+            folder = s['folder']
+            exp = s.get('experiment', '')
+            del_btn = ctk.CTkButton(
+                top, text="\u2715", width=20, height=20,
+                fg_color="transparent", hover_color="gray40",
+                text_color="gray50", font=ctk.CTkFont(size=12),
+                command=lambda f=folder, x=exp: self._delete_session(f, x))
+            del_btn.pack(side="right")
             ctk.CTkLabel(frame, text=progress,
                          font=ctk.CTkFont(size=10),
                          text_color="gray60").pack(padx=10, pady=(0, 6),
                                                     anchor="w")
-            folder = s['folder']
-            exp = s.get('experiment', '')
             for w in (frame, *frame.winfo_children()):
-                w.bind("<Button-1>",
-                       lambda e, f=folder, x=exp: self.app.resume_session(f, x))
+                if w is not del_btn:
+                    w.bind("<Button-1>",
+                           lambda e, f=folder, x=exp: self.app.resume_session(f, x))
             self._session_buttons.append(frame)
 
         self.sec_sessions.show()
         self.sec_sessions.expand()
+
+    def _delete_session(self, folder, experiment):
+        """Delete a session and refresh the session list."""
+        from session import delete_session, get_recent_folders, get_session_summaries
+        delete_session(folder, experiment)
+        # rebuild session list
+        sessions = []
+        for f in get_recent_folders():
+            sessions.extend(get_session_summaries(f))
+            if len(sessions) >= 5:
+                break
+        self.populate_sessions(sessions[:5])
 
     # --- phase transitions ---
 

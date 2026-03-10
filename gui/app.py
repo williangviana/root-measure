@@ -16,6 +16,12 @@ import cv2
 import numpy as np
 import tifffile
 
+try:
+    import tkinterdnd2 as _dnd
+    _DND_AVAILABLE = True
+except ImportError:
+    _DND_AVAILABLE = False
+
 # allow importing from scripts/
 sys.path.insert(0, str(Path(__file__).parent.parent / 'scripts'))
 
@@ -33,6 +39,34 @@ from session import save_session, load_session, restore_settings, \
 
 ctk.set_appearance_mode("dark")
 ctk.set_default_color_theme("blue")
+
+
+def _hex_to_pastel(hex_color, mix=0.6):
+    """Lighten a hex color by blending with white. Returns hex string."""
+    h = hex_color.lstrip('#')
+    r, g, b = int(h[0:2], 16), int(h[2:4], 16), int(h[4:6], 16)
+    r = int(r + (255 - r) * mix)
+    g = int(g + (255 - g) * mix)
+    b = int(b + (255 - b) * mix)
+    return f"#{r:02x}{g:02x}{b:02x}"
+
+
+def _parse_dnd_paths(data):
+    """Parse tkinterdnd2 drop data into list of path strings."""
+    paths = []
+    rest = data.strip()
+    while rest:
+        if rest.startswith('{'):
+            end = rest.find('}')
+            if end == -1:
+                break
+            paths.append(rest[1:end])
+            rest = rest[end + 1:].strip()
+        else:
+            parts = rest.split(None, 1)
+            paths.append(parts[0])
+            rest = parts[1].strip() if len(parts) > 1 else ''
+    return paths
 
 
 def _detect_dpi(image_path):
@@ -87,6 +121,7 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
         self._experiment_name = ''  # current experiment (scopes output dirs)
         self._image_canvas_data = {}  # per-image canvas snapshots {name: dict}
         self._genotype_colors = {}   # genotype name → color index (experiment-wide)
+        self._genotype_custom_colors = {}  # genotype name → hex color (user overrides)
 
         # layout: sidebar + canvas
         self.grid_columnconfigure(1, weight=1)
@@ -162,6 +197,9 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
             self.bind_all("<TouchpadScroll>", self._on_touchpad_scroll)
         except Exception:
             pass  # Tk 8.x doesn't have <TouchpadScroll>
+
+        # drag-and-drop support
+        self._setup_dnd()
 
         # try to auto-resume last session after window is drawn
         self.after(200, self._try_auto_resume)
@@ -296,6 +334,7 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
         self._plate_offset = data.get('plate_offset', 0)
         self._root_offset = data.get('root_offset', 0)
         self._genotype_colors = data.get('genotype_colors', {})
+        self._genotype_custom_colors = data.get('genotype_custom_colors', {})
         # restore processed images
         name_to_path = {p.name: p for p in self.images}
         self._processed_images = set()
@@ -314,7 +353,7 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
             # populate image list first (used in all branches)
             self.sidebar.btn_load_folder.configure(text="Change Folder")
             self.sidebar._populate_image_list(
-                self.images, self._processed_images)
+                self.images, self._processed_images, current_path)
             self.sidebar.btn_finish_plot.pack_forget()
 
             # if current image is already done, go to image selection
@@ -454,16 +493,10 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
                 self.folder.name, self.images, self._processed_images)
         return True
 
-    def load_folder(self):
-        from tkinter import filedialog
+    def _open_folder(self, folder_path):
+        """Open a folder by path (shared by button dialog and drag-and-drop)."""
         from utils import list_images_in_folder
-
-        folder = filedialog.askdirectory(title="Select image folder")
-        self.lift()
-        self.focus_force()
-        if not folder:
-            return
-        self.folder = Path(folder)
+        self.folder = Path(folder_path)
         save_last_folder(self.folder)
         self.images = list_images_in_folder(self.folder)
 
@@ -476,6 +509,7 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
         # Reset all experiment state for new folder
         self._experiment_name = ''
         self._genotype_colors = {}
+        self._genotype_custom_colors = {}
         self._processed_images = set()
         self._plate_offset = 0
         self._root_offset = 0
@@ -489,6 +523,58 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
             self.sidebar.populate_sessions(sessions)
         else:
             self.sidebar.sec_sessions.hide()
+
+    def load_folder(self):
+        from tkinter import filedialog
+        folder = filedialog.askdirectory(title="Select image folder")
+        self.lift()
+        self.focus_force()
+        if not folder:
+            return
+        self._open_folder(folder)
+
+    def _setup_dnd(self):
+        """Register window as a drag-and-drop target (if tkinterdnd2 available)."""
+        if not _DND_AVAILABLE:
+            return
+        try:
+            self.drop_target_register(_dnd.DND_FILES)
+            self.dnd_bind('<<Drop>>', self._on_drop)
+            self.dnd_bind('<<DragEnter>>', self._on_drag_enter)
+            self.dnd_bind('<<DragLeave>>', self._on_drag_leave)
+        except Exception:
+            pass  # fail silently if tkdnd C extension not available
+
+    def _on_drop(self, event):
+        """Handle file/folder drop onto the window."""
+        paths = _parse_dnd_paths(event.data)
+        if not paths:
+            return
+        p = Path(paths[0])
+        self.lift()
+        self.focus_force()
+        self._on_drag_leave(None)
+        if p.is_dir():
+            self._open_folder(p)
+        elif p.is_file():
+            self._open_folder(p.parent)
+            if self.images and p in self.images:
+                self.load_image(p)
+
+    def _on_drag_enter(self, event):
+        """Highlight canvas border during drag-over."""
+        try:
+            self.canvas.canvas.configure(
+                highlightthickness=3, highlightbackground="#4a9eff")
+        except Exception:
+            pass
+
+    def _on_drag_leave(self, event):
+        """Remove canvas border highlight."""
+        try:
+            self.canvas.canvas.configure(highlightthickness=0)
+        except Exception:
+            pass
 
     def load_image(self, path):
         """Load and display a single image."""
@@ -581,6 +667,9 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
             self.sidebar.set_status(
                 f"Loaded: {img.shape[1]}x{img.shape[0]}, {img.dtype}\n"
                 f"DPI: {dpi} ({dpi_src})")
+            # update image list to show current image highlight
+            self.sidebar.update_image_list(
+                self._processed_images, self.image_path)
         except Exception as e:
             self.sidebar.set_status(f"Error: {e}")
 
@@ -662,6 +751,33 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
             self._genotype_colors[name] = len(self._genotype_colors)
         return self._genotype_colors[name]
 
+    def _get_genotype_bright_color(self, name):
+        """Return bright color hex for a genotype (custom or palette fallback)."""
+        if name in self._genotype_custom_colors:
+            return self._genotype_custom_colors[name]
+        idx = self._genotype_colors.get(name, 0)
+        return GROUP_MARKER_COLORS[idx % len(GROUP_MARKER_COLORS)]
+
+    def _get_genotype_pastel_color(self, name):
+        """Return pastel color hex for a genotype (derived from custom or palette)."""
+        from canvas import GROUP_MARK_COLORS
+        if name in self._genotype_custom_colors:
+            return _hex_to_pastel(self._genotype_custom_colors[name])
+        idx = self._genotype_colors.get(name, 0)
+        return GROUP_MARK_COLORS[idx % len(GROUP_MARK_COLORS)]
+
+    def _get_genotype_shades(self, name):
+        """Return [bright, pastel] pair for a genotype."""
+        return [self._get_genotype_bright_color(name),
+                self._get_genotype_pastel_color(name)]
+
+    def _genotype_name_for_group(self, group_idx):
+        """Reverse lookup: group index → genotype name."""
+        for name, idx in self._genotype_colors.items():
+            if idx == group_idx:
+                return name
+        return None
+
     def _set_plate_info(self, pi):
         """Set plate info overlay on the canvas for plate pi."""
         genotypes = [g.strip() for g in
@@ -682,7 +798,7 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
                          else f"group_{gi}")
                 label = f"{gname} {cond}".strip() if cond else gname
                 cidx = self._register_genotype(gname)
-                color = GROUP_MARKER_COLORS[cidx % len(GROUP_MARKER_COLORS)]
+                color = self._get_genotype_bright_color(gname)
                 geno_items.append((label, color))
             info['genotypes'] = geno_items
         else:
@@ -690,7 +806,7 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
                     else genotypes[-1] if genotypes else "genotype")
             info['left'] = f"{geno} {cond}".strip() if cond else geno
             idx = self._register_genotype(geno)
-            info['left_color'] = GROUP_MARKER_COLORS[idx % len(GROUP_MARKER_COLORS)]
+            info['left_color'] = self._get_genotype_bright_color(geno)
         self.canvas._plate_info = info
 
     def _clear_plate_info(self):

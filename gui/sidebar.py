@@ -526,6 +526,9 @@ class Sidebar(ctk.CTkScrollableFrame):
 
         self.var_plot = ctk.BooleanVar(value=True)
 
+        # color swatches for genotypes (built dynamically)
+        self._swatch_frame = None
+
         self.btn_start_workflow = ctk.CTkButton(
             b, text="Start Workflow", fg_color="#2b5797",
             command=lambda: app._on_start_workflow())
@@ -861,22 +864,59 @@ class Sidebar(ctk.CTkScrollableFrame):
 
     # --- phase transitions ---
 
-    def _populate_image_list(self, images, processed=None):
+    def _populate_image_list(self, images, processed=None, current=None):
         """Build the image list inside the folder section body."""
         if processed is None:
             processed = set()
+        # store refs for update_image_list()
+        self._images = images
+        self._processed = processed
+        self._current_image = current
         if self._image_list_frame is not None:
             self._image_list_frame.destroy()
         self._image_list_frame = ctk.CTkFrame(
             self.sec_folder.body, fg_color="transparent")
         self._image_list_frame.pack(fill="x", padx=10, pady=5)
+        # overall progress bar
+        n_done = len(processed)
+        n_total = len(images)
+        prog_frame = ctk.CTkFrame(self._image_list_frame, fg_color="transparent")
+        prog_frame.pack(fill="x", pady=(0, 6))
+        self._overall_progress_bar = ctk.CTkProgressBar(prog_frame, height=8)
+        self._overall_progress_bar.set(n_done / n_total if n_total else 0)
+        self._overall_progress_bar.pack(fill="x")
+        self._overall_progress_label = ctk.CTkLabel(
+            prog_frame,
+            text=f"{n_done} of {n_total} scans completed",
+            font=ctk.CTkFont(size=10), text_color="gray50")
+        self._overall_progress_label.pack(anchor="w", pady=(2, 0))
+        # image rows
+        self._image_buttons = []
         for img_path in images:
             done = img_path in processed
-            label = f"\u2713  {img_path.name}" if done else img_path.name
-            text_color = "#217346" if done else "white"
-            btn = ctk.CTkButton(
-                self._image_list_frame,
-                text=label,
+            is_current = (current is not None and img_path == current)
+            if done:
+                dot = "\u25cf"  # filled circle
+                dot_color = "#217346"
+            elif is_current:
+                dot = "\u25cf"
+                dot_color = "#4a9eff"
+            else:
+                dot = "\u25cb"  # hollow circle
+                dot_color = "gray50"
+            row = ctk.CTkFrame(self._image_list_frame, fg_color="transparent",
+                               height=28, cursor="hand2")
+            row.pack(fill="x", pady=1)
+            row.pack_propagate(False)
+            dot_lbl = ctk.CTkLabel(row, text=dot, width=16,
+                                   font=ctk.CTkFont(size=10),
+                                   text_color=dot_color)
+            dot_lbl.pack(side="left", padx=(4, 2))
+            text_color = "#217346" if done else (
+                "#4a9eff" if is_current else "white")
+            name_btn = ctk.CTkButton(
+                row,
+                text=img_path.name,
                 font=ctk.CTkFont(size=11),
                 height=28,
                 fg_color="transparent",
@@ -884,8 +924,39 @@ class Sidebar(ctk.CTkScrollableFrame):
                 hover_color="gray30",
                 anchor="w",
                 command=lambda p=img_path: self.app.load_image(p))
-            btn.pack(fill="x", pady=1)
+            name_btn.pack(side="left", fill="x", expand=True)
+            self._image_buttons.append((img_path, row, dot_lbl, name_btn))
         self.btn_finish_plot.pack_forget()
+
+    def update_image_list(self, processed=None, current=None):
+        """Update image list status dots and progress bar without rebuilding."""
+        if not hasattr(self, '_image_buttons') or not self._image_buttons:
+            return
+        if processed is None:
+            processed = getattr(self, '_processed', set())
+        images = getattr(self, '_images', [])
+        n_done = len(processed)
+        n_total = len(images)
+        # update overall progress
+        if hasattr(self, '_overall_progress_bar'):
+            self._overall_progress_bar.set(n_done / n_total if n_total else 0)
+            self._overall_progress_label.configure(
+                text=f"{n_done} of {n_total} scans completed")
+        self._processed = processed
+        self._current_image = current
+        # update each row
+        for img_path, row, dot_lbl, name_btn in self._image_buttons:
+            done = img_path in processed
+            is_current = (current is not None and img_path == current)
+            if done:
+                dot_lbl.configure(text="\u25cf", text_color="#217346")
+                name_btn.configure(text_color="#217346")
+            elif is_current:
+                dot_lbl.configure(text="\u25cf", text_color="#4a9eff")
+                name_btn.configure(text_color="#4a9eff")
+            else:
+                dot_lbl.configure(text="\u25cb", text_color="gray50")
+                name_btn.configure(text_color="white")
 
     def advance_to_images(self, folder_name, images, processed=None):
         """Phase 1: folder loaded — show images in folder section."""
@@ -947,8 +1018,57 @@ class Sidebar(ctk.CTkScrollableFrame):
         # hide workflow
         self.sec_workflow.hide()
 
+    def _rebuild_swatches(self):
+        """Build color swatch buttons for each genotype in the experiment section."""
+        if self._swatch_frame is not None:
+            self._swatch_frame.destroy()
+        geno_text = self.entry_genotypes.get().strip()
+        if not geno_text:
+            self._swatch_frame = None
+            return
+        genotypes = [g.strip() for g in geno_text.split(",") if g.strip()]
+        if not genotypes:
+            self._swatch_frame = None
+            return
+        from canvas import GROUP_MARKER_COLORS
+        self._swatch_frame = ctk.CTkFrame(
+            self.sec_experiment.body, fg_color="transparent")
+        self._swatch_frame.pack(fill="x", padx=15, pady=(6, 0))
+        ctk.CTkLabel(self._swatch_frame, text="Colors:",
+                     font=ctk.CTkFont(size=11),
+                     text_color="gray60").pack(anchor="w")
+        row = ctk.CTkFrame(self._swatch_frame, fg_color="transparent")
+        row.pack(fill="x", pady=(2, 0))
+        for gname in genotypes:
+            idx = self.app._register_genotype(gname)
+            color = self.app._get_genotype_bright_color(gname)
+            item = ctk.CTkFrame(row, fg_color="transparent")
+            item.pack(side="left", padx=(0, 10))
+            swatch = ctk.CTkButton(
+                item, text="", width=20, height=20,
+                fg_color=color, hover_color=color,
+                corner_radius=4, border_width=1,
+                border_color="gray50",
+                command=lambda n=gname: self._on_swatch_click(n))
+            swatch.pack(side="left")
+            ctk.CTkLabel(item, text=gname,
+                         font=ctk.CTkFont(size=10),
+                         text_color="gray70").pack(side="left", padx=(4, 0))
+
+    def _on_swatch_click(self, genotype_name):
+        """Open native color picker for a genotype."""
+        from tkinter.colorchooser import askcolor
+        current = self.app._get_genotype_bright_color(genotype_name)
+        result = askcolor(color=current, title=f"Color for {genotype_name}")
+        self.app.lift()
+        self.app.focus_force()
+        if result and result[1]:
+            self.app._genotype_custom_colors[genotype_name] = result[1]
+            self._rebuild_swatches()
+
     def advance_to_workflow(self):
         """Phase 4: experiment configured — show workflow, collapse experiment."""
+        self._rebuild_swatches()
         genos = self.entry_genotypes.get().strip() or "genotype"
         cond = self.entry_condition.get().strip()
         summary = genos

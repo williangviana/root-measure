@@ -423,7 +423,7 @@ def _read_prism_factorial(csv_path):
 
 
 def plot_results(csv_path, value_col=None, ylabel=None, csv_format='R',
-                  genotype_colors=None):
+                  genotype_colors=None, custom_colors=None):
     """Read CSV, run statistics, generate and save publication box plot.
 
     Args:
@@ -432,6 +432,7 @@ def plot_results(csv_path, value_col=None, ylabel=None, csv_format='R',
         ylabel: Y-axis label (default: prompt user or auto-generate).
         csv_format: 'R' or 'Prism'.
         genotype_colors: Optional dict mapping genotype name -> color index.
+        custom_colors: Optional dict mapping genotype name -> hex color.
     """
     if csv_format == 'Prism':
         # try factorial first (has condition column = first col non-numeric)
@@ -531,6 +532,8 @@ def plot_results(csv_path, value_col=None, ylabel=None, csv_format='R',
     positions_map = {}
 
     def _geno_color(geno, fallback_idx):
+        if custom_colors and geno in custom_colors:
+            return custom_colors[geno]
         if genotype_colors and geno in genotype_colors:
             return COLORS[genotype_colors[geno] % len(COLORS)]
         return COLORS[fallback_idx % len(COLORS)]
@@ -635,7 +638,7 @@ def plot_results(csv_path, value_col=None, ylabel=None, csv_format='R',
 
 
 def plot_segments_facet(csv_path, seg_cols, csv_format='R',
-                        genotype_colors=None):
+                        genotype_colors=None, custom_colors=None):
     """Generate a facet plot with one subplot per segment, shared y-axis."""
     if csv_format == 'Prism':
         df_test = pd.read_csv(csv_path, header=0, nrows=1)
@@ -661,6 +664,8 @@ def plot_segments_facet(csv_path, seg_cols, csv_format='R',
     n_segs = len(seg_cols)
 
     def _geno_color(geno, fallback_idx):
+        if custom_colors and geno in custom_colors:
+            return custom_colors[geno]
         if genotype_colors and geno in genotype_colors:
             return COLORS[genotype_colors[geno] % len(COLORS)]
         return COLORS[fallback_idx % len(COLORS)]

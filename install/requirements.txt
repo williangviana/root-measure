@@ -8,3 +8,4 @@ matplotlib==3.10.8
 customtkinter==5.2.2
 Pillow==12.1.1
 statsmodels==0.14.6
+tkinterdnd2==0.4.3

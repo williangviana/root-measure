@@ -231,6 +231,7 @@ def save_session(session_path, app):
         'plate_offset': app._plate_offset,
         'root_offset': app._root_offset,
         'genotype_colors': getattr(app, '_genotype_colors', {}),
+        'genotype_custom_colors': getattr(app, '_genotype_custom_colors', {}),
         'current_image': app.image_path.name if app.image_path else None,
         'settings': _collect_settings(app.sidebar),
         'canvas': _collect_canvas(app.canvas),

@@ -87,7 +87,12 @@ class MeasurementMixin:
         """Return color shades for a root based on its genotype group."""
         groups = self.canvas.get_root_groups()
         if root_idx < len(groups):
-            color_idx = groups[root_idx] % len(GROUP_COLORS)
+            group_idx = groups[root_idx]
+            # check for custom color via app helper
+            gname = self._genotype_name_for_group(group_idx)
+            if gname and gname in getattr(self, '_genotype_custom_colors', {}):
+                return self._get_genotype_shades(gname)
+            color_idx = group_idx % len(GROUP_COLORS)
         else:
             color_idx = 0
         return GROUP_COLORS[color_idx]
@@ -1124,11 +1129,13 @@ class MeasurementMixin:
             # plot from raw data (always tall/R format)
             summaries = []
             geno_colors = getattr(self, '_genotype_colors', None)
+            custom_colors = getattr(self, '_genotype_custom_colors', None)
             s = plot_results(raw_path,
                              value_col='Length_cm',
                              ylabel='Primary root length (cm)',
                              csv_format='R',
-                             genotype_colors=geno_colors)
+                             genotype_colors=geno_colors,
+                             custom_colors=custom_colors)
             if s:
                 summaries.append(s)
             # plot each segment column if present
@@ -1142,13 +1149,15 @@ class MeasurementMixin:
                                  value_col=sc,
                                  ylabel=f'Segment {seg_num} length (cm)',
                                  csv_format='R',
-                                 genotype_colors=geno_colors)
+                                 genotype_colors=geno_colors,
+                                 custom_colors=custom_colors)
                 if s:
                     summaries.append(s)
             # facet plot when 2+ segments
             if len(seg_cols) >= 2:
                 plot_segments_facet(raw_path, seg_cols, csv_format='R',
-                                   genotype_colors=geno_colors)
+                                   genotype_colors=geno_colors,
+                                   custom_colors=custom_colors)
             # save statistics summary
             if summaries:
                 stats_path = data_dir(folder, exp) / 'statistics.txt'

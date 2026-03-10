@@ -138,6 +138,24 @@ class ImageCanvas(ctk.CTkFrame):
         # keyboard — bound at window level via bind_all in RootMeasureApp
         self.canvas.focus_set()
 
+    def _bright_color(self, group_idx):
+        """Return bright marker color for a group, using custom color if set."""
+        app = self.master
+        if hasattr(app, '_genotype_name_for_group'):
+            gname = app._genotype_name_for_group(group_idx)
+            if gname and gname in getattr(app, '_genotype_custom_colors', {}):
+                return app._get_genotype_bright_color(gname)
+        return GROUP_MARKER_COLORS[group_idx % len(GROUP_MARKER_COLORS)]
+
+    def _pastel_color(self, group_idx):
+        """Return pastel marker color for a group, using custom color if set."""
+        app = self.master
+        if hasattr(app, '_genotype_name_for_group'):
+            gname = app._genotype_name_for_group(group_idx)
+            if gname and gname in getattr(app, '_genotype_custom_colors', {}):
+                return app._get_genotype_pastel_color(gname)
+        return GROUP_MARK_COLORS[group_idx % len(GROUP_MARK_COLORS)]
+
     # --- Mode management ---
 
     def set_mode(self, mode, on_done=None):
@@ -497,7 +515,7 @@ class ImageCanvas(ctk.CTkFrame):
                     continue
                 cx, cy = self.image_to_canvas(col, row)
                 display_num = group_counters[key]
-                marker_color = GROUP_MARKER_COLORS[group % len(GROUP_MARKER_COLORS)]
+                marker_color = self._bright_color(group)
                 if flag is not None:
                     label = "DEAD" if flag == 'dead' else "TOUCH"
                     id1 = self.canvas.create_line(
@@ -535,7 +553,7 @@ class ImageCanvas(ctk.CTkFrame):
                 if _clicking and _active_pl is not None \
                         and plate != _active_pl:
                     continue
-                marker_color = GROUP_MARKER_COLORS[group % len(GROUP_MARKER_COLORS)]
+                marker_color = self._bright_color(group)
                 trow, tcol = self._root_points[ri]
                 tcx, tcy = self.image_to_canvas(tcol, trow)
                 bcx, bcy = self.image_to_canvas(bcol, brow)
@@ -553,7 +571,7 @@ class ImageCanvas(ctk.CTkFrame):
             mark_r = 3 if is_view else 4
             for ri, marks in self._all_marks.items():
                 group = self._root_groups[ri] if ri < len(self._root_groups) else 0
-                color = GROUP_MARK_COLORS[group % len(GROUP_MARK_COLORS)]
+                color = self._pastel_color(group)
                 for mi, (row, col) in enumerate(marks):
                     cx, cy = self.image_to_canvas(col, row)
                     self.canvas.create_oval(
@@ -561,7 +579,7 @@ class ImageCanvas(ctk.CTkFrame):
                         outline="white", fill=color, width=1)
             if self._mode == self.MODE_CLICK_MARKS:
                 current_group = getattr(self, '_current_root_group', 0)
-                color = GROUP_MARK_COLORS[current_group % len(GROUP_MARK_COLORS)]
+                color = self._pastel_color(current_group)
                 num_marks = max(1, self._marks_expected // max(1, len(self._marks_display_numbers))) if self._marks_display_numbers else 1
                 for i, (row, col) in enumerate(self._mark_points):
                     cx, cy = self.image_to_canvas(col, row)
@@ -648,7 +666,7 @@ class ImageCanvas(ctk.CTkFrame):
                             and self._root_plates[j] == plate
                             and self._root_groups[j] == group)
                 cx, cy = self.image_to_canvas(col, row)
-                marker_color = GROUP_MARKER_COLORS[group % len(GROUP_MARKER_COLORS)]
+                marker_color = self._bright_color(group)
                 label = "DEAD" if flag == 'dead' else "TOUCH"
                 self.canvas.create_line(
                     cx - cross_s, cy - cross_s, cx + cross_s, cy + cross_s,
@@ -679,8 +697,8 @@ class ImageCanvas(ctk.CTkFrame):
                              if ri < len(self._root_groups) else 0)
                 else:
                     group = 0
-                bright = GROUP_MARKER_COLORS[group % len(GROUP_MARKER_COLORS)]
-                pastel = GROUP_MARK_COLORS[group % len(GROUP_MARK_COLORS)]
+                bright = self._bright_color(group)
+                pastel = self._pastel_color(group)
                 if pos_in_root == 0:
                     # TOP click — large dot with root number
                     r = 5
@@ -1209,7 +1227,7 @@ class ImageCanvas(ctk.CTkFrame):
             # draw mark as genotype-colored circle (light shade)
             cx, cy = sx, sy
             current_group = getattr(self, '_current_root_group', 0)
-            color = GROUP_MARK_COLORS[current_group % len(GROUP_MARK_COLORS)]
+            color = self._pastel_color(current_group)
             n = len(self._mark_points)
             # compute display label from root position numbers
             num_m = max(1, self._marks_expected // max(1, len(self._marks_display_numbers))) if self._marks_display_numbers else 1

@@ -365,21 +365,21 @@ def restore_settings(sidebar, settings):
     geno_hist = settings.get('genotype_history', [])
     if geno_hist:
         sidebar.entry_genotypes.set_history(geno_hist)
-    else:
-        _geno = settings.get('genotypes', '')
-        if _geno:
-            sidebar.entry_genotypes.insert(0, _geno)
+    _geno = settings.get('genotypes', '')
+    if _geno:
+        sidebar.entry_genotypes.delete(0, 'end')
+        sidebar.entry_genotypes.insert(0, _geno)
+        if not geno_hist:
             sidebar.entry_genotypes.commit()
-            sidebar.entry_genotypes.delete(0, 'end')
     cond_hist = settings.get('condition_history', [])
     if cond_hist:
         sidebar.entry_condition.set_history(cond_hist)
-    else:
-        _cond = settings.get('conditions', '')
-        if _cond:
-            sidebar.entry_condition.insert(0, _cond)
+    _cond = settings.get('conditions', '')
+    if _cond:
+        sidebar.entry_condition.delete(0, 'end')
+        sidebar.entry_condition.insert(0, _cond)
+        if not cond_hist:
             sidebar.entry_condition.commit()
-            sidebar.entry_condition.delete(0, 'end')
     sidebar.var_plot.set(settings.get('plot', True))
     sidebar.var_manual_endpoints.set(settings.get('manual_endpoints', False))
     sidebar.var_assign_colors.set(settings.get('assign_colors', False))

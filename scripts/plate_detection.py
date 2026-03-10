@@ -156,7 +156,7 @@ def detect_plate_count(image):
     profile = np.mean(small.astype(np.float32), axis=1)
     profile = cv2.GaussianBlur(profile.reshape(-1, 1), (1, ks), 0).flatten()
 
-    margin = int(h * 0.15)
+    margin = int(h * 0.20)
     mid = profile[margin:h - margin]
     if len(mid) < 6:
         return 1
@@ -194,15 +194,18 @@ def detect_plate_count(image):
     peak_idx = c_start + np.argmax(central_edge)
     peak_val = edge_density[peak_idx]
 
-    # Check if edge density stays significant below the peak
-    # (a real plate gap has a second plate below; a single plate rim drops to zero)
+    # A real plate gap has plates (with edges) on BOTH sides.
+    # A single plate rim has scanner background (no edges) on one side.
     check_start = peak_idx + int(h * 0.10)
     check_end = peak_idx + int(h * 0.25)
-    if check_end > h or peak_val < 30:
+    pre_start = peak_idx - int(h * 0.25)
+    pre_end = peak_idx - int(h * 0.15)
+    if check_end > h or pre_start < 0 or peak_val < 30:
         return 1
 
-    post_peak = np.mean(edge_density[check_start:check_end])
-    if post_peak / (peak_val + 1) > 0.25:
+    post = np.mean(edge_density[check_start:check_end]) / (peak_val + 1)
+    pre = np.mean(edge_density[pre_start:pre_end]) / (peak_val + 1)
+    if pre > 0.25 and post > 0.25:
         return 2
 
     return 1

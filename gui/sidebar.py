@@ -884,15 +884,16 @@ class Sidebar(ctk.CTkScrollableFrame):
                          font=ctk.CTkFont(size=10),
                          text_color="gray60").pack(padx=10, pady=(0, 6),
                                                     anchor="w")
-            def _all_descendants(widget):
+            def _all_descendants(widget, skip=None):
                 result = [widget]
                 for child in widget.winfo_children():
-                    result.extend(_all_descendants(child))
+                    if child is skip:
+                        continue
+                    result.extend(_all_descendants(child, skip))
                 return result
-            for w in _all_descendants(frame):
-                if w is not del_btn:
-                    w.bind("<Button-1>",
-                           lambda e, f=folder, x=exp: self.app.resume_session(f, x))
+            for w in _all_descendants(frame, skip=del_btn):
+                w.bind("<Button-1>",
+                       lambda e, f=folder, x=exp: self.app.resume_session(f, x))
             self._session_buttons.append(frame)
 
         self.sec_sessions.show()

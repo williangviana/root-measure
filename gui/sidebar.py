@@ -882,6 +882,7 @@ class Sidebar(ctk.CTkScrollableFrame):
     def _delete_session(self, folder, experiment):
         """Delete a session after user confirmation."""
         from tkinter import messagebox
+        from pathlib import Path
         name = experiment or Path(folder).name
         if not messagebox.askyesno("Delete Session",
                                    f"Delete session \"{name}\"?\n"

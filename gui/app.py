@@ -176,6 +176,9 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
         except Exception:
             pass  # Tk 8.x doesn't have <TouchpadScroll>
 
+        # drag-and-drop support (bundled tkdnd 2.9.5 for Tcl 9)
+        self._setup_dnd()
+
         # try to auto-resume last session after window is drawn
         self.after(200, self._try_auto_resume)
 
@@ -507,6 +510,60 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
         if not folder:
             return
         self._open_folder(folder)
+
+    def _setup_dnd(self):
+        """Register window as drag-and-drop target using bundled tkdnd."""
+        try:
+            tkdnd_dir = Path(__file__).parent / 'tkdnd2.9.5'
+            if not tkdnd_dir.is_dir():
+                return
+            self.tk.call('lappend', 'auto_path', str(tkdnd_dir))
+            self.tk.call('package', 'require', 'tkdnd')
+            self.tk.call('tkdnd::drop_target', 'register', self._w,
+                         ('DND_Files',))
+            # Bind drop events via Tcl
+            self._dnd_drop_cmd = self.register(self._on_drop)
+            self.tk.call('bind', self._w, '<<Drop>>',
+                         f'{self._dnd_drop_cmd} %D')
+            self._dnd_enter_cmd = self.register(self._on_drag_enter)
+            self.tk.call('bind', self._w, '<<DropEnter>>',
+                         self._dnd_enter_cmd)
+            self._dnd_leave_cmd = self.register(self._on_drag_leave)
+            self.tk.call('bind', self._w, '<<DropLeave>>',
+                         self._dnd_leave_cmd)
+        except Exception:
+            pass
+
+    def _on_drop(self, data):
+        """Handle file/folder drop onto the window."""
+        paths = self.tk.splitlist(data)
+        if not paths:
+            return
+        p = Path(paths[0])
+        self.lift()
+        self.focus_force()
+        self._on_drag_leave()
+        if p.is_dir():
+            self._open_folder(p)
+        elif p.is_file():
+            self._open_folder(p.parent)
+            if self.images and p in self.images:
+                self.load_image(p)
+
+    def _on_drag_enter(self, *args):
+        """Highlight canvas border during drag-over."""
+        try:
+            self.canvas.canvas.configure(
+                highlightthickness=3, highlightbackground="#4a9eff")
+        except Exception:
+            pass
+
+    def _on_drag_leave(self, *args):
+        """Remove canvas border highlight."""
+        try:
+            self.canvas.canvas.configure(highlightthickness=0)
+        except Exception:
+            pass
 
     def load_image(self, path):
         """Load and display a single image."""

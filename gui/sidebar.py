@@ -511,7 +511,7 @@ class Sidebar(ctk.CTkScrollableFrame):
         self._color_row = ctk.CTkFrame(b, fg_color="transparent")
         self._color_row.pack(padx=15, anchor="w", pady=(0, 8))
         self.chk_assign_colors = ctk.CTkCheckBox(
-            self._color_row, text="Color palette", width=60,
+            self._color_row, text="Custom color palette", width=60,
             variable=self.var_assign_colors,
             command=self._toggle_assign_colors,
             font=ctk.CTkFont(size=11))

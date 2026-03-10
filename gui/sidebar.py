@@ -342,7 +342,7 @@ class Sidebar(ctk.CTkScrollableFrame):
         self.sec_folder.show()
         b = self.sec_folder.body
         self.btn_load_folder = ctk.CTkButton(
-            b, text="Open Folder", command=app.load_folder)
+            b, text="Open or Drop Folder", command=app.load_folder)
         self.btn_load_folder.pack(pady=5, padx=15, fill="x")
 
         # ===== SECTION: SAVED SESSIONS =====

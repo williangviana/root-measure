@@ -382,7 +382,7 @@ class Sidebar(ctk.CTkScrollableFrame):
         # Genotypes per plate
         _geno_frame = ctk.CTkFrame(_options_row, fg_color="transparent")
         _geno_frame.grid(row=0, column=1)
-        _label_with_tip(_geno_frame, "Geno/plate:",
+        _label_with_tip(_geno_frame, "Genotype/plate:",
                         "Genotypes per plate (default 1).\n"
                         "Use 2+ if a plate has multiple genotypes.\n"
                         "You'll click roots for each genotype separately.",

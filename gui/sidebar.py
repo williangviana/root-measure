@@ -1058,12 +1058,21 @@ class Sidebar(ctk.CTkScrollableFrame):
         row = None
         for i, gname in enumerate(genotypes):
             if i % per_row == 0:
+                is_last_row = (i + per_row) >= len(genotypes)
+                remainder = len(genotypes) - i
+                full = remainder >= per_row
                 row = ctk.CTkFrame(self._swatch_frame, fg_color="transparent")
-                row.pack(fill="x", pady=(2, 0))
+                if full:
+                    row.pack(fill="x", pady=(2, 0))
+                else:
+                    row.pack(pady=(2, 0))
             self.app._register_genotype(gname)
             color = self.app._get_genotype_bright_color(gname)
             item = ctk.CTkFrame(row, fg_color="transparent")
-            item.pack(side="left", expand=True)
+            if full:
+                item.pack(side="left", expand=True)
+            else:
+                item.pack(side="left", padx=(0, 8))
             swatch = ctk.CTkButton(
                 item, text="", width=20, height=20,
                 fg_color=color, hover_color=color,

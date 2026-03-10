@@ -478,8 +478,7 @@ class Sidebar(ctk.CTkScrollableFrame):
                         "By default you click the top and tip of each root.\n"
                         "Check this to only click the top. The tip is found\n"
                         "automatically (less accurate, may need retrace).",
-                        font=ctk.CTkFont(size=11)).pack(padx=15, anchor="w",
-                                                         pady=(4, 0))
+                        font=ctk.CTkFont(size=11)).pack(padx=15, anchor="w")
         self.chk_auto_tip.pack(padx=25, anchor="w", pady=(2, 0))
 
         self.btn_next_settings = ctk.CTkButton(
@@ -506,20 +505,20 @@ class Sidebar(ctk.CTkScrollableFrame):
                         font=ctk.CTkFont(size=11)).pack(padx=15, anchor="w")
         self.entry_genotypes = _AutocompleteEntry(
             b, placeholder_text="e.g. WT, crd-1")
-        self.entry_genotypes.pack(pady=(2, 4), padx=15, fill="x")
+        self.entry_genotypes.pack(pady=(2, 2), padx=15, fill="x")
         ctk.CTkLabel(b, text="Left to right, plate by plate",
                      font=ctk.CTkFont(size=9),
-                     text_color="gray50").pack(padx=15, anchor="w")
+                     text_color="gray50").pack(padx=15, anchor="w",
+                                               pady=(0, 8))
 
         _label_with_tip(b, "Conditions:",
                         "Treatment or condition for each plate, in order.\n"
                         "e.g. 'Control, Salt' → plate 1 = Control, plate 2 = Salt\n"
                         "If empty, no condition label is added.",
-                        font=ctk.CTkFont(size=11)).pack(
-            padx=15, pady=(6, 0), anchor="w")
+                        font=ctk.CTkFont(size=11)).pack(padx=15, anchor="w")
         self.entry_condition = _AutocompleteEntry(
             b, placeholder_text="e.g. Control, PEG")
-        self.entry_condition.pack(pady=(2, 4), padx=15, fill="x")
+        self.entry_condition.pack(pady=(2, 2), padx=15, fill="x")
         ctk.CTkLabel(b, text="One per plate, in order",
                      font=ctk.CTkFont(size=9),
                      text_color="gray50").pack(padx=15, anchor="w")
@@ -881,7 +880,7 @@ class Sidebar(ctk.CTkScrollableFrame):
         n_total = len(images)
         # overall progress bar (below button, above image list)
         prog_frame = ctk.CTkFrame(self._image_list_frame, fg_color="transparent")
-        prog_frame.pack(fill="x", pady=(0, 4))
+        prog_frame.pack(fill="x", pady=(4, 6))
         self._overall_progress_bar = ctk.CTkProgressBar(prog_frame, height=8)
         self._overall_progress_bar.set(n_done / n_total if n_total else 0)
         self._overall_progress_bar.pack(fill="x")

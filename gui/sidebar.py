@@ -501,12 +501,13 @@ class Sidebar(ctk.CTkScrollableFrame):
 
         _label_with_tip(b, "Genotypes:",
                         "1 genotype/plate (default):\n"
-                        "  List one name per plate, in order.\n"
+                        "  One name per plate, in order.\n"
                         "  e.g. 'WT, mutant1' → plate 1 = WT, plate 2 = mutant1\n\n"
                         "2+ genotypes/plate:\n"
-                        "  List the groups within each plate.\n"
+                        "  List the genotype names sharing each plate.\n"
                         "  e.g. 'WT, mutant1' with 2 geno/plate →\n"
-                        "  every plate has WT (top) + mutant1 (bottom)",
+                        "  you click WT roots first, then mutant1 roots,\n"
+                        "  repeating for every plate.",
                         font=ctk.CTkFont(size=11)).pack(padx=15, anchor="w")
         self.entry_genotypes = _AutocompleteEntry(
             b, placeholder_text="e.g. WT, crd-1")

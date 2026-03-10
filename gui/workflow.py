@@ -1056,16 +1056,14 @@ class MeasurementMixin:
         root_groups_list = self.canvas.get_root_groups()
         gpp = self.sidebar.get_genotypes_per_plate()
         if split:
-            geno_names = []
-            for gi in range(gpp):
-                gname = (genotypes[gi] if gi < len(genotypes)
-                         else f"group_{gi}")
-                geno_names.append(gname)
             for pi in range(len(plates)):
                 cond = conditions[pi] if pi < len(conditions) else (
                     conditions[-1] if conditions else None)
-                for gname in geno_names:
-                    cidx = self._genotype_colors.get(gname, pi * gpp)
+                for gi in range(gpp):
+                    flat_idx = pi * gpp + gi
+                    gname = (genotypes[flat_idx] if flat_idx < len(genotypes)
+                             else f"group_{gi}")
+                    cidx = self._register_genotype(gname)
                     plate_labels[(pi, cidx)] = (gname, cond)
                     group_to_plate[(pi, cidx)] = pi
             # build point_plates with matching (plate, group) tuple keys

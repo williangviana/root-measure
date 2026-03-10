@@ -783,7 +783,8 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
             gpp = self.sidebar.get_genotypes_per_plate()
             geno_items = []
             for gi in range(gpp):
-                gname = (genotypes[gi] if gi < len(genotypes)
+                flat_idx = pi * gpp + gi
+                gname = (genotypes[flat_idx] if flat_idx < len(genotypes)
                          else f"group_{gi}")
                 label = f"{gname} {cond}".strip() if cond else gname
                 cidx = self._register_genotype(gname)

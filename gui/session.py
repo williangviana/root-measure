@@ -61,11 +61,18 @@ def session_dir(folder, experiment=''):
 
 
 def delete_session(folder, experiment=''):
-    """Delete a session's .session directory from disk."""
+    """Delete a session and all its output (CSVs, plots, traces, etc.)."""
     import shutil
-    sd = session_dir(Path(folder), experiment)
-    if sd.exists():
-        shutil.rmtree(sd, ignore_errors=True)
+    folder = Path(folder)
+    safe = _sanitize_name(experiment)
+    if safe:
+        # experiment session: delete folder/root_measure/<experiment>/
+        target = folder / _ROOT / safe
+    else:
+        # legacy (no experiment): delete folder/root_measure/
+        target = folder / _ROOT
+    if target.exists():
+        shutil.rmtree(target, ignore_errors=True)
 
 
 def save_last_folder(folder):

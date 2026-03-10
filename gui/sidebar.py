@@ -508,12 +508,20 @@ class Sidebar(ctk.CTkScrollableFrame):
         self.entry_genotypes.pack(pady=(2, 4), padx=15, fill="x")
 
         self.var_assign_colors = ctk.BooleanVar(value=False)
+        self._color_row = ctk.CTkFrame(b, fg_color="transparent")
+        self._color_row.pack(padx=15, anchor="w", pady=(0, 8))
         self.chk_assign_colors = ctk.CTkCheckBox(
-            b, text="Assign colors", width=60,
+            self._color_row, text="Custom colors", width=60,
             variable=self.var_assign_colors,
             command=self._toggle_assign_colors,
             font=ctk.CTkFont(size=11))
-        self.chk_assign_colors.pack(padx=15, anchor="w", pady=(0, 8))
+        self.chk_assign_colors.pack(side="left")
+        q = ctk.CTkLabel(self._color_row, text="(?)", font=ctk.CTkFont(size=10),
+                         text_color="gray50", cursor="hand2")
+        q.pack(side="left", padx=(4, 0))
+        _Tooltip(q, "Override the default palette colors.\n"
+                     "Click each swatch to pick a color.\n"
+                     "Used in plots and on-screen labels.")
 
         # color swatches for genotypes (built dynamically)
         self._swatch_frame = None
@@ -1046,7 +1054,7 @@ class Sidebar(ctk.CTkScrollableFrame):
         self._swatch_frame = ctk.CTkFrame(
             self.sec_experiment.body, fg_color="transparent")
         self._swatch_frame.pack(fill="x", padx=15, pady=(0, 8),
-                                after=self.chk_assign_colors)
+                                after=self._color_row)
         max_len = max(len(g) for g in genotypes)
         per_row = 4 if max_len <= 6 else 2 if max_len <= 12 else 1
         row = None

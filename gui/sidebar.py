@@ -877,19 +877,8 @@ class Sidebar(ctk.CTkScrollableFrame):
         self._image_list_frame = ctk.CTkFrame(
             self.sec_folder.body, fg_color="transparent")
         self._image_list_frame.pack(fill="x", padx=10, pady=5)
-        # overall progress bar
         n_done = len(processed)
         n_total = len(images)
-        prog_frame = ctk.CTkFrame(self._image_list_frame, fg_color="transparent")
-        prog_frame.pack(fill="x", padx=5, pady=(0, 6))
-        self._overall_progress_bar = ctk.CTkProgressBar(prog_frame, height=8)
-        self._overall_progress_bar.set(n_done / n_total if n_total else 0)
-        self._overall_progress_bar.pack(fill="x")
-        self._overall_progress_label = ctk.CTkLabel(
-            prog_frame,
-            text=f"{n_done} of {n_total} scans completed",
-            font=ctk.CTkFont(size=10), text_color="gray50")
-        self._overall_progress_label.pack(anchor="w", pady=(2, 0))
         # image rows
         self._image_buttons = []
         for img_path in images:
@@ -926,6 +915,17 @@ class Sidebar(ctk.CTkScrollableFrame):
                 command=lambda p=img_path: self.app.load_image(p))
             name_btn.pack(side="left", fill="x", expand=True)
             self._image_buttons.append((img_path, row, dot_lbl, name_btn))
+        # overall progress bar (below image list)
+        prog_frame = ctk.CTkFrame(self._image_list_frame, fg_color="transparent")
+        prog_frame.pack(fill="x", padx=5, pady=(6, 0))
+        self._overall_progress_bar = ctk.CTkProgressBar(prog_frame, height=8)
+        self._overall_progress_bar.set(n_done / n_total if n_total else 0)
+        self._overall_progress_bar.pack(fill="x")
+        self._overall_progress_label = ctk.CTkLabel(
+            prog_frame,
+            text=f"{n_done} of {n_total} scans completed",
+            font=ctk.CTkFont(size=10), text_color="gray50")
+        self._overall_progress_label.pack(anchor="w", pady=(2, 0))
         self.btn_finish_plot.pack_forget()
 
     def update_image_list(self, processed=None, current=None):
@@ -1033,7 +1033,8 @@ class Sidebar(ctk.CTkScrollableFrame):
         from canvas import GROUP_MARKER_COLORS
         self._swatch_frame = ctk.CTkFrame(
             self.sec_experiment.body, fg_color="transparent")
-        self._swatch_frame.pack(fill="x", padx=15, pady=(6, 0))
+        self._swatch_frame.pack(fill="x", padx=15, pady=(6, 0),
+                                before=self.btn_start_workflow)
         ctk.CTkLabel(self._swatch_frame, text="Colors:",
                      font=ctk.CTkFont(size=11),
                      text_color="gray60").pack(anchor="w")

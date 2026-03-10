@@ -379,6 +379,13 @@ class Sidebar(ctk.CTkScrollableFrame):
         self.entry_num_plates = ctk.CTkEntry(_plates_frame, width=45,
                                               placeholder_text="1")
         self.entry_num_plates.pack(anchor="w", pady=(2, 0))
+        self.lbl_plates_auto = ctk.CTkLabel(_plates_frame, text="",
+                                             font=ctk.CTkFont(size=9),
+                                             text_color="gray50")
+        self.lbl_plates_auto.pack(anchor="w")
+        self.entry_num_plates._entry.bind(
+            "<KeyRelease>", lambda e: self.lbl_plates_auto.configure(text=""),
+            add="+")
         # Genotypes per plate
         _geno_frame = ctk.CTkFrame(_options_row, fg_color="transparent")
         _geno_frame.grid(row=0, column=1)
@@ -743,6 +750,12 @@ class Sidebar(ctk.CTkScrollableFrame):
     def is_manual_endpoints(self):
         """Return True if manual root endpoints mode is active."""
         return self.var_manual_endpoints.get()
+
+    def set_plate_count(self, count, auto=False):
+        """Set the plate count field and show/hide the (auto) indicator."""
+        self.entry_num_plates.delete(0, 'end')
+        self.entry_num_plates.insert(0, str(count))
+        self.lbl_plates_auto.configure(text="(auto)" if auto else "")
 
     def is_split_plate(self):
         """Return True if genotypes per plate > 1."""

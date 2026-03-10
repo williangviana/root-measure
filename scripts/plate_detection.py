@@ -132,6 +132,33 @@ def detect_single_plate(image):
     return plates
 
 
+def detect_plate_count(image):
+    """Count how many plates are visible in a scanned image.
+
+    Returns int >= 1.
+    """
+    scale = 8
+    small = image[::scale, ::scale]
+    small_8 = _to_uint8(small)
+
+    blur = cv2.GaussianBlur(small_8, (5, 5), 0)
+    _, thresh = cv2.threshold(blur, 0, 255,
+                              cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+
+    kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (30, 30))
+    closed = cv2.morphologyEx(thresh, cv2.MORPH_CLOSE, kernel)
+
+    erode_kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (5, 5))
+    closed = cv2.erode(closed, erode_kernel, iterations=2)
+
+    contours, _ = cv2.findContours(closed, cv2.RETR_EXTERNAL,
+                                   cv2.CHAIN_APPROX_SIMPLE)
+
+    min_area = small.shape[0] * small.shape[1] * MIN_PLATE_AREA_FRAC
+    count = sum(1 for cnt in contours if cv2.contourArea(cnt) >= min_area)
+    return max(1, count)
+
+
 def _find_plate_interior(plate_img):
     """Find the bright agar interior of a plate, excluding edges/ruler/tape.
 

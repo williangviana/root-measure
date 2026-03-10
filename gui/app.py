@@ -21,7 +21,7 @@ import tifffile
 sys.path.insert(0, str(Path(__file__).parent.parent / 'scripts'))
 
 from config import SCALE_PX_PER_CM
-from plate_detection import _to_uint8
+from plate_detection import _to_uint8, detect_plate_count
 
 from canvas import ImageCanvas, GROUP_MARKER_COLORS
 from sidebar import Sidebar
@@ -624,18 +624,19 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
             dpi = detected or 1200
             self.sidebar.advance_to_settings(path.name, dpi)
 
+            # Auto-detect plate count
+            plate_count = detect_plate_count(img)
+
             # Update auto-threshold display for new image
             if self.sidebar.var_auto_thresh.get():
                 self._update_auto_threshold()
 
-            # restore settings from previous scan
+            # restore settings from previous scan (overrides auto-detect)
             if self.folder:
                 ps = get_persistent_settings(self.folder, self._experiment_name)
                 if ps:
-                    # Restore all three fields with their saved values
-                    num_plates = ps.get('num_plates', 1)
-                    self.sidebar.entry_num_plates.delete(0, 'end')
-                    self.sidebar.entry_num_plates.insert(0, str(num_plates))
+                    self.sidebar.set_plate_count(
+                        ps.get('num_plates', 1), auto=False)
 
                     geno_per_plate = ps.get('genotypes_per_plate', 1)
                     self.sidebar.entry_genotypes_per_plate.delete(0, 'end')
@@ -651,6 +652,10 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
 
                     self.sidebar.var_manual_endpoints.set(
                         ps.get('manual_endpoints', False))
+                else:
+                    self.sidebar.set_plate_count(plate_count, auto=True)
+            else:
+                self.sidebar.set_plate_count(plate_count, auto=True)
 
             dpi_src = "detected" if detected else "default"
             self.sidebar.set_status(

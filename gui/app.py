@@ -16,11 +16,6 @@ import cv2
 import numpy as np
 import tifffile
 
-try:
-    import tkinterdnd2 as _dnd
-    _DND_AVAILABLE = True
-except ImportError:
-    _DND_AVAILABLE = False
 
 # allow importing from scripts/
 sys.path.insert(0, str(Path(__file__).parent.parent / 'scripts'))
@@ -50,23 +45,6 @@ def _hex_to_pastel(hex_color, mix=0.6):
     b = int(b + (255 - b) * mix)
     return f"#{r:02x}{g:02x}{b:02x}"
 
-
-def _parse_dnd_paths(data):
-    """Parse tkinterdnd2 drop data into list of path strings."""
-    paths = []
-    rest = data.strip()
-    while rest:
-        if rest.startswith('{'):
-            end = rest.find('}')
-            if end == -1:
-                break
-            paths.append(rest[1:end])
-            rest = rest[end + 1:].strip()
-        else:
-            parts = rest.split(None, 1)
-            paths.append(parts[0])
-            rest = parts[1].strip() if len(parts) > 1 else ''
-    return paths
 
 
 def _detect_dpi(image_path):
@@ -197,9 +175,6 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
             self.bind_all("<TouchpadScroll>", self._on_touchpad_scroll)
         except Exception:
             pass  # Tk 8.x doesn't have <TouchpadScroll>
-
-        # drag-and-drop support
-        self._setup_dnd()
 
         # try to auto-resume last session after window is drawn
         self.after(200, self._try_auto_resume)
@@ -532,49 +507,6 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
         if not folder:
             return
         self._open_folder(folder)
-
-    def _setup_dnd(self):
-        """Register window as a drag-and-drop target (if tkinterdnd2 available)."""
-        if not _DND_AVAILABLE:
-            return
-        try:
-            self.drop_target_register(_dnd.DND_FILES)
-            self.dnd_bind('<<Drop>>', self._on_drop)
-            self.dnd_bind('<<DragEnter>>', self._on_drag_enter)
-            self.dnd_bind('<<DragLeave>>', self._on_drag_leave)
-        except Exception:
-            pass  # fail silently if tkdnd C extension not available
-
-    def _on_drop(self, event):
-        """Handle file/folder drop onto the window."""
-        paths = _parse_dnd_paths(event.data)
-        if not paths:
-            return
-        p = Path(paths[0])
-        self.lift()
-        self.focus_force()
-        self._on_drag_leave(None)
-        if p.is_dir():
-            self._open_folder(p)
-        elif p.is_file():
-            self._open_folder(p.parent)
-            if self.images and p in self.images:
-                self.load_image(p)
-
-    def _on_drag_enter(self, event):
-        """Highlight canvas border during drag-over."""
-        try:
-            self.canvas.canvas.configure(
-                highlightthickness=3, highlightbackground="#4a9eff")
-        except Exception:
-            pass
-
-    def _on_drag_leave(self, event):
-        """Remove canvas border highlight."""
-        try:
-            self.canvas.canvas.configure(highlightthickness=0)
-        except Exception:
-            pass
 
     def load_image(self, path):
         """Load and display a single image."""

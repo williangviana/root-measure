@@ -525,6 +525,7 @@ class Sidebar(ctk.CTkScrollableFrame):
 
         # color swatches for genotypes (built dynamically)
         self._swatch_frame = None
+        self._swatch_buttons = {}  # genotype name → CTkButton
 
         _label_with_tip(b, "Conditions:",
                         "Treatment or condition for each plate, in order.\n"
@@ -1073,6 +1074,7 @@ class Sidebar(ctk.CTkScrollableFrame):
             if self._swatch_frame is not None:
                 self._swatch_frame.destroy()
                 self._swatch_frame = None
+            self._swatch_buttons.clear()
             self.app._genotype_custom_colors.clear()
 
     def _rebuild_swatches(self):
@@ -1120,6 +1122,7 @@ class Sidebar(ctk.CTkScrollableFrame):
                 border_color="gray50",
                 command=lambda n=gname: self._on_swatch_click(n))
             swatch.pack(side="left")
+            self._swatch_buttons[gname] = swatch
             ctk.CTkLabel(item, text=gname,
                          font=ctk.CTkFont(size=10),
                          text_color="gray70").pack(side="left", padx=(4, 0))
@@ -1133,7 +1136,12 @@ class Sidebar(ctk.CTkScrollableFrame):
         self.app.focus_force()
         if result and result[1]:
             self.app._genotype_custom_colors[genotype_name] = result[1]
-            self._rebuild_swatches()
+            color = result[1]
+            btn = self._swatch_buttons.get(genotype_name)
+            if btn:
+                btn.configure(fg_color=color, hover_color=color)
+            else:
+                self._rebuild_swatches()
 
     def advance_to_workflow(self):
         """Phase 4: experiment configured — show workflow, collapse experiment."""

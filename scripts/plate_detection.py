@@ -135,7 +135,8 @@ def detect_single_plate(image):
 def detect_plate_count(image):
     """Count how many plates are visible in a scanned image.
 
-    Uses vertical intensity profile to detect dark gaps between plates.
+    Uses two signals: (1) intensity valley in the vertical profile, and
+    (2) edge density with post-peak continuity check for low-contrast scans.
     Returns int >= 1.
     """
     # Convert to grayscale
@@ -146,38 +147,65 @@ def detect_plate_count(image):
     gray = _to_uint8(gray)
 
     # Downscale for speed
-    scale = 16
+    scale = 8
     small = gray[::scale, ::scale]
     h, w = small.shape
+    ks = max(5, h // 20) | 1  # smoothing kernel, ensure odd
 
-    # Vertical intensity profile (mean per row)
+    # ---- Signal 1: Intensity valley ratio ----
     profile = np.mean(small.astype(np.float32), axis=1)
-
-    # Smoothing to remove noise while preserving valleys
-    ks = max(5, h // 20) | 1  # ensure odd
     profile = cv2.GaussianBlur(profile.reshape(-1, 1), (1, ks), 0).flatten()
 
-    # Ignore top/bottom 15% (scanner edges)
     margin = int(h * 0.15)
     mid = profile[margin:h - margin]
     if len(mid) < 6:
         return 1
 
-    # Find max intensity in top third and bottom third of the middle region
     n = len(mid)
     top_max = np.max(mid[:n // 3])
     bot_max = np.max(mid[2 * n // 3:])
     surround = (top_max + bot_max) / 2
 
-    # Find minimum in central region (middle 50%)
     central = mid[n // 4:3 * n // 4]
     if len(central) == 0 or surround < 1:
         return 1
 
     ratio = np.min(central) / surround
+    if ratio < 0.70:
+        return 2
 
-    # A deep valley (ratio < 0.70) indicates a gap between two plates
-    return 2 if ratio < 0.70 else 1
+    # ---- Signal 2: Edge density with post-peak check ----
+    # Catches low-contrast scans (e.g. 16-bit) where intensity valley is subtle
+    clahe = cv2.createCLAHE(clipLimit=3.0, tileGridSize=(8, 8))
+    enhanced = clahe.apply(small)
+    edges = cv2.Canny(enhanced, 30, 100)
+    edge_density = np.sum(edges > 0, axis=1).astype(np.float32)
+    edge_density = cv2.GaussianBlur(
+        edge_density.reshape(-1, 1), (1, ks), 0
+    ).flatten()
+
+    # Find peak edge density in central 40% of image
+    c_start = int(h * 0.30)
+    c_end = int(h * 0.70)
+    central_edge = edge_density[c_start:c_end]
+    if len(central_edge) == 0:
+        return 1
+
+    peak_idx = c_start + np.argmax(central_edge)
+    peak_val = edge_density[peak_idx]
+
+    # Check if edge density stays significant below the peak
+    # (a real plate gap has a second plate below; a single plate rim drops to zero)
+    check_start = peak_idx + int(h * 0.10)
+    check_end = peak_idx + int(h * 0.25)
+    if check_end > h or peak_val < 30:
+        return 1
+
+    post_peak = np.mean(edge_density[check_start:check_end])
+    if post_peak / (peak_val + 1) > 0.25:
+        return 2
+
+    return 1
 
 
 def _find_plate_interior(plate_img):

@@ -1054,11 +1054,11 @@ class Sidebar(ctk.CTkScrollableFrame):
             self.sec_experiment.body, fg_color="transparent")
         self._swatch_frame.pack(fill="x", padx=15, pady=(0, 8),
                                 after=self.chk_assign_colors)
-        per_row = 4
+        max_len = max(len(g) for g in genotypes)
+        per_row = 4 if max_len <= 6 else 2 if max_len <= 12 else 1
         row = None
         for i, gname in enumerate(genotypes):
             if i % per_row == 0:
-                is_last_row = (i + per_row) >= len(genotypes)
                 remainder = len(genotypes) - i
                 full = remainder >= per_row
                 row = ctk.CTkFrame(self._swatch_frame, fg_color="transparent")

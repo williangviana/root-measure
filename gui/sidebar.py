@@ -975,9 +975,9 @@ class Sidebar(ctk.CTkScrollableFrame):
         n_done = len(processed)
         n_total = len(images)
         if n_done > 0:
-            self.set_status(f"{n_done}/{n_total} scan(s) done. Select next image.")
+            self.set_status(f"Select next image.")
         else:
-            self.set_status(f"{n_total} scan(s) found.")
+            self.set_status(f"Select an image to begin.")
 
     def advance_to_settings(self, image_name, dpi):
         """Phase 2: image selected — show settings, collapse folder."""

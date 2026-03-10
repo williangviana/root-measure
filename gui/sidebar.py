@@ -881,7 +881,7 @@ class Sidebar(ctk.CTkScrollableFrame):
         n_done = len(processed)
         n_total = len(images)
         prog_frame = ctk.CTkFrame(self._image_list_frame, fg_color="transparent")
-        prog_frame.pack(fill="x", pady=(0, 6))
+        prog_frame.pack(fill="x", padx=5, pady=(0, 6))
         self._overall_progress_bar = ctk.CTkProgressBar(prog_frame, height=8)
         self._overall_progress_bar.set(n_done / n_total if n_total else 0)
         self._overall_progress_bar.pack(fill="x")

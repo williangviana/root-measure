@@ -870,7 +870,12 @@ class Sidebar(ctk.CTkScrollableFrame):
                          font=ctk.CTkFont(size=10),
                          text_color="gray60").pack(padx=10, pady=(0, 6),
                                                     anchor="w")
-            for w in (frame, *frame.winfo_children()):
+            def _all_descendants(widget):
+                result = [widget]
+                for child in widget.winfo_children():
+                    result.extend(_all_descendants(child))
+                return result
+            for w in _all_descendants(frame):
                 if w is not del_btn:
                     w.bind("<Button-1>",
                            lambda e, f=folder, x=exp: self.app.resume_session(f, x))
@@ -890,6 +895,12 @@ class Sidebar(ctk.CTkScrollableFrame):
             return
         from session import delete_session, get_recent_folders, get_session_summaries
         delete_session(folder, experiment)
+        # if this was the currently loaded session, clear app state to prevent
+        # auto-save from recreating it
+        if (str(getattr(self.app, 'folder', '')) == str(folder) and
+                getattr(self.app, '_experiment_name', '') == experiment):
+            self.app.folder = None
+            self.app._experiment_name = ''
         # rebuild session list
         sessions = []
         for f in get_recent_folders():

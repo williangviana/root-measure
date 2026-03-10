@@ -69,8 +69,8 @@ def delete_session(folder, experiment=''):
         # experiment session: delete folder/root_measure/<experiment>/
         target = folder / _ROOT / safe
     else:
-        # legacy (no experiment): delete folder/root_measure/
-        target = folder / _ROOT
+        # legacy (no experiment): only delete the .session dir
+        target = folder / _ROOT / '.session'
     if target.exists():
         shutil.rmtree(target, ignore_errors=True)
 

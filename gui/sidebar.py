@@ -245,7 +245,7 @@ def _label_with_tip(parent, text, tip, **kwargs):
     q = ctk.CTkLabel(row, text="(?)", font=ctk.CTkFont(size=10),
                      text_color="gray50", cursor="hand2")
     q.pack(side="left", padx=(4, 0))
-    _Tooltip(q, tip)
+    row._tooltip = _Tooltip(q, tip)
     return row
 
 
@@ -373,19 +373,14 @@ class Sidebar(ctk.CTkScrollableFrame):
         # Plates
         _plates_frame = ctk.CTkFrame(_options_row, fg_color="transparent")
         _plates_frame.grid(row=0, column=0, sticky="w")
-        _label_with_tip(_plates_frame, "Plates:",
-                        "Number of plates in this image.",
-                        font=ctk.CTkFont(size=11)).pack(anchor="w")
+        self._plates_tip_row = _label_with_tip(
+            _plates_frame, "Plates:",
+            "Number of plates in this image.",
+            font=ctk.CTkFont(size=11))
+        self._plates_tip_row.pack(anchor="w")
         self.entry_num_plates = ctk.CTkEntry(_plates_frame, width=45,
                                               placeholder_text="1")
-        self.entry_num_plates.pack(anchor="w", pady=(2, 0))
-        self.lbl_plates_auto = ctk.CTkLabel(_plates_frame, text="",
-                                             font=ctk.CTkFont(size=9),
-                                             text_color="gray50")
-        self.lbl_plates_auto.pack(anchor="w")
-        self.entry_num_plates._entry.bind(
-            "<KeyRelease>", lambda e: self.lbl_plates_auto.configure(text=""),
-            add="+")
+        self.entry_num_plates.pack(anchor="center", pady=(2, 0))
         # Genotypes per plate
         _geno_frame = ctk.CTkFrame(_options_row, fg_color="transparent")
         _geno_frame.grid(row=0, column=1)
@@ -752,10 +747,13 @@ class Sidebar(ctk.CTkScrollableFrame):
         return self.var_manual_endpoints.get()
 
     def set_plate_count(self, count, auto=False):
-        """Set the plate count field and show/hide the (auto) indicator."""
+        """Set the plate count field and update tooltip with auto-detect info."""
         self.entry_num_plates.delete(0, 'end')
         self.entry_num_plates.insert(0, str(count))
-        self.lbl_plates_auto.configure(text="(auto)" if auto else "")
+        tip = "Number of plates in this image."
+        if auto:
+            tip += f"\nAuto-detected: {count}"
+        self._plates_tip_row._tooltip._text = tip
 
     def is_split_plate(self):
         """Return True if genotypes per plate > 1."""

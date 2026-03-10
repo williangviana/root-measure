@@ -505,11 +505,7 @@ class Sidebar(ctk.CTkScrollableFrame):
                         font=ctk.CTkFont(size=11)).pack(padx=15, anchor="w")
         self.entry_genotypes = _AutocompleteEntry(
             b, placeholder_text="e.g. WT, crd-1")
-        self.entry_genotypes.pack(pady=(2, 2), padx=15, fill="x")
-        ctk.CTkLabel(b, text="Left to right, plate by plate",
-                     font=ctk.CTkFont(size=9),
-                     text_color="gray50").pack(padx=15, anchor="w",
-                                               pady=(0, 4))
+        self.entry_genotypes.pack(pady=(2, 4), padx=15, fill="x")
 
         self.var_assign_colors = ctk.BooleanVar(value=False)
         self.chk_assign_colors = ctk.CTkCheckBox(
@@ -530,9 +526,6 @@ class Sidebar(ctk.CTkScrollableFrame):
         self.entry_condition = _AutocompleteEntry(
             b, placeholder_text="e.g. Control, PEG")
         self.entry_condition.pack(pady=(2, 2), padx=15, fill="x")
-        ctk.CTkLabel(b, text="One per plate, in order",
-                     font=ctk.CTkFont(size=9),
-                     text_color="gray50").pack(padx=15, anchor="w")
 
         self.var_plot = ctk.BooleanVar(value=True)
 

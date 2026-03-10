@@ -752,7 +752,7 @@ class Sidebar(ctk.CTkScrollableFrame):
         self.entry_num_plates.insert(0, str(count))
         tip = "Number of plates in this image."
         if auto:
-            tip += f"\nAuto-detected: {count}"
+            tip += "\n(auto-detected)"
         self._plates_tip_row._tooltip._text = tip
 
     def is_split_plate(self):

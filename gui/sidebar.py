@@ -509,7 +509,18 @@ class Sidebar(ctk.CTkScrollableFrame):
         ctk.CTkLabel(b, text="Left to right, plate by plate",
                      font=ctk.CTkFont(size=9),
                      text_color="gray50").pack(padx=15, anchor="w",
-                                               pady=(0, 8))
+                                               pady=(0, 4))
+
+        self.var_assign_colors = ctk.BooleanVar(value=False)
+        self.chk_assign_colors = ctk.CTkCheckBox(
+            b, text="Assign colors", width=60,
+            variable=self.var_assign_colors,
+            command=self._toggle_assign_colors,
+            font=ctk.CTkFont(size=11))
+        self.chk_assign_colors.pack(padx=15, anchor="w", pady=(0, 8))
+
+        # color swatches for genotypes (built dynamically)
+        self._swatch_frame = None
 
         _label_with_tip(b, "Conditions:",
                         "Treatment or condition for each plate, in order.\n"
@@ -524,9 +535,6 @@ class Sidebar(ctk.CTkScrollableFrame):
                      text_color="gray50").pack(padx=15, anchor="w")
 
         self.var_plot = ctk.BooleanVar(value=True)
-
-        # color swatches for genotypes (built dynamically)
-        self._swatch_frame = None
 
         self.btn_start_workflow = ctk.CTkButton(
             b, text="Start Workflow", fg_color="#2b5797",
@@ -1017,10 +1025,23 @@ class Sidebar(ctk.CTkScrollableFrame):
         # hide workflow
         self.sec_workflow.hide()
 
+    def _toggle_assign_colors(self):
+        """Show or hide genotype color swatches based on checkbox."""
+        if self.var_assign_colors.get():
+            self._rebuild_swatches()
+        else:
+            if self._swatch_frame is not None:
+                self._swatch_frame.destroy()
+                self._swatch_frame = None
+            self.app._genotype_custom_colors.clear()
+
     def _rebuild_swatches(self):
-        """Build color swatch buttons for each genotype in the experiment section."""
+        """Build color swatch buttons for each genotype below the checkbox."""
         if self._swatch_frame is not None:
             self._swatch_frame.destroy()
+        if not self.var_assign_colors.get():
+            self._swatch_frame = None
+            return
         geno_text = self.entry_genotypes.get().strip()
         if not geno_text:
             self._swatch_frame = None
@@ -1029,21 +1050,15 @@ class Sidebar(ctk.CTkScrollableFrame):
         if not genotypes:
             self._swatch_frame = None
             return
-        from canvas import GROUP_MARKER_COLORS
         self._swatch_frame = ctk.CTkFrame(
             self.sec_experiment.body, fg_color="transparent")
-        self._swatch_frame.pack(fill="x", padx=15, pady=(6, 0),
-                                before=self.btn_start_workflow)
-        ctk.CTkLabel(self._swatch_frame, text="Colors:",
-                     font=ctk.CTkFont(size=11),
-                     text_color="gray60").pack(anchor="w")
-        row = ctk.CTkFrame(self._swatch_frame, fg_color="transparent")
-        row.pack(fill="x", pady=(2, 0))
+        self._swatch_frame.pack(fill="x", padx=15, pady=(0, 8),
+                                after=self.chk_assign_colors)
         for gname in genotypes:
-            idx = self.app._register_genotype(gname)
+            self.app._register_genotype(gname)
             color = self.app._get_genotype_bright_color(gname)
-            item = ctk.CTkFrame(row, fg_color="transparent")
-            item.pack(side="left", padx=(0, 10))
+            item = ctk.CTkFrame(self._swatch_frame, fg_color="transparent")
+            item.pack(anchor="w", pady=(2, 0))
             swatch = ctk.CTkButton(
                 item, text="", width=20, height=20,
                 fg_color=color, hover_color=color,

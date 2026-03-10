@@ -288,6 +288,7 @@ def _collect_settings(sidebar):
         'condition_history': sidebar.entry_condition.get_history(),
         'plot': sidebar.var_plot.get(),
         'manual_endpoints': sidebar.var_manual_endpoints.get(),
+        'assign_colors': sidebar.var_assign_colors.get(),
     }
 
 
@@ -381,3 +382,4 @@ def restore_settings(sidebar, settings):
             sidebar.entry_condition.delete(0, 'end')
     sidebar.var_plot.set(settings.get('plot', True))
     sidebar.var_manual_endpoints.set(settings.get('manual_endpoints', False))
+    sidebar.var_assign_colors.set(settings.get('assign_colors', False))

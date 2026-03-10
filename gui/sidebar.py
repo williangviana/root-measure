@@ -1054,9 +1054,12 @@ class Sidebar(ctk.CTkScrollableFrame):
             self.sec_experiment.body, fg_color="transparent")
         self._swatch_frame.pack(fill="x", padx=15, pady=(0, 8),
                                 after=self.chk_assign_colors)
-        row = ctk.CTkFrame(self._swatch_frame, fg_color="transparent")
-        row.pack(fill="x")
-        for gname in genotypes:
+        per_row = 3
+        row = None
+        for i, gname in enumerate(genotypes):
+            if i % per_row == 0:
+                row = ctk.CTkFrame(self._swatch_frame, fg_color="transparent")
+                row.pack(fill="x", pady=(2, 0))
             self.app._register_genotype(gname)
             color = self.app._get_genotype_bright_color(gname)
             item = ctk.CTkFrame(row, fg_color="transparent")

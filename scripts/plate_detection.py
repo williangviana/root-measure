@@ -135,28 +135,49 @@ def detect_single_plate(image):
 def detect_plate_count(image):
     """Count how many plates are visible in a scanned image.
 
+    Uses vertical intensity profile to detect dark gaps between plates.
     Returns int >= 1.
     """
-    scale = 8
-    small = image[::scale, ::scale]
-    small_8 = _to_uint8(small)
+    # Convert to grayscale
+    if len(image.shape) == 3:
+        gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    else:
+        gray = image.copy()
+    gray = _to_uint8(gray)
 
-    blur = cv2.GaussianBlur(small_8, (5, 5), 0)
-    _, thresh = cv2.threshold(blur, 0, 255,
-                              cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+    # Downscale for speed
+    scale = 16
+    small = gray[::scale, ::scale]
+    h, w = small.shape
 
-    kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (30, 30))
-    closed = cv2.morphologyEx(thresh, cv2.MORPH_CLOSE, kernel)
+    # Vertical intensity profile (mean per row)
+    profile = np.mean(small.astype(np.float32), axis=1)
 
-    erode_kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (5, 5))
-    closed = cv2.erode(closed, erode_kernel, iterations=2)
+    # Smoothing to remove noise while preserving valleys
+    ks = max(5, h // 20) | 1  # ensure odd
+    profile = cv2.GaussianBlur(profile.reshape(-1, 1), (1, ks), 0).flatten()
 
-    contours, _ = cv2.findContours(closed, cv2.RETR_EXTERNAL,
-                                   cv2.CHAIN_APPROX_SIMPLE)
+    # Ignore top/bottom 15% (scanner edges)
+    margin = int(h * 0.15)
+    mid = profile[margin:h - margin]
+    if len(mid) < 6:
+        return 1
 
-    min_area = small.shape[0] * small.shape[1] * MIN_PLATE_AREA_FRAC
-    count = sum(1 for cnt in contours if cv2.contourArea(cnt) >= min_area)
-    return max(1, count)
+    # Find max intensity in top third and bottom third of the middle region
+    n = len(mid)
+    top_max = np.max(mid[:n // 3])
+    bot_max = np.max(mid[2 * n // 3:])
+    surround = (top_max + bot_max) / 2
+
+    # Find minimum in central region (middle 50%)
+    central = mid[n // 4:3 * n // 4]
+    if len(central) == 0 or surround < 1:
+        return 1
+
+    ratio = np.min(central) / surround
+
+    # A deep valley (ratio < 0.70) indicates a gap between two plates
+    return 2 if ratio < 0.70 else 1
 
 
 def _find_plate_interior(plate_img):

@@ -500,27 +500,31 @@ class Sidebar(ctk.CTkScrollableFrame):
         self.entry_experiment.pack(pady=(2, 8), padx=15, fill="x")
 
         _label_with_tip(b, "Genotypes:",
-                        "Comma-separated list (e.g. 'WT, mutant1, mutant2').\n"
-                        "Assigned to plates in order (plate 1 = first genotype).\n"
-                        "With split plates, list groups matching genotypes per plate.",
+                        "1 genotype/plate (default):\n"
+                        "  List one name per plate, in order.\n"
+                        "  e.g. 'WT, mutant1' → plate 1 = WT, plate 2 = mutant1\n\n"
+                        "2+ genotypes/plate:\n"
+                        "  List the groups within each plate.\n"
+                        "  e.g. 'WT, mutant1' with 2 geno/plate →\n"
+                        "  every plate has WT (top) + mutant1 (bottom)",
                         font=ctk.CTkFont(size=11)).pack(padx=15, anchor="w")
         self.entry_genotypes = _AutocompleteEntry(
             b, placeholder_text="e.g. WT, crd-1")
         self.entry_genotypes.pack(pady=(2, 4), padx=15, fill="x")
-        ctk.CTkLabel(b, text="Comma-separated if multiple",
+        ctk.CTkLabel(b, text="One per plate, or one per group if split",
                      font=ctk.CTkFont(size=9),
                      text_color="gray50").pack(padx=15, anchor="w")
 
         _label_with_tip(b, "Conditions:",
-                        "Treatment labels (e.g. 'control, salt, drought').\n"
-                        "Assigned to plates in order.\n"
-                        "If empty, 'Control' is used for all plates.",
+                        "Treatment or condition for each plate, in order.\n"
+                        "e.g. 'Control, Salt' → plate 1 = Control, plate 2 = Salt\n"
+                        "If empty, no condition label is added.",
                         font=ctk.CTkFont(size=11)).pack(
             padx=15, pady=(6, 0), anchor="w")
         self.entry_condition = _AutocompleteEntry(
             b, placeholder_text="e.g. Control, PEG")
         self.entry_condition.pack(pady=(2, 4), padx=15, fill="x")
-        ctk.CTkLabel(b, text="Comma-separated, maps to plates in order",
+        ctk.CTkLabel(b, text="One per plate, in order",
                      font=ctk.CTkFont(size=9),
                      text_color="gray50").pack(padx=15, anchor="w")
 

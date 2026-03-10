@@ -1267,7 +1267,7 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
                 "Press Enter when done.")
             self.lbl_bottom.configure(
                 text=f"Click=root top  |  D+Click=dead  |  T+Click=touching  |  Right-click=undo  |  Enter=done{esc_hint}  |  Scroll=zoom")
-        btn_text = "Start Trace" if is_last else ("Next Genotype" if next_is_genotype else "Next Plate")
+        btn_text = "Confirm Roots" if is_last else ("Next Genotype" if next_is_genotype else "Next Plate")
         self.sidebar.btn_done.configure(text=btn_text)
         if not self.sidebar.btn_done.winfo_ismapped():
             self.sidebar.btn_done.pack(pady=(5, 0), padx=15, fill="x")

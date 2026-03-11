@@ -1,6 +1,6 @@
 #!/bin/bash
 # Root Measure — One-line installer
-# Usage: curl -sL https://raw.githubusercontent.com/williangviana/root-measure/stable/install/install.sh | bash
+# Usage: sudo curl -sL https://raw.githubusercontent.com/williangviana/root-measure/stable/install/install.sh | bash
 
 set -e
 

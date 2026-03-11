@@ -9,7 +9,7 @@ Open the Terminal (Mac) or PowerShell (Windows) and paste the command below.
 
 Mac
 ---
-curl -sL https://raw.githubusercontent.com/williangviana/root-measure/stable/install/install.sh | bash
+sudo curl -sL https://raw.githubusercontent.com/williangviana/root-measure/stable/install/install.sh | bash
 
 
 Windows

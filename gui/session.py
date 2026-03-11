@@ -280,6 +280,16 @@ def load_session(session_path):
         return None
 
 
+def _merge_geno_history(entries):
+    """Merge autocomplete histories from all genotype entries."""
+    merged = []
+    for entry in entries:
+        for item in entry.get_history():
+            if item not in merged:
+                merged.append(item)
+    return merged
+
+
 def _collect_settings(sidebar):
     try:
         num_plates = int(sidebar.entry_num_plates.get().strip() or "1")
@@ -301,7 +311,7 @@ def _collect_settings(sidebar):
         'genotypes': sidebar.get_genotypes_text(),
         'genotypes_per_box': sidebar.get_genotypes_per_box(),
         'conditions': sidebar.entry_condition.get().strip(),
-        'genotype_history': sidebar.entry_genotypes.get_history(),
+        'genotype_history': _merge_geno_history(sidebar._geno_entries),
         'condition_history': sidebar.entry_condition.get_history(),
         'plot': sidebar.var_plot.get(),
         'manual_endpoints': sidebar.var_manual_endpoints.get(),

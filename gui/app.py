@@ -941,7 +941,8 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
         """Called when user clicks Start Workflow."""
         self._exit_preview()
         # save current genotype/condition values to autocomplete history
-        self.sidebar.entry_genotypes.commit()
+        for entry in self.sidebar._geno_entries:
+            entry.commit()
         self.sidebar.entry_condition.commit()
         from csv_output import get_offsets_from_csv
         self._experiment_name = self.sidebar.entry_experiment.get().strip()

@@ -1145,7 +1145,10 @@ class ImageCanvas(ctk.CTkFrame):
             # defer click — may become a pan drag
             self._click_start = (event.x, event.y)
             self._is_panning = False
-            self._drag_start = (event.x, event.y)
+            # Only allow click-drag panning in VIEW mode;
+            # click modes use Space+drag to avoid trackpad mis-drags
+            if self._mode == self.MODE_VIEW:
+                self._drag_start = (event.x, event.y)
 
     def _execute_click(self, click_pos):
         """Execute the deferred click action at the press location."""

@@ -1145,10 +1145,7 @@ class ImageCanvas(ctk.CTkFrame):
             # defer click — may become a pan drag
             self._click_start = (event.x, event.y)
             self._is_panning = False
-            # Only allow click-drag panning in VIEW mode;
-            # click modes use Space+drag to avoid trackpad mis-drags
-            if self._mode == self.MODE_VIEW:
-                self._drag_start = (event.x, event.y)
+            self._drag_start = (event.x, event.y)
 
     def _execute_click(self, click_pos):
         """Execute the deferred click action at the press location."""
@@ -1276,7 +1273,15 @@ class ImageCanvas(ctk.CTkFrame):
             # this path only reached for edge cases
             pass
 
-    _PAN_THRESHOLD = 20  # pixels of drag before switching to pan
+    _PAN_THRESHOLD_BASE = 20  # base pixels of drag before switching to pan
+
+    @property
+    def _pan_threshold(self):
+        """Scale-aware pan threshold: larger for zoomed-out high-res images."""
+        if self._scale >= 0.5:
+            return self._PAN_THRESHOLD_BASE
+        # scale < 0.5 → ramp up: 20 / (scale / 0.5) = 20 * 0.5 / scale
+        return min(80, self._PAN_THRESHOLD_BASE * 0.5 / self._scale)
 
     def _on_left_drag(self, event):
         # Freehand drawing: capture points instead of panning
@@ -1308,7 +1313,7 @@ class ImageCanvas(ctk.CTkFrame):
                 # check if drag exceeds threshold before panning (euclidean distance)
                 sx, sy = self._click_start or (event.x, event.y)
                 dist = ((event.x - sx) ** 2 + (event.y - sy) ** 2) ** 0.5
-                if dist < self._PAN_THRESHOLD:
+                if dist < self._pan_threshold:
                     return
                 self._is_panning = True
                 self.canvas.configure(cursor="fleur")

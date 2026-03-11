@@ -20,3 +20,8 @@ powershell -ExecutionPolicy Bypass -c "irm https://raw.githubusercontent.com/wil
 After installation:
   Mac     - Open "Root Measure" from Applications or Launchpad.
   Windows - Use the "Root Measure" shortcut on your Desktop.
+
+Note for managed Macs (no admin access):
+  The installer will automatically use system Python and install to
+  ~/Applications instead of /Applications. You can open the app from
+  Finder → your home folder → Applications.

@@ -994,7 +994,7 @@ class MeasurementMixin:
         meta_path.parent.mkdir(parents=True, exist_ok=True)
         dpi_text = self.sidebar.entry_dpi.get().strip() or "1200"
         experiment = self.sidebar.entry_experiment.get().strip() or ""
-        genotypes = self.sidebar.entry_genotypes.get().strip() or ""
+        genotypes = self.sidebar.get_genotypes_text() or ""
         conditions = self.sidebar.entry_condition.get().strip() or ""
         save_metadata(
             meta_path,
@@ -1038,7 +1038,7 @@ class MeasurementMixin:
         split = self.sidebar.is_split_plate()
 
         # build plate_labels from sidebar genotype + condition entries
-        geno_text = self.sidebar.entry_genotypes.get().strip()
+        geno_text = self.sidebar.get_genotypes_text()
         genotypes = [g.strip() for g in geno_text.split(",")
                      if g.strip()] if geno_text else ["genotype"]
         cond_text = self.sidebar.entry_condition.get().strip()

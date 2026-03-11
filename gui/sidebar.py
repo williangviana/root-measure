@@ -500,14 +500,12 @@ class Sidebar(ctk.CTkScrollableFrame):
             b, placeholder_text="e.g. salt_screen_1")
         self.entry_experiment.pack(pady=(2, 8), padx=15, fill="x")
 
-        _label_with_tip(b, "Genotypes:",
-                        "List names left to right, top plate first.\n"
-                        "With multiple genotypes per plate, list all\n"
-                        "groups for plate 1, then plate 2, and so on.",
-                        font=ctk.CTkFont(size=11)).pack(padx=15, anchor="w")
-        self.entry_genotypes = _AutocompleteEntry(
-            b, placeholder_text="e.g. WT, crd-1")
-        self.entry_genotypes.pack(pady=(2, 4), padx=15, fill="x")
+        # genotype entries — rebuilt dynamically based on plate count
+        self._geno_box_frame = ctk.CTkFrame(b, fg_color="transparent")
+        self._geno_box_frame.pack(fill="x")
+        self._geno_entries = []
+        self._geno_num_boxes = 0
+        self._rebuild_genotype_boxes(1)
 
         self.var_assign_colors = ctk.BooleanVar(value=False)
         self._color_row = ctk.CTkFrame(b, fg_color="transparent")
@@ -754,6 +752,102 @@ class Sidebar(ctk.CTkScrollableFrame):
         if auto:
             tip += "\n(auto-detected)"
         self._plates_tip_row._tooltip._text = tip
+        self._rebuild_genotype_boxes(count)
+
+    # --- Dynamic genotype boxes ---
+
+    def _rebuild_genotype_boxes(self, num_plates):
+        """Rebuild genotype entry boxes: 1 box for 1 plate, 2 for 2 plates."""
+        num_plates = max(1, num_plates)
+        if num_plates == self._geno_num_boxes:
+            return
+        # save current text from existing entries
+        old_texts = [e.get().strip() for e in self._geno_entries]
+        old_histories = [e.get_history() for e in self._geno_entries]
+        # clear container
+        for w in self._geno_box_frame.winfo_children():
+            w.destroy()
+        self._geno_entries.clear()
+        b = self._geno_box_frame
+
+        if num_plates == 1:
+            _label_with_tip(b, "Genotypes:",
+                            "Comma-separated genotype names (left to right).",
+                            font=ctk.CTkFont(size=11)).pack(padx=15, anchor="w")
+            entry = _AutocompleteEntry(b, placeholder_text="e.g. WT, crd-1")
+            entry.pack(pady=(2, 4), padx=15, fill="x")
+            self._geno_entries.append(entry)
+            # restore: merge old texts into single box
+            merged = ", ".join(t for t in old_texts if t)
+            if merged:
+                entry.insert(0, merged)
+            # merge histories
+            all_hist = []
+            for h in old_histories:
+                for item in h:
+                    if item not in all_hist:
+                        all_hist.append(item)
+            if all_hist:
+                entry.set_history(all_hist)
+        else:
+            _label_with_tip(b, "Genotypes:",
+                            "Genotype names for each plate (left to right).",
+                            font=ctk.CTkFont(size=11)).pack(padx=15, anchor="w")
+            for pi in range(num_plates):
+                row = ctk.CTkFrame(b, fg_color="transparent")
+                row.pack(fill="x", padx=15, pady=(1, 1))
+                lbl = ctk.CTkLabel(row, text=f"Plate {pi + 1}:",
+                                   font=ctk.CTkFont(size=11), width=50)
+                lbl.pack(side="left")
+                entry = _AutocompleteEntry(row, placeholder_text="e.g. WT, crd-1")
+                entry.pack(side="left", fill="x", expand=True, padx=(4, 0))
+                self._geno_entries.append(entry)
+            # restore old text into boxes
+            if len(old_texts) == 1 and old_texts[0] and num_plates > 1:
+                # split single string evenly across boxes
+                names = [g.strip() for g in old_texts[0].split(",") if g.strip()]
+                per = max(1, len(names) // num_plates)
+                for pi in range(num_plates):
+                    chunk = names[pi * per:(pi + 1) * per] if pi < num_plates - 1 \
+                        else names[pi * per:]
+                    if chunk:
+                        self._geno_entries[pi].insert(0, ", ".join(chunk))
+            else:
+                for pi, entry in enumerate(self._geno_entries):
+                    if pi < len(old_texts) and old_texts[pi]:
+                        entry.insert(0, old_texts[pi])
+            # restore histories to all boxes
+            all_hist = []
+            for h in old_histories:
+                for item in h:
+                    if item not in all_hist:
+                        all_hist.append(item)
+            for entry in self._geno_entries:
+                if all_hist:
+                    entry.set_history(list(all_hist))
+
+        self._geno_num_boxes = num_plates
+        self.entry_genotypes = self._geno_entries[0]
+
+    def get_genotypes_text(self):
+        """Return combined genotype text from all boxes, comma-separated."""
+        parts = []
+        for entry in self._geno_entries:
+            text = entry.get().strip()
+            if text:
+                parts.append(text)
+        return ", ".join(parts)
+
+    def get_genotypes_per_box(self):
+        """Return list of per-box genotype strings (for session save)."""
+        return [e.get().strip() for e in self._geno_entries]
+
+    def set_genotypes_per_box(self, texts):
+        """Set genotype text per box (for session restore)."""
+        for i, entry in enumerate(self._geno_entries):
+            entry.delete(0, 'end')
+            if i < len(texts) and texts[i]:
+                entry.insert(0, texts[i])
 
     def is_split_plate(self):
         """Return True if genotypes per plate > 1."""
@@ -1096,7 +1190,7 @@ class Sidebar(ctk.CTkScrollableFrame):
         if not self.var_assign_colors.get():
             self._swatch_frame = None
             return
-        geno_text = self.entry_genotypes.get().strip()
+        geno_text = self.get_genotypes_text()
         if not geno_text:
             self._swatch_frame = None
             return
@@ -1158,7 +1252,7 @@ class Sidebar(ctk.CTkScrollableFrame):
     def advance_to_workflow(self):
         """Phase 4: experiment configured — show workflow, collapse experiment."""
         self._rebuild_swatches()
-        genos = self.entry_genotypes.get().strip() or "genotype"
+        genos = self.get_genotypes_text() or "genotype"
         cond = self.entry_condition.get().strip()
         summary = genos
         if cond:

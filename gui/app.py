@@ -385,10 +385,15 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
                 points = self.canvas.get_root_points()
                 # populate genotype/condition fields for steps past experiment entry
                 if step >= 2:
-                    _geno = settings.get('genotypes', '')
-                    if _geno and not self.sidebar.entry_genotypes.get().strip():
-                        self.sidebar.entry_genotypes.delete(0, 'end')
-                        self.sidebar.entry_genotypes.insert(0, _geno)
+                    if not self.sidebar.get_genotypes_text():
+                        per_box = settings.get('genotypes_per_box')
+                        if per_box:
+                            self.sidebar.set_genotypes_per_box(per_box)
+                        else:
+                            _geno = settings.get('genotypes', '')
+                            if _geno:
+                                self.sidebar.entry_genotypes.delete(0, 'end')
+                                self.sidebar.entry_genotypes.insert(0, _geno)
                     _cond = settings.get('conditions', '')
                     if _cond and not self.sidebar.entry_condition.get().strip():
                         self.sidebar.entry_condition.delete(0, 'end')
@@ -672,11 +677,15 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
         # populate genotype/condition fields if empty (e.g. after session resume)
         ss = getattr(self, '_session_settings', {})
         if ss:
-            if not self.sidebar.entry_genotypes.get().strip():
-                _geno = ss.get('genotypes', '')
-                if _geno:
-                    self.sidebar.entry_genotypes.delete(0, 'end')
-                    self.sidebar.entry_genotypes.insert(0, _geno)
+            if not self.sidebar.get_genotypes_text():
+                per_box = ss.get('genotypes_per_box')
+                if per_box:
+                    self.sidebar.set_genotypes_per_box(per_box)
+                else:
+                    _geno = ss.get('genotypes', '')
+                    if _geno:
+                        self.sidebar.entry_genotypes.delete(0, 'end')
+                        self.sidebar.entry_genotypes.insert(0, _geno)
             if not self.sidebar.entry_condition.get().strip():
                 _cond = ss.get('conditions', '')
                 if _cond:
@@ -695,7 +704,7 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
             summary=f"{self.sidebar.entry_dpi.get()} DPI")
         self.sidebar.sec_experiment.show()
         self.sidebar.sec_experiment.collapse(
-            summary=self.sidebar.entry_genotypes.get().strip() or "genotype")
+            summary=self.sidebar.get_genotypes_text() or "genotype")
         self.sidebar.sec_workflow.show()
         self.sidebar.sec_workflow.expand()
         self.sidebar.set_step(5)
@@ -775,7 +784,7 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
     def _set_plate_info(self, pi):
         """Set plate info overlay on the canvas for plate pi."""
         genotypes = [g.strip() for g in
-                     self.sidebar.entry_genotypes.get().split(",")
+                     self.sidebar.get_genotypes_text().split(",")
                      if g.strip()]
         cond_text = self.sidebar.entry_condition.get().strip()
         conditions = [c.strip() for c in cond_text.split(",")
@@ -1172,7 +1181,7 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
             # Pre-register genotype names so they get sequential color indices
             # (clears stale fallback names like "genotype" from previous images)
             genotypes = [g.strip() for g in
-                         self.sidebar.entry_genotypes.get().split(",")
+                         self.sidebar.get_genotypes_text().split(",")
                          if g.strip()]
             self._genotype_colors = {}
             for name in genotypes:
@@ -1196,7 +1205,7 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
 
         # resolve genotype name and register for stable color index
         genotypes = [g.strip() for g in
-                     self.sidebar.entry_genotypes.get().split(",")
+                     self.sidebar.get_genotypes_text().split(",")
                      if g.strip()]
         cond_text = self.sidebar.entry_condition.get().strip()
         conditions = [c.strip() for c in cond_text.split(",")

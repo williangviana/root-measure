@@ -286,7 +286,8 @@ def _collect_settings(sidebar):
     except (ValueError, TypeError):
         num_plates = 1
     # commit current field values into history before saving
-    sidebar.entry_genotypes.commit()
+    for entry in sidebar._geno_entries:
+        entry.commit()
     sidebar.entry_condition.commit()
     return {
         'dpi': sidebar.entry_dpi.get().strip(),
@@ -297,7 +298,8 @@ def _collect_settings(sidebar):
         'genotypes_per_plate': sidebar.get_genotypes_per_plate(),
         'num_plates': num_plates,
         'experiment': sidebar.entry_experiment.get().strip(),
-        'genotypes': sidebar.entry_genotypes.get().strip(),
+        'genotypes': sidebar.get_genotypes_text(),
+        'genotypes_per_box': sidebar.get_genotypes_per_box(),
         'conditions': sidebar.entry_condition.get().strip(),
         'genotype_history': sidebar.entry_genotypes.get_history(),
         'condition_history': sidebar.entry_condition.get_history(),
@@ -374,18 +376,29 @@ def restore_settings(sidebar, settings):
     sidebar.entry_num_plates.delete(0, 'end')
     if num_plates > 1:
         sidebar.entry_num_plates.insert(0, str(num_plates))
+    # rebuild genotype boxes to match plate count before restoring text
+    sidebar._rebuild_genotype_boxes(num_plates)
     sidebar.entry_experiment.delete(0, 'end')
     sidebar.entry_experiment.insert(0, settings.get('experiment', ''))
     # restore autocomplete history (prefer saved history, fall back to field values)
     geno_hist = settings.get('genotype_history', [])
     if geno_hist:
-        sidebar.entry_genotypes.set_history(geno_hist)
-    _geno = settings.get('genotypes', '')
-    if _geno:
-        sidebar.entry_genotypes.delete(0, 'end')
-        sidebar.entry_genotypes.insert(0, _geno)
+        for entry in sidebar._geno_entries:
+            entry.set_history(list(geno_hist))
+    # restore genotype text: prefer per-box, fall back to combined string
+    per_box = settings.get('genotypes_per_box')
+    if per_box:
+        sidebar.set_genotypes_per_box(per_box)
         if not geno_hist:
-            sidebar.entry_genotypes.commit()
+            for entry in sidebar._geno_entries:
+                entry.commit()
+    else:
+        _geno = settings.get('genotypes', '')
+        if _geno:
+            sidebar.entry_genotypes.delete(0, 'end')
+            sidebar.entry_genotypes.insert(0, _geno)
+            if not geno_hist:
+                sidebar.entry_genotypes.commit()
     cond_hist = settings.get('condition_history', [])
     if cond_hist:
         sidebar.entry_condition.set_history(cond_hist)

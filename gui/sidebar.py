@@ -793,13 +793,14 @@ class Sidebar(ctk.CTkScrollableFrame):
             _label_with_tip(b, "Genotypes:",
                             "Genotype names for each plate (left to right).",
                             font=ctk.CTkFont(size=11)).pack(padx=15, anchor="w")
+            _placeholders = ["e.g. WT, crd-1", "e.g. crd-2, crd-3"]
             for pi in range(num_plates):
                 row = ctk.CTkFrame(b, fg_color="transparent")
                 row.pack(fill="x", padx=15, pady=(1, 1))
                 lbl = ctk.CTkLabel(row, text=f"Plate {pi + 1}:",
                                    font=ctk.CTkFont(size=11), width=50)
                 lbl.pack(side="left")
-                entry = _AutocompleteEntry(row, placeholder_text="e.g. WT, crd-1")
+                entry = _AutocompleteEntry(row, placeholder_text=_placeholders[pi])
                 entry.pack(side="left", fill="x", expand=True, padx=(4, 0))
                 self._geno_entries.append(entry)
             # restore old text into boxes

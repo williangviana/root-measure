@@ -354,7 +354,6 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
                         'multi_measurement': settings.get('multi_measurement', False),
                         'segments': settings.get('segments', ''),
                         'split_plate': settings.get('split_plate', False),
-                        'num_plates': settings.get('num_plates', 1),
                     }, exp)
                 # advance sidebar to workflow
                 self.sidebar.advance_to_experiment()
@@ -640,8 +639,8 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
             if self.folder:
                 ps = get_persistent_settings(self.folder, self._experiment_name)
                 if ps:
-                    self.sidebar.set_plate_count(
-                        ps.get('num_plates', 1), auto=False)
+                    # always use auto-detected plate count
+                    self.sidebar.set_plate_count(plate_count, auto=True)
 
                     geno_per_plate = ps.get('genotypes_per_plate', 1)
                     self.sidebar.entry_genotypes_per_plate.delete(0, 'end')
@@ -955,16 +954,11 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
                 self._plate_offset = max(self._plate_offset, csv_plate_off)
                 self._root_offset = max(self._root_offset, csv_root_off)
             save_experiment_name(self.folder, exp, exp)
-            try:
-                num_plates = int(self.sidebar.entry_num_plates.get().strip() or "1")
-            except (ValueError, TypeError):
-                num_plates = 1
             save_persistent_settings(self.folder, {
                 'multi_measurement': self.sidebar.var_multi.get(),
                 'segments': self.sidebar.entry_segments.get().strip(),
                 'split_plate': self.sidebar.is_split_plate(),
                 'genotypes_per_plate': self.sidebar.get_genotypes_per_plate(),
-                'num_plates': num_plates,
                 'manual_endpoints': self.sidebar.is_manual_endpoints(),
             }, exp)
         self.sidebar.advance_to_workflow()

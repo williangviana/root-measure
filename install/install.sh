@@ -62,14 +62,22 @@ if [ -z "$PY" ] && has_admin; then
     fi
 fi
 
-# Fall back to system Python 3 (ships with macOS / Xcode CLI tools)
+# Fall back to Miniconda (installs to user space, no admin needed)
 if [ -z "$PY" ]; then
-    if command -v python3 &>/dev/null; then
-        PY=python3
-        echo "[1/7] Using system Python (no admin access for Homebrew)"
+    CONDA_DIR="$HOME/miniconda3"
+    if [ -x "$CONDA_DIR/bin/python3.12" ]; then
+        PY="$CONDA_DIR/bin/python3.12"
+        echo "[1/7] Using existing Miniconda Python 3.12"
     else
-        echo "ERROR: Python 3 not found. Please install Python from https://www.python.org/downloads/"
-        exit 1
+        echo "[1/7] Installing Miniconda (no admin required)..."
+        ARCH=$(uname -m)
+        MINICONDA_URL="https://repo.anaconda.com/miniconda/Miniconda3-latest-MacOSX-${ARCH}.sh"
+        curl -sL "$MINICONDA_URL" -o "$HOME/.miniconda-installer.sh"
+        bash "$HOME/.miniconda-installer.sh" -b -p "$CONDA_DIR" -u
+        rm -f "$HOME/.miniconda-installer.sh"
+        # Install Python 3.12 in base env
+        "$CONDA_DIR/bin/conda" install -y -q python=3.12 2>&1 | tail -3
+        PY="$CONDA_DIR/bin/python3.12"
     fi
 fi
 

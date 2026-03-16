@@ -90,6 +90,7 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
 
         # state
         self.image = None          # full grayscale numpy array
+        self.image_display = None  # original color (or grayscale) for display
         self.image_path = None
         self.folder = None
         self.images = []           # list of Path objects
@@ -576,7 +577,7 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
         # Exit preview mode if active (clicking same image exits preview)
         if getattr(self, '_preview_active', False) and path == self.image_path:
             self._preview_active = False
-            display = _to_uint8(self.image)
+            display = self.image_display if self.image_display is not None else _to_uint8(self.image)
             self.canvas.set_image_preview(display)
             self.sidebar.set_status("Preview exited")
             return
@@ -606,12 +607,16 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
                     return
 
             if img.ndim == 3:
-                img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+                display_img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+                gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+            else:
+                display_img = img
+                gray = img
 
-            self.image = img
+            self.image = gray
+            self.image_display = _to_uint8(display_img)
             self.canvas._measurement_done = False
-            display = _to_uint8(img)
-            self.canvas.set_image(display)  # clears plates/roots/marks/traces
+            self.canvas.set_image(self.image_display)  # clears plates/roots/marks/traces
 
             # Finished image — restore its saved canvas data
             if path in self._processed_images:
@@ -869,9 +874,7 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
         # Toggle off if already showing preview (unless force_show for settings updates)
         if getattr(self, '_preview_active', False) and not force_show:
             self._preview_active = False
-            display = cv2.cvtColor(self.image, cv2.COLOR_GRAY2RGB) if len(self.image.shape) == 2 else self.image
-            if display.dtype == np.uint16:
-                display = (display / 256).astype(np.uint8)
+            display = self.image_display if self.image_display is not None else _to_uint8(self.image)
             self.canvas.set_image_preview(display)
             self.sidebar.set_status("Ready")
             return
@@ -924,7 +927,7 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
         """Exit preview mode and restore original image."""
         if getattr(self, '_preview_active', False) and self.image is not None:
             self._preview_active = False
-            display = _to_uint8(self.image)
+            display = self.image_display if self.image_display is not None else _to_uint8(self.image)
             # Use preview method to preserve overlays and zoom
             self.canvas.set_image_preview(display)
             self.sidebar.set_status("")

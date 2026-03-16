@@ -659,6 +659,8 @@ class MeasurementMixin:
         img = self.canvas._image_np.copy()
         if img.ndim == 2:
             img_bgr = cv2.cvtColor(img, cv2.COLOR_GRAY2BGR)
+        elif img.shape[2] == 3:
+            img_bgr = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
         else:
             img_bgr = img
         scale = self._scale_val

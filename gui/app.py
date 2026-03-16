@@ -607,8 +607,14 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
                     return
 
             if img.ndim == 3:
-                display_img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-                gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+                if ext in ('.tif', '.tiff'):
+                    # tifffile returns RGB
+                    display_img = img
+                    gray = cv2.cvtColor(img, cv2.COLOR_RGB2GRAY)
+                else:
+                    # cv2 returns BGR
+                    display_img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+                    gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
             else:
                 display_img = img
                 gray = img

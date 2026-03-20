@@ -8,11 +8,27 @@ APP_NAME="Root Measure"
 REPO="williangviana/root-measure"
 WORK_DIR="$HOME/.root-measure-install"
 
+# Show errors on failure
+trap 'echo ""; echo "ERROR: Installation failed at the step above."; echo "Please screenshot this output and send it for help."; exit 1' ERR
+
 echo ""
 echo "============================================"
 echo "  Root Measure — Installer"
 echo "============================================"
 echo ""
+
+# --- 0. Ensure Xcode Command Line Tools are installed ---
+# Required for compiling cx_Freeze and other C extensions
+if ! xcode-select -p &>/dev/null; then
+    echo "[0/7] Installing Xcode Command Line Tools..."
+    echo "     A system dialog may appear — click Install and wait."
+    xcode-select --install
+    # Wait for the installation to complete
+    until xcode-select -p &>/dev/null; do
+        sleep 5
+    done
+    echo "[0/7] Xcode CLT ✓"
+fi
 
 # --- 1. Ensure Homebrew Python 3 is installed ---
 # macOS system Python (3.9) has a slow Tcl/Tk — always use Homebrew Python
@@ -65,7 +81,8 @@ echo "[3/7] Virtual environment ✓"
 echo "[4/7] Installing dependencies..."
 pip install --upgrade pip -q
 pip install -r install/requirements.txt -q
-pip install cx_Freeze -q
+echo "[4/7] Installing cx_Freeze (this may take a few minutes)..."
+pip install cx_Freeze
 echo "[4/7] Dependencies ✓"
 
 # --- 5. Build .app bundle ---

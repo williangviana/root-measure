@@ -29,7 +29,7 @@ def _build_rows(results, plate_labels, plate_offset, root_offset,
             'Image': image_name,
             'Length_cm': round(r['length_cm'], 3) if r['length_cm'] is not None else 'NA',
             'Vector_cm': round(r['vector_length_cm'], 3) if r.get('vector_length_cm') is not None else 'NA',
-            'Straightness': round(r['straightness'], 3) if r.get('straightness') is not None else 'NA',
+            'Tortuosity': round(r['tortuosity'], 3) if r.get('tortuosity') is not None else 'NA',
             'Length_px': round(r['length_px'], 1) if r['length_px'] is not None else 'NA',
             'Warning': r.get('warning') or '',
         }
@@ -76,7 +76,7 @@ def _raw_col_order(is_factorial, num_marks):
     if num_marks > 0:
         for seg_i in range(num_marks + 1):
             cols.append(f'Segment_{seg_i + 1}_cm')
-    cols.extend(['Vector_cm', 'Straightness', 'Length_px', 'Warning'])
+    cols.extend(['Vector_cm', 'Tortuosity', 'Length_px', 'Warning'])
     return cols
 
 

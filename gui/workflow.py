@@ -176,7 +176,8 @@ class MeasurementMixin:
                 warning = 'dead seedling' if flag == 'dead' else 'roots touching'
                 res = dict(length_cm=None, length_px=None,
                            path=np.empty((0, 2)),
-                           method='skip', warning=warning, segments=[])
+                           method='skip', warning=warning, segments=[],
+                           straightness=None)
                 self._results.append(res)
                 continue
 
@@ -196,12 +197,20 @@ class MeasurementMixin:
                 res = dict(length_cm=0, length_px=0,
                            path=np.empty((0, 2)),
                            method='error', warning='Could not find root tip',
-                           segments=[])
+                           segments=[], straightness=None)
                 self._results.append(res)
                 continue
 
             res = trace_root(self._binary, top, tip, self._scale_val,
                              plate_bounds=pb, plate_graph=pg)
+            # straightness: euclidean(top, tip) / path length
+            if res['path'].size >= 4 and res['length_px'] > 0:
+                p = res['path']
+                vec = np.sqrt(float((p[-1, 0] - p[0, 0]) ** 2 +
+                                    (p[-1, 1] - p[0, 1]) ** 2))
+                res['straightness'] = vec / res['length_px']
+            else:
+                res['straightness'] = None
             # compute segments if marks were collected for this root
             mark_coords = self.canvas._all_marks.get(i, [])
             if mark_coords and res['path'].size > 0:
@@ -915,7 +924,8 @@ class MeasurementMixin:
                 self._results.append(dict(
                     length_cm=None, length_px=None,
                     path=np.empty((0, 2)),
-                    method='skip', warning=warning, segments=[]))
+                    method='skip', warning=warning, segments=[],
+                    straightness=None))
             elif trace_idx < len(self.canvas._traces):
                 path_data = self.canvas._traces[trace_idx]
                 path = np.array(path_data[0]) if not isinstance(
@@ -932,17 +942,24 @@ class MeasurementMixin:
                 if mark_coords and len(path) >= 2:
                     segments = _compute_segments(
                         path, mark_coords, self._scale_val)
+                straightness = None
+                if len(path) >= 2 and length_px > 0:
+                    vec = np.sqrt(float((path[-1, 0] - path[0, 0]) ** 2 +
+                                        (path[-1, 1] - path[0, 1]) ** 2))
+                    straightness = vec / length_px
                 self._results.append(dict(
                     length_cm=length_cm, length_px=length_px,
                     path=path, method='restored', warning=None,
-                    segments=segments, mark_coords=mark_coords))
+                    segments=segments, mark_coords=mark_coords,
+                    straightness=straightness))
                 self._trace_to_result.append(i)
                 trace_idx += 1
             else:
                 self._results.append(dict(
                     length_cm=0, length_px=0,
                     path=np.empty((0, 2)),
-                    method='error', warning='no trace', segments=[]))
+                    method='error', warning='no trace', segments=[],
+                    straightness=None))
 
     def _finish_measurement(self):
         """Save results and show final summary."""

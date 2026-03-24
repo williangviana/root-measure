@@ -1570,5 +1570,3 @@ class ImageCanvas(ctk.CTkFrame):
             self._space_held = False
             self._drag_start = None
             self.canvas.configure(cursor="")
-        elif event.keysym.lower() in ('d', 't'):
-            self._pending_flag = None

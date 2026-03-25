@@ -377,6 +377,9 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
                         canvas_data['traces'],
                         canvas_data.get('trace_to_result'))
                 step = data.get('workflow_step', 1)
+                # Migrate old step numbering (plate selection was step 1)
+                if step >= 2:
+                    step = step - 1
                 self.canvas.set_mode(ImageCanvas.MODE_VIEW)
                 self.canvas._redraw()
                 self.sidebar.set_step(step)
@@ -384,7 +387,7 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
                 plates = self.canvas.get_plates()
                 points = self.canvas.get_root_points()
                 # populate genotype/condition fields for steps past experiment entry
-                if step >= 2:
+                if step >= 1:
                     if not self.sidebar.get_genotypes_text():
                         per_box = settings.get('genotypes_per_box')
                         if per_box:
@@ -399,7 +402,7 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
                         self.sidebar.entry_condition.delete(0, 'end')
                         self.sidebar.entry_condition.insert(0, _cond)
                 # resume into root/marks clicking if saved mid-click
-                if step == 2 and plates and points:
+                if step == 1 and plates and points:
                     cs = data.get('click_state', {})
                     self._current_plate_idx = cs.get('plate_idx', 0)
                     self._split = cs.get('split', False)
@@ -430,7 +433,7 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
                         f"Session restored: {len(points)} root(s) on "
                         f"{len(plates)} plate(s).\n"
                         f"Continue where you left off.")
-                elif step >= 4 and self.canvas._traces:
+                elif step >= 3 and self.canvas._traces:
                     # measurement done or in review — show action buttons
                     self._split = self.sidebar.is_split_plate()
                     self._binary = None
@@ -440,7 +443,7 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
                     self._reclick_idx = 0
                     # rebuild workflow state so review/retrace/manual-trace work
                     self._rebuild_results_from_traces()
-                    self.sidebar.set_step(5)
+                    self.sidebar.set_step(4)
                     self.canvas._measurement_done = True
                     self.sidebar.btn_select_plates.configure(state="normal")
                     self.sidebar.btn_click_roots.configure(state="normal")
@@ -722,7 +725,7 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
             summary=self.sidebar.get_genotypes_text() or "genotype")
         self.sidebar.sec_workflow.show()
         self.sidebar.sec_workflow.expand()
-        self.sidebar.set_step(5)
+        self.sidebar.set_step(4)
         self.sidebar.btn_select_plates.configure(state="normal")
         self.sidebar.btn_click_roots.configure(state="normal")
         self.sidebar.btn_measure.configure(state="normal")
@@ -963,6 +966,9 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
     def _on_next_settings(self):
         """Called when user clicks Next on image settings."""
         self._exit_preview()
+        if not self.canvas.get_plates():
+            self.sidebar.set_status("Select plates first before proceeding.")
+            return
         self.sidebar.advance_to_experiment()
 
     def _on_start_workflow(self):
@@ -991,7 +997,7 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
                 'manual_endpoints': self.sidebar.is_manual_endpoints(),
             }, exp)
         self.sidebar.advance_to_workflow()
-        self.select_plates()
+        self.click_roots()
 
     def _stash_canvas(self):
         """Snapshot current canvas state into per-image dict."""
@@ -1100,7 +1106,6 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
         self._show_action_frame()
         # Done button shown after first plate is drawn (via _on_plate_added)
         self.btn_continue_later_mid.pack(pady=(10, 5), padx=15, fill="x")
-        self.sidebar.set_step(1)
 
     def _on_plate_added(self):
         """Show Done button when first plate is drawn, auto-advance if expected count reached."""
@@ -1182,13 +1187,13 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
         self.lbl_bottom.configure(text="Willian Viana — Dinneny Lab")
         self._clear_plate_info()
         self.sidebar.btn_click_roots.configure(state="normal")
-        self.sidebar.set_step(2)
         # Initialize per-plate thresholds and compute auto values per crop
         self.sidebar.init_plate_thresholds(len(plates))
         for pi in range(len(plates)):
             self._update_auto_threshold(plate_idx=pi)
+        self.sidebar.btn_select_plates.configure(
+            fg_color=self.sidebar._step_color_done)
         self._auto_save()
-        self.click_roots()
 
     def click_roots(self, resume=False):
         """Enter root clicking mode on canvas."""
@@ -1221,7 +1226,7 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
         self._hide_action_buttons()
         self._show_action_frame()
         self.btn_continue_later_mid.pack(pady=(10, 5), padx=15, fill="x")
-        self.sidebar.set_step(2)
+        self.sidebar.set_step(1)
         # _enter_root_click_stage shows Done button
         self._enter_root_click_stage()
 

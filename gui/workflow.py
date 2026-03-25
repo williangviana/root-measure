@@ -134,7 +134,7 @@ class MeasurementMixin:
         self.sidebar.btn_select_plates.configure(state="disabled")
         self.sidebar.btn_click_roots.configure(state="disabled")
         self.sidebar.btn_review.configure(state="disabled")
-        self.sidebar.set_step(3)
+        self.sidebar.set_step(2)
         self.update()
 
         # Build per-plate binary masks (each plate can have its own threshold)
@@ -247,7 +247,7 @@ class MeasurementMixin:
         _log(f"_show_review(skip_delay={skip_delay})")
         _log(f"  {len(self._traces if hasattr(self, '_traces') else self.canvas._traces)} traces")
         self.sidebar.hide_progress()
-        self.sidebar.set_step(4)
+        self.sidebar.set_step(3)
         # Re-enable workflow buttons so user can go back to previous steps
         self.sidebar.btn_select_plates.configure(state="normal")
         self.sidebar.btn_click_roots.configure(state="normal")
@@ -983,7 +983,7 @@ class MeasurementMixin:
         """Save results and show final summary."""
         _log("_finish_measurement() called")
         self.sidebar.hide_progress()
-        self.sidebar.set_step(4)
+        self.sidebar.set_step(3)
         plates = self.canvas.get_plates()
         traced = [r for r in self._results
                   if r['method'] not in ('skip', 'error')]
@@ -1001,7 +1001,7 @@ class MeasurementMixin:
         self._save_trace_screenshot()
         self._save_metadata()
 
-        self.sidebar.set_step(5)  # marks all 4 steps as done (green)
+        self.sidebar.set_step(4)  # marks all 4 steps as done (green)
         self.canvas._measurement_done = True
         self.canvas._redraw()
         self.sidebar.btn_select_plates.configure(state="normal")

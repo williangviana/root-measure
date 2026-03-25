@@ -435,21 +435,29 @@ class Sidebar(ctk.CTkScrollableFrame):
             command=self._on_sensitivity_change)
         self.menu_sensitivity.pack(pady=(2, 8), padx=15, fill="x")
 
-        # Row 4: Root detection
-        _label_with_tip(b, "Root detection:",
+        # Row 4: Select plates (moved here from workflow)
+        self.btn_select_plates = ctk.CTkButton(
+            b, text="Select Plates", command=app.select_plates,
+            state="disabled", fg_color="#2b5797")
+        self.btn_select_plates.pack(pady=(5, 8), padx=15, fill="x")
+
+        # Row 5: Root detection (hidden until plates are drawn)
+        self._thresh_container = ctk.CTkFrame(b, fg_color="transparent")
+        # _thresh_container is NOT packed yet — shown after plates are drawn
+        _label_with_tip(self._thresh_container, "Root detection:",
                         "Click Preview to see detected roots.\n"
                         "Adjust slider until the full root is visible.\n"
                         "Left = detect more (may add noise).\n"
                         "Right = detect less (may miss thin roots).",
-                        font=ctk.CTkFont(size=11)).pack(padx=15, anchor="w")
+                        font=ctk.CTkFont(size=11)).pack(padx=0, anchor="w")
         # Per-plate threshold state (None until plates are drawn)
         self._plate_thresholds = None   # dict[int, {'auto': bool, 'value': int}]
         self._current_thresh_plate = 0
         self._plate_tab_btn = None      # CTkSegmentedButton for plate selection
-        self._plate_tab_frame = ctk.CTkFrame(b, fg_color="transparent")
-        self._plate_tab_frame.pack(pady=(2, 0), padx=15, fill="x")
-        self._thresh_frame = ctk.CTkFrame(b, fg_color="transparent")
-        self._thresh_frame.pack(pady=(2, 8), padx=15, fill="x")
+        self._plate_tab_frame = ctk.CTkFrame(self._thresh_container, fg_color="transparent")
+        self._plate_tab_frame.pack(pady=(2, 0), fill="x")
+        self._thresh_frame = ctk.CTkFrame(self._thresh_container, fg_color="transparent")
+        self._thresh_frame.pack(pady=(2, 8), fill="x")
         self.var_auto_thresh = ctk.BooleanVar(value=True)
         self.chk_auto_thresh = ctk.CTkCheckBox(
             self._thresh_frame, text="Auto", width=60,
@@ -558,23 +566,18 @@ class Sidebar(ctk.CTkScrollableFrame):
         self._step_color_active = "#2b5797"
         self._step_color_done = "#217346"
 
-        self.btn_select_plates = ctk.CTkButton(
-            b, text="1. Select Plates", command=app.select_plates,
-            state="disabled", fg_color=self._step_color_idle)
-        self.btn_select_plates.pack(pady=3, padx=15, fill="x")
-
         self.btn_click_roots = ctk.CTkButton(
-            b, text="2. Click Roots", command=app.click_roots,
+            b, text="1. Click Roots", command=app.click_roots,
             state="disabled", fg_color=self._step_color_idle)
         self.btn_click_roots.pack(pady=3, padx=15, fill="x")
 
         self.btn_measure = ctk.CTkButton(
-            b, text="3. Trace", command=app.measure,
+            b, text="2. Trace", command=app.measure,
             state="disabled", fg_color=self._step_color_idle)
         self.btn_measure.pack(pady=3, padx=15, fill="x")
 
         self.btn_review = ctk.CTkButton(
-            b, text="4. Review Traces", command=app.show_review,
+            b, text="3. Review Traces", command=app.show_review,
             state="disabled", fg_color=self._step_color_idle)
         self.btn_review.pack(pady=3, padx=15, fill="x")
 
@@ -973,6 +976,8 @@ class Sidebar(ctk.CTkScrollableFrame):
                 command=self._on_plate_thresh_tab)
             self._plate_tab_btn.set(values[0])
             self._plate_tab_btn.pack(fill="x")
+        # Show threshold controls (hidden until plates are drawn)
+        self._thresh_container.pack(pady=(0, 5), padx=15, fill="x")
         # Load plate 0 state into the slider
         self._load_plate_thresh(0)
 
@@ -982,6 +987,7 @@ class Sidebar(ctk.CTkScrollableFrame):
             self._plate_tab_btn.destroy()
             self._plate_tab_btn = None
         self._plate_thresholds = None
+        self._thresh_container.pack_forget()
         self._current_thresh_plate = 0
 
     def _on_plate_thresh_tab(self, label):
@@ -1009,9 +1015,9 @@ class Sidebar(ctk.CTkScrollableFrame):
         self.lbl_status.configure(text=text)
 
     def set_step(self, step):
-        """Highlight the current workflow step (1-4). Previous steps turn green."""
+        """Highlight the current workflow step (1-3). Previous steps turn green."""
         buttons = [
-            self.btn_select_plates, self.btn_click_roots,
+            self.btn_click_roots,
             self.btn_measure, self.btn_review,
         ]
         for i, btn in enumerate(buttons):
@@ -1240,6 +1246,7 @@ class Sidebar(ctk.CTkScrollableFrame):
         self.sec_folder.collapse(summary=image_name)
         self.entry_dpi.delete(0, "end")
         self.entry_dpi.insert(0, f"{dpi} dpi")
+        self.btn_select_plates.configure(state="normal")
         self.sec_settings.show()
         self.sec_settings.expand()
         # hide later sections
@@ -1365,10 +1372,8 @@ class Sidebar(ctk.CTkScrollableFrame):
             num_plates = int(self.entry_num_plates.get().strip() or "1")
         except (ValueError, TypeError):
             num_plates = 1
-        plate_word = "Plate" if num_plates == 1 else "Plates"
-        self.btn_select_plates.configure(state="normal", text=f"1. Select {plate_word}")
-        self.btn_click_roots.configure(state="disabled")
+        self.btn_click_roots.configure(state="normal")
         self.btn_measure.configure(state="disabled")
         self.btn_review.configure(state="disabled")
         self.set_step(1)
-        self.set_status(f"Ready. Select {plate_word.lower()} to begin.")
+        self.set_status("Ready. Click roots to begin.")

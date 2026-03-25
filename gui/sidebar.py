@@ -469,7 +469,7 @@ class Sidebar(ctk.CTkScrollableFrame):
         self._current_thresh_plate = 0
         self._plate_tab_btn = None      # CTkSegmentedButton for plate selection
         self._plate_tab_frame = ctk.CTkFrame(self._thresh_container, fg_color="transparent")
-        self._plate_tab_frame.pack(pady=(2, 0), fill="x")
+        # NOT packed yet — shown only for multi-plate in init_plate_thresholds()
         self._thresh_frame = ctk.CTkFrame(self._thresh_container, fg_color="transparent")
         self._thresh_frame.pack(pady=(2, 8), fill="x")
         self.var_auto_thresh = ctk.BooleanVar(value=True)
@@ -971,6 +971,7 @@ class Sidebar(ctk.CTkScrollableFrame):
         self._current_thresh_plate = 0
         # Show plate tabs only for multi-plate
         if num_plates > 1:
+            self._plate_tab_frame.pack(pady=(2, 0), fill="x")
             values = [f"Plate {pi + 1}" for pi in range(num_plates)]
             self._plate_tab_btn = ctk.CTkSegmentedButton(
                 self._plate_tab_frame, values=values,
@@ -988,6 +989,7 @@ class Sidebar(ctk.CTkScrollableFrame):
         if self._plate_tab_btn is not None:
             self._plate_tab_btn.destroy()
             self._plate_tab_btn = None
+        self._plate_tab_frame.pack_forget()
         self._plate_thresholds = None
         self._thresh_container.pack_forget()
         self.btn_next_settings.pack_forget()

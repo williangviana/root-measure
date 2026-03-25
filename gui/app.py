@@ -1091,6 +1091,7 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
         self._binary = None
         self._plate_binaries = {}
         self.sidebar.destroy_plate_thresholds()
+        self.sidebar.btn_select_plates.configure(fg_color="#2b5797")
         self._retry_result_indices = []
         self._reclick_idx = 0
         self._current_plate_idx = 0

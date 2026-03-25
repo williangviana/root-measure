@@ -1192,6 +1192,7 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
             return
         self.canvas._app_status_callback = None
         self.canvas.set_mode(ImageCanvas.MODE_VIEW)
+        self._hide_action_buttons()
         self.sidebar.set_status(f"{len(plates)} plate(s) selected.")
         self.lbl_bottom.configure(text="Willian Viana — Dinneny Lab")
         self._clear_plate_info()

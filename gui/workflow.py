@@ -137,17 +137,17 @@ class MeasurementMixin:
         self.sidebar.set_step(3)
         self.update()
 
-        self._threshold = self.sidebar.get_threshold()
-        self._binary = preprocess(self.image, scale=self._scale_val,
-                                  sensitivity=self._sensitivity,
-                                  threshold=self._threshold)
+        # Build per-plate binary masks (each plate can have its own threshold)
+        all_thresh = self.sidebar.get_all_thresholds()
+        self._plate_binaries = {}
+        self._binary = None  # legacy alias set below
 
         self.canvas.clear_traces()
         self._results = []
         # map trace index -> result index (skip flagged roots with no trace)
         self._trace_to_result = []
 
-        # pre-build skeleton + graph per plate (once each)
+        # pre-build binary + skeleton + graph per plate (once each)
         self._plate_graphs = {}
         self.sidebar.show_progress(len(plates))
         self.update()
@@ -156,8 +156,14 @@ class MeasurementMixin:
                 f"Building skeleton for plate {pi + 1}/{len(plates)}...")
             self.sidebar.update_progress(pi + 1)
             self.update()
+            thresh = all_thresh.get(pi, all_thresh.get(0))
+            self._plate_binaries[pi] = preprocess(
+                self.image, scale=self._scale_val,
+                sensitivity=self._sensitivity, threshold=thresh)
+            if self._binary is None:
+                self._binary = self._plate_binaries[pi]
             self._plate_graphs[pi] = build_plate_graph(
-                self._binary, bounds, self._scale_val)
+                self._plate_binaries[pi], bounds, self._scale_val)
         self.sidebar.hide_progress()
 
         root_plates = self.canvas._root_plates
@@ -184,6 +190,7 @@ class MeasurementMixin:
             pi = root_plates[i] if i < len(root_plates) else 0
             pb = plates[pi] if pi < len(plates) else None
             pg = self._plate_graphs.get(pi)
+            plate_binary = self._plate_binaries.get(pi, self._binary)
 
             manual_bottoms = self.canvas.get_root_bottoms()
             if i in manual_bottoms:
@@ -191,7 +198,7 @@ class MeasurementMixin:
                 tip = manual_bottoms[i]
             else:
                 # Auto-detect mode: find tip automatically
-                tip = find_root_tip(self._binary, top, scale=self._scale_val,
+                tip = find_root_tip(plate_binary, top, scale=self._scale_val,
                                     plate_bounds=pb, plate_graph=pg)
             if tip is None:
                 res = dict(length_cm=0, length_px=0,
@@ -201,7 +208,7 @@ class MeasurementMixin:
                 self._results.append(res)
                 continue
 
-            res = trace_root(self._binary, top, tip, self._scale_val,
+            res = trace_root(plate_binary, top, tip, self._scale_val,
                              plate_bounds=pb, plate_graph=pg)
             # tortuosity: path length / euclidean distance (1.0 = straight)
             if res['path'].size >= 4 and res['length_px'] > 0:
@@ -461,14 +468,19 @@ class MeasurementMixin:
         """Re-trace roots with manually clicked points."""
         _log("_do_retrace() called")
         self._hide_action_buttons()
-        # ensure binary mask exists (may be missing after session restore)
-        if not hasattr(self, '_binary') or self._binary is None:
+        # ensure binary masks exist (may be missing after session restore)
+        if not getattr(self, '_plate_binaries', None):
             self.sidebar.set_status("Preprocessing...")
             self.update()
-            self._threshold = self.sidebar.get_threshold()
-            self._binary = preprocess(self.image, scale=self._scale_val,
-                                      sensitivity=self._sensitivity,
-                                      threshold=self._threshold)
+            all_thresh = self.sidebar.get_all_thresholds()
+            self._plate_binaries = {}
+            plates_tmp = self.canvas.get_plates()
+            for pi_tmp in range(len(plates_tmp)):
+                thresh = all_thresh.get(pi_tmp, all_thresh.get(0))
+                self._plate_binaries[pi_tmp] = preprocess(
+                    self.image, scale=self._scale_val,
+                    sensitivity=self._sensitivity, threshold=thresh)
+            self._binary = self._plate_binaries.get(0)
         cpr = self._reclick_clicks_per_root
         groups = self.canvas.get_reclick_groups(cpr)
         self.canvas.set_mode(ImageCanvas.MODE_VIEW)
@@ -499,7 +511,8 @@ class MeasurementMixin:
                     break
             pb = plates[pi] if pi is not None else None
             pg = plate_graphs.get(pi) if pi is not None else None
-            res = trace_root(self._binary, top_manual, bot_manual,
+            plate_binary = self._plate_binaries.get(pi, self._binary) if pi is not None else self._binary
+            res = trace_root(plate_binary, top_manual, bot_manual,
                              self._scale_val, plate_bounds=pb, plate_graph=pg)
             _log(f"    traced: {res['length_cm']:.2f} cm, method={res['method']}")
             # use reclick marks if provided (clicks between top and bottom)

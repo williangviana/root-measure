@@ -316,6 +316,7 @@ def _collect_settings(sidebar):
         'plot': sidebar.var_plot.get(),
         'manual_endpoints': sidebar.var_manual_endpoints.get(),
         'assign_colors': sidebar.var_assign_colors.get(),
+        'plate_thresholds': sidebar._plate_thresholds,
     }
 
 
@@ -421,3 +422,9 @@ def restore_settings(sidebar, settings):
     sidebar.var_plot.set(settings.get('plot', True))
     sidebar.var_manual_endpoints.set(settings.get('manual_endpoints', False))
     sidebar.var_assign_colors.set(settings.get('assign_colors', False))
+    # Restore per-plate thresholds
+    saved_pt = settings.get('plate_thresholds')
+    if saved_pt and isinstance(saved_pt, dict):
+        # JSON keys are strings — convert back to int
+        saved_pt = {int(k): v for k, v in saved_pt.items()}
+        sidebar.init_plate_thresholds(len(saved_pt), saved=saved_pt)

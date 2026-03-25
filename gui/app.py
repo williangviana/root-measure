@@ -410,6 +410,7 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
                     self._results = []
                     self._trace_to_result = []
                     self._binary = None
+                    self._plate_binaries = {}
                     self._retry_result_indices = []
                     self.canvas._retry_result_indices_ref = self._retry_result_indices
                     self._reclick_idx = 0
@@ -433,6 +434,7 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
                     # measurement done or in review — show action buttons
                     self._split = self.sidebar.is_split_plate()
                     self._binary = None
+                    self._plate_binaries = {}
                     self._retry_result_indices = []
                     self.canvas._retry_result_indices_ref = self._retry_result_indices
                     self._reclick_idx = 0
@@ -459,6 +461,7 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
                     # initialize workflow attrs for mid-workflow resume
                     self._split = self.sidebar.is_split_plate()
                     self._binary = None
+                    self._plate_binaries = {}
                     self._results = []
                     self._trace_to_result = []
                     self._retry_result_indices = []
@@ -594,6 +597,7 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
         self._results = []
         self._trace_to_result = []
         self._binary = None
+        self._plate_binaries = {}
         self._retry_result_indices = []
         self._reclick_idx = 0
         try:
@@ -703,6 +707,7 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
                     self.sidebar.entry_condition.insert(0, _cond)
         self._split = self.sidebar.is_split_plate()
         self._binary = None
+        self._plate_binaries = {}
         self._retry_result_indices = []
         self._reclick_idx = 0
         if self.canvas._traces and not getattr(self, '_results', None):
@@ -888,7 +893,9 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
             from image_processing import preprocess
             scale = self._get_scale()
             sensitivity = self.sidebar.var_sensitivity.get()
-            threshold = self.sidebar.get_threshold()
+            plate_idx = (self.sidebar._current_thresh_plate
+                         if self.sidebar._plate_thresholds else None)
+            threshold = self.sidebar.get_threshold(plate_idx=plate_idx)
             binary = preprocess(self.image, scale=scale, sensitivity=sensitivity,
                                 threshold=threshold)
             # Convert to displayable format (white roots on black)
@@ -900,17 +907,29 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
         except Exception as e:
             self.sidebar.set_status(f"Preview error: {e}")
 
-    def _update_auto_threshold(self):
-        """Calculate and display auto-detected threshold value."""
+    def _update_auto_threshold(self, plate_idx=None):
+        """Calculate and display auto-detected threshold value.
+
+        If plate_idx is given and plates exist, compute Otsu on that plate's
+        crop instead of the full image.
+        """
         if self.image is None:
             return
         try:
+            img = self.image
+            # Crop to plate region if requested
+            if plate_idx is not None:
+                plates = self.canvas.get_plates()
+                if plates and plate_idx < len(plates):
+                    r1, r2, c1, c2 = plates[plate_idx]
+                    img = self.image[r1:r2, c1:c2]
+
             # Get base Otsu threshold (always in 8-bit range)
-            if self.image.dtype == np.uint16:
-                img8 = (self.image / 256).astype(np.uint8)
+            if img.dtype == np.uint16:
+                img8 = (img / 256).astype(np.uint8)
                 otsu_thresh, _ = cv2.threshold(img8, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
             else:
-                otsu_thresh, _ = cv2.threshold(self.image, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+                otsu_thresh, _ = cv2.threshold(img, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
 
             # Adjust based on sensitivity: thin roots need higher threshold
             # Higher DPI (>=500, ~197 px/cm) needs less adjustment
@@ -925,7 +944,8 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
                 otsu_thresh = min(255, otsu_thresh + adj)
             # thick: use Otsu value as-is
 
-            self.sidebar.set_auto_threshold_value(int(otsu_thresh))
+            self.sidebar.set_auto_threshold_value(int(otsu_thresh),
+                                                  plate_idx=plate_idx)
         except Exception:
             pass
 
@@ -1054,6 +1074,8 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
         self._results = []
         self._trace_to_result = []
         self._binary = None
+        self._plate_binaries = {}
+        self.sidebar.destroy_plate_thresholds()
         self._retry_result_indices = []
         self._reclick_idx = 0
         self._current_plate_idx = 0
@@ -1161,6 +1183,10 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
         self._clear_plate_info()
         self.sidebar.btn_click_roots.configure(state="normal")
         self.sidebar.set_step(2)
+        # Initialize per-plate thresholds and compute auto values per crop
+        self.sidebar.init_plate_thresholds(len(plates))
+        for pi in range(len(plates)):
+            self._update_auto_threshold(plate_idx=pi)
         self._auto_save()
         self.click_roots()
 

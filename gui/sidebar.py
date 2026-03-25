@@ -442,6 +442,12 @@ class Sidebar(ctk.CTkScrollableFrame):
                         "Left = detect more (may add noise).\n"
                         "Right = detect less (may miss thin roots).",
                         font=ctk.CTkFont(size=11)).pack(padx=15, anchor="w")
+        # Per-plate threshold state (None until plates are drawn)
+        self._plate_thresholds = None   # dict[int, {'auto': bool, 'value': int}]
+        self._current_thresh_plate = 0
+        self._plate_tab_btn = None      # CTkSegmentedButton for plate selection
+        self._plate_tab_frame = ctk.CTkFrame(b, fg_color="transparent")
+        self._plate_tab_frame.pack(pady=(2, 0), padx=15, fill="x")
         self._thresh_frame = ctk.CTkFrame(b, fg_color="transparent")
         self._thresh_frame.pack(pady=(2, 8), padx=15, fill="x")
         self.var_auto_thresh = ctk.BooleanVar(value=True)
@@ -867,7 +873,8 @@ class Sidebar(ctk.CTkScrollableFrame):
     def _on_sensitivity_change(self, val):
         """Update auto threshold when sensitivity changes."""
         if self.var_auto_thresh.get():
-            self.app._update_auto_threshold()
+            pi = self._current_thresh_plate if self._plate_thresholds else None
+            self.app._update_auto_threshold(plate_idx=pi)
         # Update preview if active
         if getattr(self.app, '_preview_active', False):
             self.app._preview_preprocessing(force_show=True)
@@ -876,35 +883,127 @@ class Sidebar(ctk.CTkScrollableFrame):
         if self.var_auto_thresh.get():
             self.lbl_thresh_val.configure(text_color="gray50")
             # Show auto-detected value
-            self.app._update_auto_threshold()
+            self.app._update_auto_threshold(plate_idx=self._current_thresh_plate
+                                            if self._plate_thresholds else None)
             # Update preview if active
             if getattr(self.app, '_preview_active', False):
                 self.app._preview_preprocessing(force_show=True)
         else:
             self.lbl_thresh_val.configure(text_color=("gray10", "gray90"))
+        self._sync_to_plate_thresholds()
 
     def _on_slider_click(self, event):
         """Disable auto mode when user clicks on slider."""
         if self.var_auto_thresh.get():
             self.var_auto_thresh.set(False)
             self.lbl_thresh_val.configure(text_color=("gray10", "gray90"))
+            self._sync_to_plate_thresholds()
 
     def _on_thresh_change(self, val):
         self.lbl_thresh_val.configure(text=str(int(val)))
+        self._sync_to_plate_thresholds()
         # Auto-update preview when slider changes
         if getattr(self.app, '_preview_active', False):
             self.app._preview_preprocessing(force_show=True)
 
-    def get_threshold(self):
-        """Return threshold value or None for auto-detect."""
+    def get_threshold(self, plate_idx=None):
+        """Return threshold value or None for auto-detect.
+
+        If plate_idx is given and per-plate thresholds exist, return that
+        plate's threshold.  Otherwise fall back to the current slider state.
+        """
+        if self._plate_thresholds is not None and plate_idx is not None:
+            pt = self._plate_thresholds.get(plate_idx, {'auto': True, 'value': 140})
+            return None if pt['auto'] else pt['value']
         if self.var_auto_thresh.get():
             return None
         return int(self.slider_thresh.get())
 
-    def set_auto_threshold_value(self, val):
+    def get_all_thresholds(self):
+        """Return {plate_idx: threshold_or_None} for all plates."""
+        if self._plate_thresholds is None:
+            return {0: self.get_threshold()}
+        return {pi: self.get_threshold(plate_idx=pi)
+                for pi in self._plate_thresholds}
+
+    def set_auto_threshold_value(self, val, plate_idx=None):
         """Update slider and label to show auto-detected threshold."""
+        if self._plate_thresholds is not None and plate_idx is not None:
+            self._plate_thresholds[plate_idx]['value'] = int(val)
+            # Only update the visible slider if this plate is currently shown
+            if plate_idx != self._current_thresh_plate:
+                return
         self.slider_thresh.set(val)
         self.lbl_thresh_val.configure(text=str(int(val)))
+
+    # --- per-plate threshold management ---
+
+    def _sync_to_plate_thresholds(self):
+        """Save current slider/auto state into _plate_thresholds dict."""
+        if self._plate_thresholds is None:
+            return
+        pi = self._current_thresh_plate
+        self._plate_thresholds[pi] = {
+            'auto': self.var_auto_thresh.get(),
+            'value': int(self.slider_thresh.get()),
+        }
+
+    def init_plate_thresholds(self, num_plates, saved=None):
+        """Create per-plate threshold state and show plate tabs if >1 plate.
+
+        saved: optional dict {plate_idx: {'auto': bool, 'value': int}}
+               from session restore.
+        """
+        self.destroy_plate_thresholds()
+        # Build default state from current slider
+        default = {'auto': self.var_auto_thresh.get(),
+                   'value': int(self.slider_thresh.get())}
+        self._plate_thresholds = {}
+        for pi in range(num_plates):
+            if saved and pi in saved:
+                self._plate_thresholds[pi] = dict(saved[pi])
+            else:
+                self._plate_thresholds[pi] = dict(default)
+        self._current_thresh_plate = 0
+        # Show plate tabs only for multi-plate
+        if num_plates > 1:
+            values = [f"Plate {pi + 1}" for pi in range(num_plates)]
+            self._plate_tab_btn = ctk.CTkSegmentedButton(
+                self._plate_tab_frame, values=values,
+                command=self._on_plate_thresh_tab)
+            self._plate_tab_btn.set(values[0])
+            self._plate_tab_btn.pack(fill="x")
+        # Load plate 0 state into the slider
+        self._load_plate_thresh(0)
+
+    def destroy_plate_thresholds(self):
+        """Remove plate tab widget and reset per-plate state."""
+        if self._plate_tab_btn is not None:
+            self._plate_tab_btn.destroy()
+            self._plate_tab_btn = None
+        self._plate_thresholds = None
+        self._current_thresh_plate = 0
+
+    def _on_plate_thresh_tab(self, label):
+        """Switch threshold slider to a different plate."""
+        # Save current plate state
+        self._sync_to_plate_thresholds()
+        # Parse plate index from label ("Plate 1" → 0)
+        pi = int(label.split()[-1]) - 1
+        self._current_thresh_plate = pi
+        self._load_plate_thresh(pi)
+
+    def _load_plate_thresh(self, pi):
+        """Load a plate's threshold settings into the slider widgets."""
+        pt = self._plate_thresholds.get(pi, {'auto': True, 'value': 140})
+        self.var_auto_thresh.set(pt['auto'])
+        self.slider_thresh.set(pt['value'])
+        self.lbl_thresh_val.configure(text=str(pt['value']))
+        if pt['auto']:
+            self.lbl_thresh_val.configure(text_color="gray50")
+            self.app._update_auto_threshold(plate_idx=pi)
+        else:
+            self.lbl_thresh_val.configure(text_color=("gray10", "gray90"))
 
     def set_status(self, text):
         self.lbl_status.configure(text=text)

@@ -435,13 +435,27 @@ class Sidebar(ctk.CTkScrollableFrame):
             command=self._on_sensitivity_change)
         self.menu_sensitivity.pack(pady=(2, 8), padx=15, fill="x")
 
-        # Row 4: Select plates (moved here from workflow)
+        # Row 4: Auto-detect root tip (click mode — before plate selection)
+        self.var_manual_endpoints = ctk.BooleanVar(value=True)
+        self.chk_auto_tip = ctk.CTkCheckBox(
+            b, text="Auto-detect root tip",
+            variable=self.var_manual_endpoints,
+            onvalue=False, offvalue=True,
+            font=ctk.CTkFont(size=12))
+        _label_with_tip(b, "Click mode:",
+                        "By default you click the top and tip of each root.\n"
+                        "Check this to only click the top. The tip is found\n"
+                        "automatically (less accurate, may need retrace).",
+                        font=ctk.CTkFont(size=11)).pack(padx=15, anchor="w")
+        self.chk_auto_tip.pack(padx=25, anchor="w", pady=(2, 0))
+
+        # Row 5: Select plates
         self.btn_select_plates = ctk.CTkButton(
             b, text="Select Plates", command=app.select_plates,
             state="disabled", fg_color="#2b5797")
-        self.btn_select_plates.pack(pady=(5, 8), padx=15, fill="x")
+        self.btn_select_plates.pack(pady=(8, 5), padx=15, fill="x")
 
-        # Row 5: Root detection (hidden until plates are drawn)
+        # Row 6: Root detection (hidden until plates are drawn)
         self._thresh_container = ctk.CTkFrame(b, fg_color="transparent")
         # _thresh_container is NOT packed yet — shown after plates are drawn
         _label_with_tip(self._thresh_container, "Root detection:",
@@ -483,24 +497,11 @@ class Sidebar(ctk.CTkScrollableFrame):
         # Bind click on slider to disable auto mode
         self.slider_thresh.bind("<Button-1>", self._on_slider_click)
 
-        # Row 5: Auto-detect root tip
-        self.var_manual_endpoints = ctk.BooleanVar(value=True)
-        self.chk_auto_tip = ctk.CTkCheckBox(
-            b, text="Auto-detect root tip",
-            variable=self.var_manual_endpoints,
-            onvalue=False, offvalue=True,
-            font=ctk.CTkFont(size=12))
-        _label_with_tip(b, "Click mode:",
-                        "By default you click the top and tip of each root.\n"
-                        "Check this to only click the top. The tip is found\n"
-                        "automatically (less accurate, may need retrace).",
-                        font=ctk.CTkFont(size=11)).pack(padx=15, anchor="w")
-        self.chk_auto_tip.pack(padx=25, anchor="w", pady=(2, 0))
-
+        # Row 7: Next button (hidden until plates are drawn)
         self.btn_next_settings = ctk.CTkButton(
             b, text="Next", fg_color="#2b5797",
             command=lambda: app._on_next_settings())
-        self.btn_next_settings.pack(pady=(10, 5), padx=15, fill="x")
+        # NOT packed yet — shown after plates are drawn
 
         # ===== SECTION: EXPERIMENT =====
         self.sec_experiment = _Section(self, "EXPERIMENT")
@@ -976,8 +977,9 @@ class Sidebar(ctk.CTkScrollableFrame):
                 command=self._on_plate_thresh_tab)
             self._plate_tab_btn.set(values[0])
             self._plate_tab_btn.pack(fill="x")
-        # Show threshold controls (hidden until plates are drawn)
+        # Show threshold controls and Next button (hidden until plates are drawn)
         self._thresh_container.pack(pady=(0, 5), padx=15, fill="x")
+        self.btn_next_settings.pack(pady=(10, 5), padx=15, fill="x")
         # Load plate 0 state into the slider
         self._load_plate_thresh(0)
 
@@ -988,6 +990,7 @@ class Sidebar(ctk.CTkScrollableFrame):
             self._plate_tab_btn = None
         self._plate_thresholds = None
         self._thresh_container.pack_forget()
+        self.btn_next_settings.pack_forget()
         self._current_thresh_plate = 0
 
     def _on_plate_thresh_tab(self, label):

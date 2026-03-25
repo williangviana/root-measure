@@ -896,13 +896,22 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
             from image_processing import preprocess
             scale = self._get_scale()
             sensitivity = self.sidebar.var_sensitivity.get()
-            plate_idx = (self.sidebar._current_thresh_plate
-                         if self.sidebar._plate_thresholds else None)
-            threshold = self.sidebar.get_threshold(plate_idx=plate_idx)
-            binary = preprocess(self.image, scale=scale, sensitivity=sensitivity,
-                                threshold=threshold)
-            # Convert to displayable format (white roots on black)
-            display = (binary.astype(np.uint8) * 255)
+            plates = self.canvas.get_plates()
+            if self.sidebar._plate_thresholds and plates:
+                # Per-plate preview: preprocess each plate region independently
+                display = np.zeros(self.image.shape[:2], dtype=np.uint8)
+                for pi, (r1, r2, c1, c2) in enumerate(plates):
+                    thresh = self.sidebar.get_threshold(plate_idx=pi)
+                    binary = preprocess(self.image, scale=scale,
+                                        sensitivity=sensitivity,
+                                        threshold=thresh)
+                    display[r1:r2, c1:c2] = binary[r1:r2, c1:c2].astype(np.uint8) * 255
+            else:
+                threshold = self.sidebar.get_threshold()
+                binary = preprocess(self.image, scale=scale,
+                                    sensitivity=sensitivity,
+                                    threshold=threshold)
+                display = (binary.astype(np.uint8) * 255)
             # Use preview method to preserve overlays and zoom
             self.canvas.set_image_preview(display)
             self._preview_active = True

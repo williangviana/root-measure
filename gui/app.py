@@ -978,6 +978,8 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
         if not self.canvas.get_plates():
             self.sidebar.set_status("Select plates first before proceeding.")
             return
+        self.sidebar.btn_select_plates.configure(
+            fg_color=self.sidebar._step_color_done)
         self.sidebar.advance_to_experiment()
 
     def _on_start_workflow(self):
@@ -1202,8 +1204,6 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
         self.sidebar.init_plate_thresholds(len(plates))
         for pi in range(len(plates)):
             self._update_auto_threshold(plate_idx=pi)
-        self.sidebar.btn_select_plates.configure(
-            fg_color=self.sidebar._step_color_done)
         self._auto_save()
 
     def click_roots(self, resume=False):

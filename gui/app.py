@@ -727,8 +727,7 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
         self.sidebar.sec_workflow.show()
         self.sidebar.sec_workflow.expand()
         self.sidebar.set_step(4)
-        self.sidebar.btn_select_plates.configure(
-            state="normal", fg_color=self.sidebar._step_color_done)
+        self.sidebar.btn_select_plates.configure(state="normal", fg_color="#2b5797")
         self.sidebar.btn_click_roots.configure(state="normal")
         self.sidebar.btn_measure.configure(state="normal")
         self.sidebar.btn_review.configure(state="normal")
@@ -990,8 +989,6 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
         if not self.canvas.get_plates():
             self.sidebar.set_status("Select plates first before proceeding.")
             return
-        self.sidebar.btn_select_plates.configure(
-            fg_color=self.sidebar._step_color_done)
         self.sidebar.advance_to_experiment()
 
     def _on_start_workflow(self):

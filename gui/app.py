@@ -7,9 +7,9 @@ from pathlib import Path
 
 # cx_Freeze Win32GUI sets sys.stdout/stderr to None — redirect to devnull
 if sys.stdout is None:
-    sys.stdout = open(os.devnull, "w")
+    sys.stdout = open(os.devnull, "w", encoding="utf-8", errors="replace")
 if sys.stderr is None:
-    sys.stderr = open(os.devnull, "w")
+    sys.stderr = open(os.devnull, "w", encoding="utf-8", errors="replace")
 
 import customtkinter as ctk
 import cv2

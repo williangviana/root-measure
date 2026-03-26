@@ -366,7 +366,7 @@ class MeasurementMixin:
         _log(f"  selected for retry: {selected}")
         if not selected:
             # accept all — save and finish
-            _log("  no selection → finishing measurement")
+            _log("  no selection -> finishing measurement")
             self.canvas.set_mode(ImageCanvas.MODE_VIEW)
             self._finish_measurement()
             return
@@ -376,12 +376,12 @@ class MeasurementMixin:
                                        if s < len(self._trace_to_result)]
         _log(f"  retry_result_indices: {self._retry_result_indices}")
         if not self._retry_result_indices:
-            _log("  no valid indices → finishing measurement")
+            _log("  no valid indices -> finishing measurement")
             self.canvas.set_mode(ImageCanvas.MODE_VIEW)
             self._finish_measurement()
             return
         # enter reclick mode
-        _log("  → entering reclick mode")
+        _log("  -> entering reclick mode")
         self._start_reclick()
 
     def _start_reclick(self):
@@ -498,7 +498,7 @@ class MeasurementMixin:
                 self._show_reclick_status()
                 return
         # all re-clicks done — re-trace
-        _log("  all reclick points placed → retracing")
+        _log("  all reclick points placed -> retracing")
         self._do_retrace()
 
     def _do_retrace(self):
@@ -571,7 +571,7 @@ class MeasurementMixin:
         self.sidebar.hide_progress()
 
         # Go back to review mode so user can verify retrace worked
-        _log("  → returning to review mode")
+        _log("  -> returning to review mode")
         self._show_review(skip_delay=True)
 
     def _rebuild_all_traces(self):
@@ -652,7 +652,7 @@ class MeasurementMixin:
         else:
             self.sidebar.set_status(
                 f"Manual trace root {pi_idx}/{n}:\n"
-                f"Click points along the root (top→bottom).\n"
+                f"Click points along the root (top->bottom).\n"
                 f"Right-click=undo, Enter=confirm.")
             self.lbl_bottom.configure(
                 text=f"Manual {pi_idx}/{n}  |  Click=add point  |  "

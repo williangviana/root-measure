@@ -597,6 +597,8 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
             for _try_dir in _dirs_to_try:
                 try:
                     print(f"[DnD] Trying tkdnd from: {_try_dir}")
+                    # Reset Tcl's auto_path to only include this dir for tkdnd
+                    self.tk.call('package', 'forget', 'tkdnd')
                     self.tk.call('lappend', 'auto_path', str(_try_dir))
                     self.tk.call('package', 'require', 'tkdnd')
                     _tkdnd_loaded = True

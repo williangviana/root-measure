@@ -956,16 +956,25 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
 
             # Adjust based on sensitivity: thin roots need higher threshold
             # Higher DPI (>=500, ~197 px/cm) needs less adjustment
+            # Low-contrast images (std < 35) need extra boost
             scale = self._get_scale()
             high_res = scale >= 197
             sensitivity = self.sidebar.var_sensitivity.get()
+            std = float(np.std(img))
+            low_contrast = std < 35
             if sensitivity == 'thin':
                 adj = 30 if high_res else 45
+                if low_contrast:
+                    adj += 10
                 otsu_thresh = min(255, otsu_thresh + adj)
             elif sensitivity == 'medium':
                 adj = 15 if high_res else 25
+                if low_contrast:
+                    adj += 10
                 otsu_thresh = min(255, otsu_thresh + adj)
-            # thick: use Otsu value as-is
+            elif low_contrast:
+                # thick: boost slightly for low-contrast images
+                otsu_thresh = min(255, otsu_thresh + 10)
 
             self.sidebar.set_auto_threshold_value(int(otsu_thresh),
                                                   plate_idx=plate_idx)

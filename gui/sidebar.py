@@ -933,6 +933,10 @@ class Sidebar(ctk.CTkScrollableFrame):
     def set_auto_threshold_value(self, val, plate_idx=None):
         """Update slider and label to show auto-detected threshold."""
         if self._plate_thresholds is not None and plate_idx is not None:
+            pt = self._plate_thresholds.get(plate_idx, {})
+            # Only update if auto is enabled for this plate
+            if not pt.get('auto', True):
+                return
             self._plate_thresholds[plate_idx]['value'] = int(val)
             # Only update the visible slider if this plate is currently shown
             if plate_idx != self._current_thresh_plate:

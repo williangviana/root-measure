@@ -573,7 +573,9 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
                 except ImportError:
                     pass
             if tkdnd_dir is None:
+                print("[DnD] No tkdnd library found for this platform")
                 return
+            print(f"[DnD] Using tkdnd from: {tkdnd_dir}")
             self.tk.call('lappend', 'auto_path', str(tkdnd_dir))
             self.tk.call('package', 'require', 'tkdnd')
             self.tk.call('tkdnd::drop_target', 'register', self._w,
@@ -588,8 +590,9 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
             self._dnd_leave_cmd = self.register(self._on_drag_leave)
             self.tk.call('bind', self._w, '<<DropLeave>>',
                          self._dnd_leave_cmd)
-        except Exception:
-            pass
+            print("[DnD] Drag-and-drop registered successfully")
+        except Exception as e:
+            print(f"[DnD] Failed to set up drag-and-drop: {e}")
 
     def _on_drop(self, data):
         """Handle file/folder drop onto the window."""

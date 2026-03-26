@@ -964,15 +964,17 @@ class Sidebar(ctk.CTkScrollableFrame):
                from session restore.
         """
         self.destroy_plate_thresholds()
-        # Build default state from current slider
-        default = {'auto': self.var_auto_thresh.get(),
-                   'value': int(self.slider_thresh.get())}
         self._plate_thresholds = {}
         for pi in range(num_plates):
             if saved and pi in saved:
                 self._plate_thresholds[pi] = dict(saved[pi])
             else:
-                self._plate_thresholds[pi] = dict(default)
+                # Fresh plates: default to auto with placeholder value
+                self._plate_thresholds[pi] = {'auto': True, 'value': 140}
+        # Reset slider to auto mode
+        if not saved:
+            self.var_auto_thresh.set(True)
+            self.lbl_thresh_val.configure(text_color="gray50")
         self._current_thresh_plate = 0
         # Show plate tabs only for multi-plate
         if num_plates > 1:

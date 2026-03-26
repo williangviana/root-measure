@@ -527,6 +527,9 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
         try:
             tkdnd_dir = Path(__file__).parent / 'tkdnd2.9.5'
             if not tkdnd_dir.is_dir():
+                # cx_Freeze: try lib/gui/ relative to executable
+                tkdnd_dir = Path(sys.executable).parent / 'lib' / 'gui' / 'tkdnd2.9.5'
+            if not tkdnd_dir.is_dir():
                 return
             self.tk.call('lappend', 'auto_path', str(tkdnd_dir))
             self.tk.call('package', 'require', 'tkdnd')

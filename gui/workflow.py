@@ -183,7 +183,8 @@ class MeasurementMixin:
                 res = dict(length_cm=None, length_px=None,
                            path=np.empty((0, 2)),
                            method='skip', warning=warning, segments=[],
-                           vector_length_cm=None, tortuosity=None)
+                           vector_length_cm=None, tortuosity=None,
+                           direction=None)
                 self._results.append(res)
                 continue
 
@@ -204,7 +205,8 @@ class MeasurementMixin:
                 res = dict(length_cm=0, length_px=0,
                            path=np.empty((0, 2)),
                            method='error', warning='Could not find root tip',
-                           segments=[], vector_length_cm=None, tortuosity=None)
+                           segments=[], vector_length_cm=None, tortuosity=None,
+                           direction=None)
                 self._results.append(res)
                 continue
 
@@ -217,9 +219,15 @@ class MeasurementMixin:
                                     (p[-1, 1] - p[0, 1]) ** 2))
                 res['vector_length_cm'] = vec / self._scale_val if self._scale_val else 0
                 res['tortuosity'] = res['length_px'] / vec if vec > 0 else None
+                # Root direction (SmartRoot convention: 270° = straight down)
+                dx = float(p[-1, 1] - p[0, 1])
+                dy = -float(p[-1, 0] - p[0, 0])  # negate: image y is inverted
+                angle_deg = np.degrees(np.arctan2(dy, dx)) % 360
+                res['direction'] = round(angle_deg, 1)
             else:
                 res['vector_length_cm'] = None
                 res['tortuosity'] = None
+                res['direction'] = None
             # compute segments if marks were collected for this root
             mark_coords = self.canvas._all_marks.get(i, [])
             if mark_coords and res['path'].size > 0:
@@ -940,7 +948,8 @@ class MeasurementMixin:
                     length_cm=None, length_px=None,
                     path=np.empty((0, 2)),
                     method='skip', warning=warning, segments=[],
-                    vector_length_cm=None, tortuosity=None))
+                    vector_length_cm=None, tortuosity=None,
+                    direction=None))
             elif trace_idx < len(self.canvas._traces):
                 path_data = self.canvas._traces[trace_idx]
                 path = np.array(path_data[0]) if not isinstance(
@@ -959,17 +968,21 @@ class MeasurementMixin:
                         path, mark_coords, self._scale_val)
                 vector_length_cm = None
                 tortuosity = None
+                direction = None
                 if len(path) >= 2 and length_px > 0:
                     vec = np.sqrt(float((path[-1, 0] - path[0, 0]) ** 2 +
                                         (path[-1, 1] - path[0, 1]) ** 2))
                     vector_length_cm = vec / self._scale_val if self._scale_val else 0
                     tortuosity = length_px / vec if vec > 0 else None
+                    dx = float(path[-1, 1] - path[0, 1])
+                    dy = -float(path[-1, 0] - path[0, 0])
+                    direction = round(np.degrees(np.arctan2(dy, dx)) % 360, 1)
                 self._results.append(dict(
                     length_cm=length_cm, length_px=length_px,
                     path=path, method='restored', warning=None,
                     segments=segments, mark_coords=mark_coords,
                     vector_length_cm=vector_length_cm,
-                    tortuosity=tortuosity))
+                    tortuosity=tortuosity, direction=direction))
                 self._trace_to_result.append(i)
                 trace_idx += 1
             else:
@@ -977,7 +990,8 @@ class MeasurementMixin:
                     length_cm=0, length_px=0,
                     path=np.empty((0, 2)),
                     method='error', warning='no trace', segments=[],
-                    vector_length_cm=None, tortuosity=None))
+                    vector_length_cm=None, tortuosity=None,
+                    direction=None))
 
     def _finish_measurement(self):
         """Save results and show final summary."""

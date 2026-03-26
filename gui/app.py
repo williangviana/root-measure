@@ -644,6 +644,7 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
 
             detected = _detect_dpi(path)
             dpi = detected or 1200
+            self.sidebar.destroy_plate_thresholds()
             self.sidebar.advance_to_settings(path.name, dpi)
 
             # Auto-detect plate count
@@ -726,16 +727,27 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
         self.sidebar.sec_workflow.show()
         self.sidebar.sec_workflow.expand()
         self.sidebar.set_step(4)
-        self.sidebar.btn_select_plates.configure(state="normal")
+        self.sidebar.btn_select_plates.configure(
+            state="normal", fg_color=self.sidebar._step_color_done)
         self.sidebar.btn_click_roots.configure(state="normal")
         self.sidebar.btn_measure.configure(state="normal")
         self.sidebar.btn_review.configure(state="normal")
+        # Restore per-plate threshold UI if plates exist
+        plates = self.canvas.get_plates()
+        if plates:
+            saved_pt = ss.get('plate_thresholds') if ss else None
+            if saved_pt and isinstance(saved_pt, dict):
+                saved_pt = {int(k): v for k, v in saved_pt.items()}
+                self.sidebar.init_plate_thresholds(len(plates), saved=saved_pt)
+            else:
+                self.sidebar.init_plate_thresholds(len(plates))
+            for pi in range(len(plates)):
+                self._update_auto_threshold(plate_idx=pi)
         self._hide_action_buttons()
         self._show_action_frame()
         self.btn_next_image.pack(pady=(10, 3), padx=15, fill="x")
         self.btn_continue_later.pack(pady=3, padx=15, fill="x")
         self.btn_stop.pack(pady=3, padx=15, fill="x")
-        plates = self.canvas.get_plates()
         points = self.canvas.get_root_points()
         self.sidebar.set_status(
             f"Measurement complete: {len(plates)} plate(s), "

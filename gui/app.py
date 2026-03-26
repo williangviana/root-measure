@@ -525,11 +525,35 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
     def _setup_dnd(self):
         """Register window as drag-and-drop target using bundled tkdnd."""
         try:
-            tkdnd_dir = Path(__file__).parent / 'tkdnd2.9.5'
-            if not tkdnd_dir.is_dir():
+            # Platform-specific shared library extension
+            if sys.platform == 'win32':
+                _lib_ext = '.dll'
+            elif sys.platform == 'darwin':
+                _lib_ext = '.dylib'
+            else:
+                _lib_ext = '.so'
+
+            def _has_platform_lib(d):
+                """Check if tkdnd dir has a native library for this platform."""
+                return any(f.suffix == _lib_ext for f in d.iterdir())
+
+            # Try bundled tkdnd directories (Tcl 9 build, then Tcl 8 build)
+            gui_dir = Path(__file__).parent
+            tkdnd_dir = None
+            for name in ('tkdnd2.9.5', 'tkdnd2.9.3'):
+                d = gui_dir / name
+                if d.is_dir() and _has_platform_lib(d):
+                    tkdnd_dir = d
+                    break
+            if tkdnd_dir is None:
                 # cx_Freeze: try lib/gui/ relative to executable
-                tkdnd_dir = Path(sys.executable).parent / 'lib' / 'gui' / 'tkdnd2.9.5'
-            if not tkdnd_dir.is_dir():
+                exe_gui = Path(sys.executable).parent / 'lib' / 'gui'
+                for name in ('tkdnd2.9.5', 'tkdnd2.9.3'):
+                    d = exe_gui / name
+                    if d.is_dir() and _has_platform_lib(d):
+                        tkdnd_dir = d
+                        break
+            if tkdnd_dir is None:
                 return
             self.tk.call('lappend', 'auto_path', str(tkdnd_dir))
             self.tk.call('package', 'require', 'tkdnd')
@@ -545,8 +569,9 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
             self._dnd_leave_cmd = self.register(self._on_drag_leave)
             self.tk.call('bind', self._w, '<<DropLeave>>',
                          self._dnd_leave_cmd)
-        except Exception:
-            pass
+        except Exception as e:
+            import traceback; traceback.print_exc()
+            print(f"DnD setup failed: {e}")
 
     def _on_drop(self, data):
         """Handle file/folder drop onto the window."""

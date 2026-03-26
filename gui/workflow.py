@@ -4,10 +4,22 @@ import cv2
 import numpy as np
 from datetime import datetime
 
+import os as _os
+import sys as _sys
+
 def _log(msg):
-    """Print debug message with timestamp."""
+    """Print debug message with timestamp. On Windows cx_Freeze, also log to file."""
     ts = datetime.now().strftime("%H:%M:%S")
-    print(f"[{ts}] {msg}")
+    line = f"[{ts}] {msg}"
+    print(line)
+    # On Windows Win32GUI builds, stdout goes to devnull — also write to log file
+    if _sys.platform == 'win32':
+        try:
+            log_path = _os.path.join(_os.path.expanduser('~'), '.root_measure', 'debug.log')
+            with open(log_path, 'a') as f:
+                f.write(line + '\n')
+        except Exception:
+            pass
 
 from image_processing import preprocess
 from root_tracing import find_root_tip, trace_root, build_plate_graph
@@ -297,7 +309,9 @@ class MeasurementMixin:
         self.sidebar.set_status(msg)
         self._hide_action_buttons()
         self._show_action_frame()
-        self.sidebar.btn_done.configure(text="Accept All")
+        self.sidebar.btn_done.configure(
+            text="Accept All",
+            command=self._review_done)
         # Clear callback before setting new one
         self.canvas._on_click_callback = None
         self.canvas._on_click_callback = self._update_review_button
@@ -330,8 +344,11 @@ class MeasurementMixin:
             self.sidebar.hide_manual_trace_modes()
 
     def _review_done(self):
-        """Called when user presses Enter in review mode."""
+        """Called when user presses Enter or Accept All button in review mode."""
         _log("_review_done() called")
+        # Restore default button command (was overridden for review mode)
+        self.sidebar.btn_done.configure(
+            command=lambda: self.canvas._trigger_done())
         if not getattr(self, '_review_ready', True):
             _log("  ignoring - review not ready yet")
             return  # ignore leftover Enter from previous mode

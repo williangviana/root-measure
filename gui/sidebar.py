@@ -884,6 +884,8 @@ class Sidebar(ctk.CTkScrollableFrame):
             self.app._preview_preprocessing(force_show=True)
 
     def _toggle_threshold(self):
+        # Sync first so _plate_thresholds reflects the new auto state
+        self._sync_to_plate_thresholds()
         if self.var_auto_thresh.get():
             self.lbl_thresh_val.configure(text_color="gray50")
             # Show auto-detected value
@@ -894,7 +896,6 @@ class Sidebar(ctk.CTkScrollableFrame):
                 self.app._preview_preprocessing(force_show=True)
         else:
             self.lbl_thresh_val.configure(text_color=("gray10", "gray90"))
-        self._sync_to_plate_thresholds()
 
     def _on_slider_click(self, event):
         """Disable auto mode when user clicks on slider."""

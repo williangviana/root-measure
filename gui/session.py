@@ -68,6 +68,9 @@ def delete_session(folder, experiment=''):
     if safe:
         # experiment session: delete folder/root_measure/<experiment>/
         target = folder / _ROOT / safe
+        if not target.exists():
+            # fall back to legacy session that has this experiment name
+            target = folder / _ROOT / '.session'
     else:
         # legacy (no experiment): only delete the .session dir
         target = folder / _ROOT / '.session'

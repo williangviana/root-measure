@@ -1040,9 +1040,21 @@ class MeasurementMixin:
         self.lbl_bottom.configure(text="Willian Viana — Dinneny Lab")
 
 
-        self._save_results(self._results, plates, self._scale_val)
-        self._save_trace_screenshot()
-        self._save_metadata()
+        try:
+            self._save_results(self._results, plates, self._scale_val)
+        except Exception as e:
+            _log(f"ERROR in _save_results: {e}")
+            import traceback; traceback.print_exc()
+        try:
+            self._save_trace_screenshot()
+        except Exception as e:
+            _log(f"ERROR in _save_trace_screenshot: {e}")
+            import traceback; traceback.print_exc()
+        try:
+            self._save_metadata()
+        except Exception as e:
+            _log(f"ERROR in _save_metadata: {e}")
+            import traceback; traceback.print_exc()
 
         self.sidebar.set_step(4)  # marks all 4 steps as done (green)
         self.canvas._measurement_done = True

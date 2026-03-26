@@ -1,8 +1,13 @@
 @echo off
 cd /d "%~dp0"
 set "LOCAL_VENV=%USERPROFILE%\.venv-rootmeasure"
-if exist "%LOCAL_VENV%\Scripts\pythonw.exe" (
-    start "" "%LOCAL_VENV%\Scripts\pythonw.exe" gui\app.py
+if exist "%LOCAL_VENV%\Scripts\python.exe" (
+    "%LOCAL_VENV%\Scripts\python.exe" gui\app.py
+    if errorlevel 1 (
+        echo.
+        echo === App exited with an error ===
+        pause
+    )
 ) else (
     echo No virtual environment found at %LOCAL_VENV%
     echo.

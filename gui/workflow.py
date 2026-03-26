@@ -273,6 +273,8 @@ class MeasurementMixin:
         else:
             self._review_ready = False
             self.after(500, self._enable_review)
+            # Safety fallback — ensure review becomes ready even if timer glitches
+            self.after(2000, self._enable_review)
         self.canvas.set_mode(
             ImageCanvas.MODE_REVIEW,
             on_done=self._review_done)

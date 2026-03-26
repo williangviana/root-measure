@@ -172,16 +172,30 @@ class ImageCanvas(ctk.CTkFrame):
 
     def _trigger_done(self):
         """Trigger the current mode's done callback (for Done button)."""
-        # Confirm pending plate — then let _on_plate_added decide next step
-        if self._mode == self.MODE_SELECT_PLATES and self._pending_plate is not None:
-            self._plates.append(self._pending_plate)
-            self._pending_plate = None
-            self._redraw()
-            if self._on_click_callback:
-                self._on_click_callback()
-            return
-        if self._on_done_callback:
-            self._on_done_callback()
+        import traceback
+        try:
+            # Confirm pending plate — then let _on_plate_added decide next step
+            if self._mode == self.MODE_SELECT_PLATES and self._pending_plate is not None:
+                self._plates.append(self._pending_plate)
+                self._pending_plate = None
+                self._redraw()
+                if self._on_click_callback:
+                    self._on_click_callback()
+                return
+            # Button clicks are always intentional — bypass _review_ready guard
+            # (the guard only exists to prevent leftover Enter keypresses)
+            app = self.winfo_toplevel()
+            if hasattr(app, '_review_ready'):
+                app._review_ready = True
+            if self._on_done_callback:
+                self._on_done_callback()
+        except Exception as e:
+            traceback.print_exc()
+            # Surface error in UI — tkinter silently swallows callback exceptions
+            if not hasattr(app, 'sidebar'):
+                app = self.winfo_toplevel()
+            if hasattr(app, 'sidebar'):
+                app.sidebar.set_status(f"Error: {e}")
 
     def get_plates(self):
         return list(self._plates)
@@ -1563,7 +1577,14 @@ class ImageCanvas(ctk.CTkFrame):
                     return True
                 # no pending plate — finish selection
             if self._on_done_callback:
-                self._on_done_callback()
+                import traceback
+                try:
+                    self._on_done_callback()
+                except Exception as e:
+                    traceback.print_exc()
+                    app = self.winfo_toplevel()
+                    if hasattr(app, 'sidebar'):
+                        app.sidebar.set_status(f"Error: {e}")
                 return True
         return False
 

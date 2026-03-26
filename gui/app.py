@@ -558,26 +558,54 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
                 try:
                     import tkinterdnd2
                     dnd_base = Path(tkinterdnd2.__file__).parent / 'tkdnd'
-                    # Pick platform-specific subdirectory
+                    # Try platform-specific subdirectories in priority order
                     import platform
                     machine = platform.machine().lower()
                     if sys.platform == 'win32':
-                        plat = 'win-arm64' if 'arm' in machine else 'win-x64'
+                        # ARM64 Windows can run x64 via emulation
+                        candidates = ['win-arm64', 'win-x64'] if 'arm' in machine else ['win-x64']
                     elif sys.platform == 'darwin':
-                        plat = 'osx-arm64' if 'arm' in machine else 'osx-x64'
+                        candidates = ['osx-arm64', 'osx-x64'] if 'arm' in machine else ['osx-x64']
                     else:
-                        plat = 'linux-arm64' if 'arm' in machine or 'aarch' in machine else 'linux-x64'
-                    d = dnd_base / plat
-                    if d.is_dir() and _has_platform_lib(d):
-                        tkdnd_dir = d
+                        candidates = (['linux-arm64', 'linux-x64']
+                                      if 'arm' in machine or 'aarch' in machine
+                                      else ['linux-x64'])
+                    for plat in candidates:
+                        d = dnd_base / plat
+                        if d.is_dir() and _has_platform_lib(d):
+                            tkdnd_dir = d
+                            break
                 except ImportError:
                     pass
             if tkdnd_dir is None:
                 print("[DnD] No tkdnd library found for this platform")
                 return
-            print(f"[DnD] Using tkdnd from: {tkdnd_dir}")
-            self.tk.call('lappend', 'auto_path', str(tkdnd_dir))
-            self.tk.call('package', 'require', 'tkdnd')
+            # Try loading tkdnd — if it fails (e.g. ARM64 DLL on x64 Tcl),
+            # fall back to other candidates from tkinterdnd2
+            _tkdnd_loaded = False
+            _dirs_to_try = [tkdnd_dir]
+            # Add remaining tkinterdnd2 candidates as fallbacks
+            try:
+                import tkinterdnd2
+                dnd_base = Path(tkinterdnd2.__file__).parent / 'tkdnd'
+                for plat_dir in sorted(dnd_base.iterdir()):
+                    if (plat_dir.is_dir() and plat_dir != tkdnd_dir
+                            and _has_platform_lib(plat_dir)):
+                        _dirs_to_try.append(plat_dir)
+            except (ImportError, OSError):
+                pass
+            for _try_dir in _dirs_to_try:
+                try:
+                    print(f"[DnD] Trying tkdnd from: {_try_dir}")
+                    self.tk.call('lappend', 'auto_path', str(_try_dir))
+                    self.tk.call('package', 'require', 'tkdnd')
+                    _tkdnd_loaded = True
+                    break
+                except Exception as e:
+                    print(f"[DnD] Failed: {e}")
+            if not _tkdnd_loaded:
+                print("[DnD] Could not load tkdnd from any source")
+                return
             self.tk.call('tkdnd::drop_target', 'register', self._w,
                          ('DND_Files',))
             # Bind drop events via Tcl

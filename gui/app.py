@@ -569,9 +569,8 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
             self._dnd_leave_cmd = self.register(self._on_drag_leave)
             self.tk.call('bind', self._w, '<<DropLeave>>',
                          self._dnd_leave_cmd)
-        except Exception as e:
-            import traceback; traceback.print_exc()
-            print(f"DnD setup failed: {e}")
+        except Exception:
+            pass
 
     def _on_drop(self, data):
         """Handle file/folder drop onto the window."""

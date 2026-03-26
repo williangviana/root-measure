@@ -44,6 +44,7 @@ build_options = {
         "PIL",
         "tkinter",
         "statsmodels",
+        "tkinterdnd2",
     ],
     "excludes": [
         "torch", "torchvision", "torchaudio",
@@ -56,7 +57,7 @@ build_options = {
         (str(gui_dir / "canvas.py"), str(Path("lib") / "gui" / "canvas.py")),
         (str(gui_dir / "sidebar.py"), str(Path("lib") / "gui" / "sidebar.py")),
         (str(gui_dir / "workflow.py"), str(Path("lib") / "gui" / "workflow.py")),
-        (str(gui_dir / "tkdnd2.9.3"), str(Path("lib") / "gui" / "tkdnd2.9.3")),
+        (str(gui_dir / "tkdnd2.9.5"), str(Path("lib") / "gui" / "tkdnd2.9.5")),
     ],
     "bin_path_includes": _bin_path_includes,
     "path": sys.path + [str(scripts_dir), str(gui_dir)],

@@ -554,6 +554,25 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
                         tkdnd_dir = d
                         break
             if tkdnd_dir is None:
+                # Fallback: try tkinterdnd2 package (pip install tkinterdnd2)
+                try:
+                    import tkinterdnd2
+                    dnd_base = Path(tkinterdnd2.__file__).parent / 'tkdnd'
+                    # Pick platform-specific subdirectory
+                    import platform
+                    machine = platform.machine().lower()
+                    if sys.platform == 'win32':
+                        plat = 'win-arm64' if 'arm' in machine else 'win-x64'
+                    elif sys.platform == 'darwin':
+                        plat = 'osx-arm64' if 'arm' in machine else 'osx-x64'
+                    else:
+                        plat = 'linux-arm64' if 'arm' in machine or 'aarch' in machine else 'linux-x64'
+                    d = dnd_base / plat
+                    if d.is_dir() and _has_platform_lib(d):
+                        tkdnd_dir = d
+                except ImportError:
+                    pass
+            if tkdnd_dir is None:
                 return
             self.tk.call('lappend', 'auto_path', str(tkdnd_dir))
             self.tk.call('package', 'require', 'tkdnd')

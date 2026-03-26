@@ -311,7 +311,7 @@ class MeasurementMixin:
         self._show_action_frame()
         self.sidebar.btn_done.configure(
             text="Accept All",
-            command=self._review_done)
+            command=self._safe_review_done)
         # Clear callback before setting new one
         self.canvas._on_click_callback = None
         self.canvas._on_click_callback = self._update_review_button
@@ -324,6 +324,16 @@ class MeasurementMixin:
 
     def _enable_review(self):
         self._review_ready = True
+
+    def _safe_review_done(self):
+        """Wrapper around _review_done that catches and displays errors."""
+        import traceback
+        try:
+            self._review_done()
+        except Exception as e:
+            traceback.print_exc()
+            _log(f"ERROR in _review_done: {e}\n{traceback.format_exc()}")
+            self.sidebar.set_status(f"Error: {e}")
 
     def _update_review_button(self):
         """Update review button text based on selection."""

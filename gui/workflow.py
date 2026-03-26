@@ -1041,21 +1041,28 @@ class MeasurementMixin:
 
 
         try:
+            _log("  saving results...")
             self._save_results(self._results, plates, self._scale_val)
+            _log("  results saved OK")
         except Exception as e:
             _log(f"ERROR in _save_results: {e}")
             import traceback; traceback.print_exc()
         try:
+            _log("  saving trace screenshot...")
             self._save_trace_screenshot()
+            _log("  trace screenshot saved OK")
         except Exception as e:
             _log(f"ERROR in _save_trace_screenshot: {e}")
             import traceback; traceback.print_exc()
         try:
+            _log("  saving metadata...")
             self._save_metadata()
+            _log("  metadata saved OK")
         except Exception as e:
             _log(f"ERROR in _save_metadata: {e}")
             import traceback; traceback.print_exc()
 
+        _log("  updating UI...")
         self.sidebar.set_step(4)  # marks all 4 steps as done (green)
         self.canvas._measurement_done = True
         self.canvas._redraw()
@@ -1067,7 +1074,9 @@ class MeasurementMixin:
         if self.image_path:
             self._processed_images.add(self.image_path)
 
+        _log("  auto-saving session...")
         self._auto_save()
+        _log("  showing action buttons...")
         self._hide_action_buttons()
         self._show_action_frame()
         self.btn_next_image.pack(pady=(10, 3), padx=15, fill="x")

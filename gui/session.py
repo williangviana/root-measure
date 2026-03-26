@@ -239,7 +239,8 @@ def save_session(session_path, app):
 
     # snapshot current image canvas into per-image dict
     if app.image_path:
-        app._image_canvas_data[app.image_path.name] = _collect_canvas(app.canvas)
+        app._image_canvas_data[app.image_path.name] = _collect_canvas(
+            app.canvas, app.sidebar._plate_thresholds)
 
     data = {
         'version': SESSION_VERSION,
@@ -323,7 +324,7 @@ def _collect_settings(sidebar):
     }
 
 
-def _collect_canvas(canvas):
+def _collect_canvas(canvas, plate_thresholds=None):
     all_marks = {}
     for k, v in canvas._all_marks.items():
         all_marks[str(k)] = [list(m) for m in v]
@@ -338,7 +339,7 @@ def _collect_canvas(canvas):
             'shades': list(shades),
             'mark_indices': mi,
         })
-    return {
+    d = {
         'plates': [list(p) for p in canvas._plates],
         'root_points': [list(p) for p in canvas._root_points],
         'root_flags': list(canvas._root_flags),
@@ -350,6 +351,10 @@ def _collect_canvas(canvas):
         'traces': traces,
         'trace_to_result': list(canvas._trace_to_result),
     }
+    if plate_thresholds:
+        d['plate_thresholds'] = {str(k): dict(v)
+                                  for k, v in plate_thresholds.items()}
+    return d
 
 
 def _get_workflow_step(sidebar):

@@ -911,24 +911,30 @@ class Sidebar(ctk.CTkScrollableFrame):
         if getattr(self.app, '_preview_active', False):
             self.app._preview_preprocessing(force_show=True)
 
-    def get_threshold(self, plate_idx=None):
+    def get_threshold(self, plate_idx=None, force_value=False):
         """Return threshold value or None for auto-detect.
 
         If plate_idx is given and per-plate thresholds exist, return that
         plate's threshold.  Otherwise fall back to the current slider state.
+        If force_value is True, return the stored value even when auto is on
+        (used for retracing to ensure consistent results across machines).
         """
         if self._plate_thresholds is not None and plate_idx is not None:
             pt = self._plate_thresholds.get(plate_idx, {'auto': True, 'value': 140})
+            if force_value:
+                return pt['value']
             return None if pt['auto'] else pt['value']
         if self.var_auto_thresh.get():
+            if force_value:
+                return int(self.slider_thresh.get())
             return None
         return int(self.slider_thresh.get())
 
-    def get_all_thresholds(self):
+    def get_all_thresholds(self, force_value=False):
         """Return {plate_idx: threshold_or_None} for all plates."""
         if self._plate_thresholds is None:
-            return {0: self.get_threshold()}
-        return {pi: self.get_threshold(plate_idx=pi)
+            return {0: self.get_threshold(force_value=force_value)}
+        return {pi: self.get_threshold(plate_idx=pi, force_value=force_value)
                 for pi in self._plate_thresholds}
 
     def set_auto_threshold_value(self, val, plate_idx=None):

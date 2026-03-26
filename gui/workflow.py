@@ -150,7 +150,12 @@ class MeasurementMixin:
         self.update()
 
         # Build per-plate binary masks (each plate can have its own threshold)
-        all_thresh = self.sidebar.get_all_thresholds()
+        # If retracing a previously-measured image, force saved threshold values
+        # so results are consistent across machines (avoid re-auto-detecting)
+        img_name = self.image_path.name if self.image_path else ''
+        img_data = self._image_canvas_data.get(img_name, {})
+        force_thresh = bool(img_data.get('traces'))
+        all_thresh = self.sidebar.get_all_thresholds(force_value=force_thresh)
         self._plate_binaries = {}
         self._binary = None  # legacy alias set below
 
@@ -509,7 +514,8 @@ class MeasurementMixin:
         if not getattr(self, '_plate_binaries', None):
             self.sidebar.set_status("Preprocessing...")
             self.update()
-            all_thresh = self.sidebar.get_all_thresholds()
+            # Force saved thresholds for consistency across machines
+            all_thresh = self.sidebar.get_all_thresholds(force_value=True)
             self._plate_binaries = {}
             plates_tmp = self.canvas.get_plates()
             for pi_tmp in range(len(plates_tmp)):

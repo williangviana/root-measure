@@ -759,9 +759,14 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
         self.sidebar.btn_measure.configure(state="normal")
         self.sidebar.btn_review.configure(state="normal")
         # Restore per-plate threshold UI if plates exist
+        # Prefer per-image thresholds over global session thresholds
         plates = self.canvas.get_plates()
         if plates:
-            saved_pt = ss.get('plate_thresholds') if ss else None
+            img_name = self.image_path.name if self.image_path else ''
+            img_data = self._image_canvas_data.get(img_name, {})
+            saved_pt = img_data.get('plate_thresholds')
+            if not saved_pt:
+                saved_pt = ss.get('plate_thresholds') if ss else None
             if saved_pt and isinstance(saved_pt, dict):
                 saved_pt = {int(k): v for k, v in saved_pt.items()}
                 self.sidebar.init_plate_thresholds(len(plates), saved=saved_pt)
@@ -1059,7 +1064,8 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
         """Snapshot current canvas state into per-image dict."""
         if self.image_path:
             from session import _collect_canvas
-            self._image_canvas_data[self.image_path.name] = _collect_canvas(self.canvas)
+            self._image_canvas_data[self.image_path.name] = _collect_canvas(
+                self.canvas, self.sidebar._plate_thresholds)
 
     def _restore_image_canvas(self, image_name):
         """Restore canvas state from per-image dict."""

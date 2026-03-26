@@ -1251,7 +1251,8 @@ class Sidebar(ctk.CTkScrollableFrame):
         self.sec_folder.collapse(summary=image_name)
         self.entry_dpi.delete(0, "end")
         self.entry_dpi.insert(0, f"{dpi} dpi")
-        self.btn_select_plates.configure(state="normal")
+        self.destroy_plate_thresholds()
+        self.btn_select_plates.configure(state="normal", fg_color="#2b5797")
         self.sec_settings.show()
         self.sec_settings.expand()
         # hide later sections

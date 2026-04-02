@@ -642,7 +642,9 @@ class MeasurementMixin:
 
         is_last = self._manual_trace_idx >= n - 1
         btn_text = "Finish" if is_last else "Next Root"
-        self.sidebar.btn_done.configure(text=btn_text)
+        self.sidebar.btn_done.configure(
+            text=btn_text,
+            command=lambda: self.canvas._trigger_done())
         self.sidebar.btn_done.pack(pady=(5, 0), padx=15, fill="x")
         self.btn_continue_later_mid.pack(pady=(10, 5), padx=15, fill="x")
         self.sidebar.show_review_toggles()

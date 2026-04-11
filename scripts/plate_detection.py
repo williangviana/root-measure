@@ -132,13 +132,66 @@ def detect_single_plate(image):
     return plates
 
 
+def _detect_grid_count(image):
+    """Count plates arranged in a grid via edge-based contour detection.
+
+    Works on scans with a bright paper background where Otsu fails (e.g.
+    multiple mini-plates on a white sheet). Returns the number of clean
+    rectangular regions found, or 0 if fewer than 3 were detected — in
+    which case callers should fall back to the intensity-valley heuristic.
+    """
+    if len(image.shape) == 3:
+        gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    else:
+        gray = image
+    small = _to_uint8(gray[::8, ::8])
+    edges = cv2.Canny(small, 30, 100)
+    closed = cv2.morphologyEx(
+        edges, cv2.MORPH_CLOSE,
+        cv2.getStructuringElement(cv2.MORPH_RECT, (15, 15)))
+    contours, _ = cv2.findContours(
+        closed, cv2.RETR_CCOMP, cv2.CHAIN_APPROX_SIMPLE)
+    H, W = small.shape
+    img_area = H * W
+    boxes = []
+    for cnt in contours:
+        area = cv2.contourArea(cnt)
+        if area < img_area * 0.03 or area > img_area * 0.5:
+            continue
+        x, y, w, h = cv2.boundingRect(cnt)
+        aspect = w / max(h, 1)
+        if aspect < 0.4 or aspect > 2.5:
+            continue
+        boxes.append((x, y, w, h, int(area)))
+
+    # drop boxes whose center lies inside a larger box (nested outlines)
+    boxes.sort(key=lambda b: -b[4])
+    kept = []
+    for b in boxes:
+        x, y, w, h, _ = b
+        cx, cy = x + w / 2, y + h / 2
+        inside = any(
+            kx <= cx <= kx + kw and ky <= cy <= ky + kh
+            for kx, ky, kw, kh, _ in kept)
+        if not inside:
+            kept.append(b)
+
+    # only trust this method when it finds a clear grid (3+ plates)
+    return len(kept) if len(kept) >= 3 else 0
+
+
 def detect_plate_count(image):
     """Count how many plates are visible in a scanned image.
 
-    Uses two signals: (1) intensity valley in the vertical profile, and
-    (2) edge density with post-peak continuity check for low-contrast scans.
-    Returns int >= 1.
+    First tries edge-based grid detection for multi-plate scans (3+);
+    otherwise uses two signals: (1) intensity valley in the vertical
+    profile, and (2) edge density with post-peak continuity check for
+    low-contrast scans. Returns int >= 1.
     """
+    grid_count = _detect_grid_count(image)
+    if grid_count >= 3:
+        return grid_count
+
     # Convert to grayscale
     if len(image.shape) == 3:
         gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)

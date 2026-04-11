@@ -767,7 +767,7 @@ class Sidebar(ctk.CTkScrollableFrame):
     # --- Dynamic genotype boxes ---
 
     def _rebuild_genotype_boxes(self, num_plates):
-        """Rebuild genotype entry boxes: 1 box for 1 plate, 2 for 2 plates."""
+        """Rebuild genotype entry boxes: one entry per plate."""
         num_plates = max(1, num_plates)
         if num_plates == self._geno_num_boxes:
             return
@@ -810,7 +810,8 @@ class Sidebar(ctk.CTkScrollableFrame):
                 lbl = ctk.CTkLabel(row, text=f"Plate {pi + 1}:",
                                    font=ctk.CTkFont(size=11), width=50)
                 lbl.pack(side="left")
-                entry = _AutocompleteEntry(row, placeholder_text=_placeholders[pi])
+                ph = _placeholders[pi] if pi < len(_placeholders) else "e.g. genotype names"
+                entry = _AutocompleteEntry(row, placeholder_text=ph)
                 entry.pack(side="left", fill="x", expand=True, padx=(4, 0))
                 self._geno_entries.append(entry)
             # restore old text into boxes

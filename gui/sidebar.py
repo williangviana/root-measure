@@ -803,7 +803,14 @@ class Sidebar(ctk.CTkScrollableFrame):
             _label_with_tip(b, "Genotypes:",
                             "Genotype names for each plate (left to right).",
                             font=ctk.CTkFont(size=11)).pack(padx=15, anchor="w")
-            _placeholders = ["e.g. WT, crd-1", "e.g. crd-2, crd-3"]
+            _placeholders = [
+                "e.g. WT, crd-1",
+                "e.g. crd-2, crd-3",
+                "e.g. crd-4, crd-5",
+                "e.g. WT, crd-3",
+                "e.g. crd-1, crd-4",
+                "e.g. crd-2, crd-5",
+            ]
             for pi in range(num_plates):
                 row = ctk.CTkFrame(b, fg_color="transparent")
                 row.pack(fill="x", padx=15, pady=(1, 1))
@@ -984,14 +991,25 @@ class Sidebar(ctk.CTkScrollableFrame):
             self.lbl_thresh_val.configure(text_color="gray50")
         self._current_thresh_plate = 0
         # Show plate tabs only for multi-plate
+        self._plate_tab_btns = []
         if num_plates > 1:
             self._plate_tab_frame.pack(pady=(2, 0), fill="x")
             values = [f"Plate {pi + 1}" for pi in range(num_plates)]
-            self._plate_tab_btn = ctk.CTkSegmentedButton(
-                self._plate_tab_frame, values=values,
-                command=self._on_plate_thresh_tab)
-            self._plate_tab_btn.set(values[0])
-            self._plate_tab_btn.pack(fill="x")
+            # Wrap into two rows when more than 4 plates to avoid clipped labels
+            if num_plates > 4:
+                half = (num_plates + 1) // 2
+                groups = [values[:half], values[half:]]
+            else:
+                groups = [values]
+            for group in groups:
+                btn = ctk.CTkSegmentedButton(
+                    self._plate_tab_frame, values=group,
+                    command=self._on_plate_thresh_tab)
+                btn.pack(fill="x", pady=(0, 2))
+                btn._plate_values = group
+                self._plate_tab_btns.append(btn)
+            self._plate_tab_btns[0].set(values[0])
+            self._plate_tab_btn = self._plate_tab_btns[0]
         # Show threshold controls and Next button (hidden until plates are drawn)
         self._thresh_container.pack(pady=(0, 5), padx=15, fill="x")
         self.btn_next_settings.pack(pady=(10, 5), padx=15, fill="x")
@@ -1000,9 +1018,10 @@ class Sidebar(ctk.CTkScrollableFrame):
 
     def destroy_plate_thresholds(self):
         """Remove plate tab widget and reset per-plate state."""
-        if self._plate_tab_btn is not None:
-            self._plate_tab_btn.destroy()
-            self._plate_tab_btn = None
+        for btn in getattr(self, '_plate_tab_btns', []):
+            btn.destroy()
+        self._plate_tab_btns = []
+        self._plate_tab_btn = None
         self._plate_tab_frame.pack_forget()
         self._plate_thresholds = None
         self._thresh_container.pack_forget()
@@ -1017,6 +1036,10 @@ class Sidebar(ctk.CTkScrollableFrame):
         pi = int(label.split()[-1]) - 1
         self._current_thresh_plate = pi
         self._load_plate_thresh(pi)
+        # Clear selection on other row(s) when plate tabs are split
+        for btn in self._plate_tab_btns:
+            if label not in getattr(btn, '_plate_values', []):
+                btn.set("")
 
     def _load_plate_thresh(self, pi):
         """Load a plate's threshold settings into the slider widgets."""

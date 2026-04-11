@@ -61,9 +61,11 @@ Set-Location $WorkDir
 Write-Host "[3/6] Virtual environment OK"
 
 # --- 4. Install dependencies ---
-Write-Host "[4/6] Installing dependencies..."
-& python -m pip install -r install/requirements.txt -q
-& python -m pip install pyinstaller -q
+Write-Host "[4/6] Installing dependencies (this can take a few minutes)..."
+Write-Host "     Note: do NOT click inside this window — Windows console"
+Write-Host "     pauses output on click. Press Esc or Enter if it happens."
+& python -m pip install --disable-pip-version-check -r install/requirements.txt 2>&1 | Out-Host
+& python -m pip install --disable-pip-version-check pyinstaller 2>&1 | Out-Host
 Write-Host "[4/6] Dependencies OK"
 
 # --- 5. Build executable ---

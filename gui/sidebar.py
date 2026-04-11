@@ -381,6 +381,11 @@ class Sidebar(ctk.CTkScrollableFrame):
         self.entry_num_plates = ctk.CTkEntry(_plates_frame, width=45,
                                               placeholder_text="1")
         self.entry_num_plates.pack(anchor="center", pady=(2, 0))
+        # Rebuild genotype boxes live when the user overrides the count
+        self.entry_num_plates.bind(
+            "<KeyRelease>", lambda e: self._on_num_plates_typed())
+        self.entry_num_plates.bind(
+            "<FocusOut>", lambda e: self._on_num_plates_typed())
         # Genotypes per plate
         _geno_frame = ctk.CTkFrame(_options_row, fg_color="transparent")
         _geno_frame.grid(row=0, column=1)
@@ -763,6 +768,16 @@ class Sidebar(ctk.CTkScrollableFrame):
             tip += "\n(auto-detected)"
         self._plates_tip_row._tooltip._text = tip
         self._rebuild_genotype_boxes(count)
+
+    def _on_num_plates_typed(self):
+        """Rebuild genotype boxes when user manually edits the plate count."""
+        try:
+            n = int(self.entry_num_plates.get().strip() or "1")
+        except (ValueError, TypeError):
+            return
+        n = max(1, n)
+        if n != self._geno_num_boxes:
+            self._rebuild_genotype_boxes(n)
 
     # --- Dynamic genotype boxes ---
 

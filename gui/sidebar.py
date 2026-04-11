@@ -986,11 +986,13 @@ class Sidebar(ctk.CTkScrollableFrame):
             'value': int(self.slider_thresh.get()),
         }
 
-    def init_plate_thresholds(self, num_plates, saved=None):
+    def init_plate_thresholds(self, num_plates, saved=None, current_idx=0):
         """Create per-plate threshold state and show plate tabs if >1 plate.
 
         saved: optional dict {plate_idx: {'auto': bool, 'value': int}}
                from session restore.
+        current_idx: which plate should be initially selected (for restoring
+               the tab the user had open before saving).
         """
         self.destroy_plate_thresholds()
         self._plate_thresholds = {}
@@ -1004,7 +1006,8 @@ class Sidebar(ctk.CTkScrollableFrame):
         if not saved:
             self.var_auto_thresh.set(True)
             self.lbl_thresh_val.configure(text_color="gray50")
-        self._current_thresh_plate = 0
+        current_idx = max(0, min(int(current_idx or 0), num_plates - 1))
+        self._current_thresh_plate = current_idx
         # Show plate tabs only for multi-plate
         self._plate_tab_btns = []
         if num_plates > 1:
@@ -1023,13 +1026,19 @@ class Sidebar(ctk.CTkScrollableFrame):
                 btn.pack(fill="x", pady=(0, 2))
                 btn._plate_values = group
                 self._plate_tab_btns.append(btn)
-            self._plate_tab_btns[0].set(values[0])
+            # Highlight the tab containing current_idx; clear others
+            target = values[current_idx]
+            for btn in self._plate_tab_btns:
+                if target in btn._plate_values:
+                    btn.set(target)
+                else:
+                    btn.set("")
             self._plate_tab_btn = self._plate_tab_btns[0]
         # Show threshold controls and Next button (hidden until plates are drawn)
         self._thresh_container.pack(pady=(0, 5), padx=15, fill="x")
         self.btn_next_settings.pack(pady=(10, 5), padx=15, fill="x")
-        # Load plate 0 state into the slider
-        self._load_plate_thresh(0)
+        # Load the restored plate's state into the slider
+        self._load_plate_thresh(current_idx)
 
     def destroy_plate_thresholds(self):
         """Remove plate tab widget and reset per-plate state."""

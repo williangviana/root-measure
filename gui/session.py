@@ -321,6 +321,7 @@ def _collect_settings(sidebar):
         'manual_endpoints': sidebar.var_manual_endpoints.get(),
         'assign_colors': sidebar.var_assign_colors.get(),
         'plate_thresholds': sidebar._plate_thresholds,
+        'current_thresh_plate': getattr(sidebar, '_current_thresh_plate', 0),
     }
 
 
@@ -435,4 +436,6 @@ def restore_settings(sidebar, settings):
     if saved_pt and isinstance(saved_pt, dict):
         # JSON keys are strings — convert back to int
         saved_pt = {int(k): v for k, v in saved_pt.items()}
-        sidebar.init_plate_thresholds(len(saved_pt), saved=saved_pt)
+        current_idx = settings.get('current_thresh_plate', 0)
+        sidebar.init_plate_thresholds(
+            len(saved_pt), saved=saved_pt, current_idx=current_idx)

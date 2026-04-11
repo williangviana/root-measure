@@ -376,6 +376,20 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
                     self.canvas.set_traces(
                         canvas_data['traces'],
                         canvas_data.get('trace_to_result'))
+                # Re-apply plate thresholds that _load_image_by_path wiped
+                # when it called destroy_plate_thresholds() at the top.
+                plates_for_thresh = self.canvas.get_plates()
+                if plates_for_thresh:
+                    img_data = self._image_canvas_data.get(current, {})
+                    saved_pt = (img_data.get('plate_thresholds')
+                                or settings.get('plate_thresholds'))
+                    if saved_pt and isinstance(saved_pt, dict):
+                        saved_pt = {int(k): v for k, v in saved_pt.items()}
+                        current_idx = settings.get('current_thresh_plate', 0)
+                        self.sidebar.init_plate_thresholds(
+                            len(plates_for_thresh),
+                            saved=saved_pt,
+                            current_idx=current_idx)
                 step = data.get('workflow_step', 1)
                 # Migrate old step numbering (plate selection was step 1)
                 if step >= 2:

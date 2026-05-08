@@ -1,3 +1,3 @@
 #!/bin/bash
 cd "$(dirname "$0")"
-python3 gui/app.py
+.venv/bin/python gui/app.py

@@ -558,6 +558,11 @@ class Sidebar(ctk.CTkScrollableFrame):
 
         self.var_plot = ctk.BooleanVar(value=True)
 
+        self.btn_update_labels = ctk.CTkButton(
+            b, text="Update Labels", fg_color="#2b5797",
+            command=lambda: app.update_labels_for_current_image())
+        # hidden by default — shown only for finished images
+
         self.btn_start_workflow = ctk.CTkButton(
             b, text="Start Workflow", fg_color="#2b5797",
             command=lambda: app._on_start_workflow())

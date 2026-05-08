@@ -139,6 +139,22 @@ def generate_tidy(raw_path, tidy_path, csv_format='R'):
     if 'Warning' in df.columns:
         df = df[df['Warning'].fillna('').astype(str).str.strip() == ''].copy()
 
+    # Renumber Plate column to follow image-filename order. Each (image, plate)
+    # pair gets a fresh sequential number, so the tidy file's Plate column
+    # always goes 1..N in the order images appear in the folder. Raw_data.csv
+    # is left untouched (it keeps the original plate numbers).
+    if 'Image' in df.columns and 'Plate' in df.columns:
+        ordered_pairs = (df[['Image', 'Plate']]
+                         .drop_duplicates()
+                         .sort_values(['Image', 'Plate'])
+                         .reset_index(drop=True))
+        plate_map = {(img, p): i + 1
+                     for i, (img, p) in enumerate(
+                         zip(ordered_pairs['Image'], ordered_pairs['Plate']))}
+        df = df.copy()
+        df['Plate'] = [plate_map[(img, p)]
+                       for img, p in zip(df['Image'], df['Plate'])]
+
     if csv_format == 'Prism':
         _write_tidy_prism(df, tidy_path)
     else:
@@ -148,14 +164,12 @@ def generate_tidy(raw_path, tidy_path, csv_format='R'):
 
 
 def _write_tidy_r(df, tidy_path):
-    """Tall R format: sorted by Genotype > Condition > Plate."""
+    """Tall R format: sorted by Plate (image-file order) > Plant_ID."""
     sort_cols = []
-    if 'Genotype' in df.columns:
-        sort_cols.append('Genotype')
-    if 'Condition' in df.columns:
-        sort_cols.append('Condition')
     if 'Plate' in df.columns:
         sort_cols.append('Plate')
+    if 'Plant_ID' in df.columns:
+        sort_cols.append('Plant_ID')
     if sort_cols:
         df = df.sort_values(sort_cols, ignore_index=True)
 
@@ -323,6 +337,36 @@ def append_results_to_csv(results, csv_path, plates, plate_labels, plate_offset,
     new_plate_offset = plate_offset + len(plates)
     new_root_offset = root_offset + len(results)
     return new_plate_offset, new_root_offset
+
+
+def update_image_labels(csv_path, image_name, plate_to_genotype, condition):
+    """Rewrite Genotype/Condition in raw_data.csv for rows matching image_name.
+
+    plate_to_genotype: dict mapping global Plate number -> genotype string.
+        Plates not in the dict are left unchanged.
+    condition: string applied to all rows for this image.
+
+    Used by the "Update Labels" feature to relabel a finished image without
+    retracing.
+    """
+    if not csv_path.exists():
+        return 0
+    df = pd.read_csv(csv_path)
+    if 'Image' not in df.columns:
+        return 0
+    mask = df['Image'] == image_name
+    if not mask.any():
+        return 0
+    if plate_to_genotype and 'Plate' in df.columns and 'Genotype' in df.columns:
+        for plate_num, geno in plate_to_genotype.items():
+            sub = mask & (df['Plate'] == plate_num)
+            df.loc[sub, 'Genotype'] = geno
+    if 'Condition' in df.columns:
+        df.loc[mask, 'Condition'] = condition
+    tmp = csv_path.with_suffix('.tmp')
+    df.to_csv(tmp, index=False)
+    tmp.replace(csv_path)
+    return int(mask.sum())
 
 
 def save_metadata(meta_path, **kwargs):

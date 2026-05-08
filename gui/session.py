@@ -240,7 +240,7 @@ def save_session(session_path, app):
     # snapshot current image canvas into per-image dict
     if app.image_path:
         app._image_canvas_data[app.image_path.name] = _collect_canvas(
-            app.canvas, app.sidebar._plate_thresholds)
+            app.canvas, app.sidebar._plate_thresholds, sidebar=app.sidebar)
 
     data = {
         'version': SESSION_VERSION,
@@ -325,7 +325,7 @@ def _collect_settings(sidebar):
     }
 
 
-def _collect_canvas(canvas, plate_thresholds=None):
+def _collect_canvas(canvas, plate_thresholds=None, sidebar=None):
     all_marks = {}
     for k, v in canvas._all_marks.items():
         all_marks[str(k)] = [list(m) for m in v]
@@ -355,6 +355,9 @@ def _collect_canvas(canvas, plate_thresholds=None):
     if plate_thresholds:
         d['plate_thresholds'] = {str(k): dict(v)
                                   for k, v in plate_thresholds.items()}
+    if sidebar is not None:
+        d['genotypes_per_box'] = sidebar.get_genotypes_per_box()
+        d['condition'] = sidebar.entry_condition.get().strip()
     return d
 
 

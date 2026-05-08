@@ -101,6 +101,8 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
         self._image_canvas_data = {}  # per-image canvas snapshots {name: dict}
         self._genotype_colors = {}   # genotype name → color index (experiment-wide)
         self._genotype_custom_colors = {}  # genotype name → hex color (user overrides)
+        self._canvas_dirty = False   # True if results changed since last save
+                                     # (gates silent re-save on Next Image)
 
         # layout: sidebar + canvas
         self.grid_columnconfigure(1, weight=1)
@@ -673,6 +675,11 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
         """Load and display a single image."""
         # Hide action buttons from previous image
         self._hide_action_buttons()
+        # Hide sidebar "Update Labels" — re-shown by _restore_completed_view
+        self.sidebar.btn_update_labels.pack_forget()
+        # Fresh load: nothing changed yet, so Next Image won't trigger a save
+        # unless the user actually retraces or manual-traces.
+        self._canvas_dirty = False
         # Exit preview mode if active (clicking same image exits preview)
         if getattr(self, '_preview_active', False) and path == self.image_path:
             self._preview_active = False
@@ -785,13 +792,33 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
 
     def _restore_completed_view(self):
         """Show completed measurement view for the current image."""
-        # populate genotype/condition fields if empty (e.g. after session resume)
+        # Restore genotype/condition fields for this image, in priority order:
+        #   1. per-image canvas data (most accurate — what was used to save the CSV row)
+        #   2. raw_data.csv rows for this image (recovers older sessions)
+        #   3. global session settings (only if sidebar is empty)
+        img_name = self.image_path.name if self.image_path else ''
+        img_data = self._image_canvas_data.get(img_name, {}) if img_name else {}
+        per_box = img_data.get('genotypes_per_box')
+        cond = img_data.get('condition')
+        if per_box is None or cond is None:
+            csv_per_box, csv_cond = self._labels_from_csv(img_name)
+            if per_box is None:
+                per_box = csv_per_box
+            if cond is None:
+                cond = csv_cond
+        if per_box:
+            self.sidebar.set_genotypes_per_box(per_box)
+        if cond is not None:
+            self.sidebar.entry_condition.delete(0, 'end')
+            if cond:
+                self.sidebar.entry_condition.insert(0, cond)
+        # global session fallback (only fills empty fields)
         ss = getattr(self, '_session_settings', {})
         if ss:
             if not self.sidebar.get_genotypes_text():
-                per_box = ss.get('genotypes_per_box')
-                if per_box:
-                    self.sidebar.set_genotypes_per_box(per_box)
+                ss_per_box = ss.get('genotypes_per_box')
+                if ss_per_box:
+                    self.sidebar.set_genotypes_per_box(ss_per_box)
                 else:
                     _geno = ss.get('genotypes', '')
                     if _geno:
@@ -845,6 +872,10 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
         self.btn_next_image.pack(pady=(10, 3), padx=15, fill="x")
         self.btn_continue_later.pack(pady=3, padx=15, fill="x")
         self.btn_stop.pack(pady=3, padx=15, fill="x")
+        # Show "Update Labels" button (in experiment section, before Start Workflow)
+        self.sidebar.btn_update_labels.pack(
+            pady=(2, 5), padx=15, fill="x",
+            before=self.sidebar.btn_start_workflow)
         points = self.canvas.get_root_points()
         self.sidebar.set_status(
             f"Measurement complete: {len(plates)} plate(s), "
@@ -853,6 +884,43 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
         self.lbl_bottom.configure(text="Willian Viana — Dinneny Lab")
         self._clear_plate_info()
 
+    def _labels_from_csv(self, image_name):
+        """Read Genotype/Condition for image_name from raw_data.csv.
+
+        Returns (genotypes_per_box, condition) or (None, None) if no rows.
+        Plates are returned in plate-number order, deduplicated.
+        """
+        if not image_name or not self.folder:
+            return None, None
+        try:
+            import pandas as pd
+            from session import data_dir
+            exp = getattr(self, '_experiment_name', '')
+            csv_path = data_dir(self.folder, exp) / 'raw_data.csv'
+            if not csv_path.exists():
+                return None, None
+            df = pd.read_csv(csv_path)
+            if 'Image' not in df.columns:
+                return None, None
+            df = df[df['Image'] == image_name]
+            if df.empty:
+                return None, None
+            per_box = []
+            cond = ''
+            if 'Plate' in df.columns and 'Genotype' in df.columns:
+                seen = []
+                for _, row in df.sort_values('Plate').iterrows():
+                    key = (row['Plate'], row.get('Genotype', ''))
+                    if key not in seen:
+                        seen.append(key)
+                        per_box.append(str(row.get('Genotype', '')))
+            if 'Condition' in df.columns:
+                vals = df['Condition'].dropna().astype(str).tolist()
+                if vals:
+                    cond = vals[0]
+            return (per_box or None), cond
+        except Exception:
+            return None, None
 
     # --- Settings helpers ---
 
@@ -880,6 +948,63 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
         if name not in self._genotype_colors:
             self._genotype_colors[name] = len(self._genotype_colors)
         return self._genotype_colors[name]
+
+    def _prune_unused_history(self, csv_path):
+        """Drop autocomplete history entries that no longer appear in the CSV.
+
+        Keeps current sidebar values even if they aren't in the CSV yet,
+        so users mid-typing don't lose what they're entering.
+        """
+        try:
+            import pandas as pd
+            if not csv_path.exists():
+                return
+            df = pd.read_csv(csv_path)
+        except Exception:
+            return
+        geno_in_use = set()
+        if 'Genotype' in df.columns:
+            geno_in_use = set(df['Genotype'].dropna().astype(str).unique().tolist())
+        cond_in_use = set()
+        if 'Condition' in df.columns:
+            cond_in_use = set(df['Condition'].dropna().astype(str).unique().tolist())
+        # don't prune what the user currently has typed
+        for entry in self.sidebar._geno_entries:
+            cur = entry.get().strip()
+            if cur:
+                geno_in_use.add(cur)
+        cur_cond = self.sidebar.entry_condition.get().strip()
+        if cur_cond:
+            cond_in_use.add(cur_cond)
+        for entry in self.sidebar._geno_entries:
+            entry.set_history([h for h in entry.get_history() if h in geno_in_use])
+        self.sidebar.entry_condition.set_history(
+            [h for h in self.sidebar.entry_condition.get_history()
+             if h in cond_in_use])
+
+    def _prune_unused_genotype_colors(self, csv_path):
+        """Drop genotype color entries that no longer appear in raw_data.csv.
+
+        Keeps custom colors only for names still present in the CSV.
+        Run after relabeling so the legend doesn't accumulate stale entries.
+        """
+        try:
+            import pandas as pd
+            if not csv_path.exists():
+                return
+            df = pd.read_csv(csv_path)
+            if 'Genotype' not in df.columns:
+                return
+            in_use = set(df['Genotype'].dropna().astype(str).unique().tolist())
+        except Exception:
+            return
+        for name in list(self._genotype_colors.keys()):
+            if name not in in_use:
+                self._genotype_colors.pop(name, None)
+                self._genotype_custom_colors.pop(name, None)
+        # Re-pack remaining indices to 0..N-1 so palette stays compact
+        for new_idx, name in enumerate(list(self._genotype_colors.keys())):
+            self._genotype_colors[name] = new_idx
 
     def _get_genotype_bright_color(self, name):
         """Return bright color hex for a genotype (custom or palette fallback)."""
@@ -1131,7 +1256,8 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
         if self.image_path:
             from session import _collect_canvas
             self._image_canvas_data[self.image_path.name] = _collect_canvas(
-                self.canvas, self.sidebar._plate_thresholds)
+                self.canvas, self.sidebar._plate_thresholds,
+                sidebar=self.sidebar)
 
     def _restore_image_canvas(self, image_name):
         """Restore canvas state from per-image dict."""
@@ -1155,12 +1281,18 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
     def next_image(self):
         """Return to image selection after finishing measurement."""
         try:
-            # re-save CSV/screenshot/metadata in case retrace changed results
-            if getattr(self, '_results', None) and hasattr(self, '_scale_val'):
+            # re-save only if the canvas was modified since last save (retrace,
+            # manual trace, etc). Skipping otherwise prevents accidental
+            # overwrite when the user types into the sidebar on an already-
+            # measured image without intending to change its labels.
+            if (getattr(self, '_canvas_dirty', False)
+                    and getattr(self, '_results', None)
+                    and hasattr(self, '_scale_val')):
                 plates = self.canvas.get_plates()
                 self._save_results(self._results, plates, self._scale_val, silent=True)
                 self._save_trace_screenshot(silent=True)
                 self._save_metadata()
+                self._canvas_dirty = False
         except Exception:
             import traceback; traceback.print_exc()
         try:
@@ -1179,8 +1311,107 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
         self._auto_save()
         self.destroy()
 
+    def update_labels_for_current_image(self):
+        """Rewrite Genotype/Condition in raw_data.csv for the current image
+        using the current sidebar values. Does not retrace.
+        """
+        if not self.image_path:
+            self.sidebar.set_status("No image loaded.")
+            return
+        try:
+            import pandas as pd
+            from session import data_dir
+            from csv_output import update_image_labels
+        except Exception as e:
+            self.sidebar.set_status(f"Update failed: {e}")
+            return
+
+        img_name = self.image_path.name
+        exp = getattr(self, '_experiment_name', '')
+        folder = self.folder or self.image_path.parent
+        csv_path = data_dir(folder, exp) / 'raw_data.csv'
+        if not csv_path.exists():
+            self.sidebar.set_status("No raw_data.csv to update.")
+            return
+
+        per_box = self.sidebar.get_genotypes_per_box()
+        cond = self.sidebar.entry_condition.get().strip()
+
+        # Map CSV's global Plate numbers (for this image) to genotypes by order.
+        # Non-split: one genotype per plate, mapped in plate-number order.
+        try:
+            df = pd.read_csv(csv_path)
+            if 'Image' not in df.columns or 'Plate' not in df.columns:
+                self.sidebar.set_status("CSV missing required columns.")
+                return
+            plates_in_img = sorted(df.loc[df['Image'] == img_name,
+                                          'Plate'].unique().tolist())
+        except Exception as e:
+            self.sidebar.set_status(f"Read failed: {e}")
+            return
+
+        if not plates_in_img:
+            self.sidebar.set_status(f"No CSV rows for {img_name}.")
+            return
+
+        plate_to_geno = {}
+        for i, plate_num in enumerate(plates_in_img):
+            if i < len(per_box) and per_box[i]:
+                plate_to_geno[plate_num] = per_box[i]
+            elif per_box:
+                plate_to_geno[plate_num] = per_box[-1]
+
+        try:
+            n = update_image_labels(csv_path, img_name, plate_to_geno, cond)
+        except Exception as e:
+            self.sidebar.set_status(f"Update failed: {e}")
+            return
+
+        # Register any new genotype names so plots assign them stable colors.
+        # Old names that no longer appear in raw_data.csv are pruned so the
+        # legend and autocomplete stay clean.
+        for gname in plate_to_geno.values():
+            if gname:
+                self._register_genotype(gname)
+        self._prune_unused_genotype_colors(csv_path)
+        self._prune_unused_history(csv_path)
+
+        # update per-image canvas data so subsequent loads stay in sync
+        cd = self._image_canvas_data.setdefault(img_name, {})
+        cd['genotypes_per_box'] = list(per_box)
+        cd['condition'] = cond
+
+        # regenerate tidy_data.csv so plots reflect the new labels next time
+        try:
+            from csv_output import generate_tidy
+            tidy_path = data_dir(folder, exp) / 'tidy_data.csv'
+            generate_tidy(csv_path, tidy_path, csv_format='R')
+        except Exception:
+            pass
+
+        self._auto_save()
+        self.sidebar.set_status(
+            f"Updated {n} row(s) in {img_name} "
+            f"({', '.join(per_box) or 'no genotype'}"
+            f"{f' / {cond}' if cond else ''}).\n"
+            f"Click Finish & Plot to refresh plots.")
+
     def finish_and_plot(self):
         """All images done — generate final plot."""
+        # Recover any measured images whose CSV save didn't complete
+        # (e.g. silent flash-drive write errors). Walks canvas_data, finds
+        # images with traces but no row in raw_data.csv, and writes them.
+        try:
+            recovered = self._recover_unsaved_measurements()
+            if recovered:
+                self.sidebar.set_status(
+                    self.sidebar.lbl_status.cget("text") +
+                    f"\nRecovered {recovered} unsaved image(s) before plotting.")
+        except Exception as e:
+            import traceback; traceback.print_exc()
+            self.sidebar.set_status(
+                self.sidebar.lbl_status.cget("text") +
+                f"\nRecovery error: {e}")
         if self.sidebar.var_plot.get():
             self._run_plot()
         # save final session state (keeps session visible on next launch)
@@ -1188,6 +1419,100 @@ class RootMeasureApp(MeasurementMixin, ctk.CTk):
         self.sidebar.set_status(
             self.sidebar.lbl_status.cget("text") +
             "\nAll done!")
+
+    def _recover_unsaved_measurements(self):
+        """Find images with traces in canvas_data but no CSV row, save them.
+
+        Returns the number of images recovered. Uses per-image labels when
+        available; otherwise falls back to whatever is currently in the
+        sidebar (the same behavior as a normal save).
+        """
+        if not self.folder:
+            return 0
+        try:
+            import pandas as pd
+            from session import data_dir
+        except Exception:
+            return 0
+
+        exp = getattr(self, '_experiment_name', '')
+        csv_path = data_dir(self.folder, exp) / 'raw_data.csv'
+        saved_images = set()
+        if csv_path.exists():
+            try:
+                df = pd.read_csv(csv_path)
+                if 'Image' in df.columns:
+                    saved_images = set(df['Image'].dropna().astype(str).tolist())
+            except Exception:
+                saved_images = set()
+
+        # Find candidates: in canvas_data, has traces, not yet in CSV
+        candidates = []
+        for img_name, cd in self._image_canvas_data.items():
+            if img_name in saved_images:
+                continue
+            if not cd.get('traces') or not cd.get('plates'):
+                continue
+            candidates.append(img_name)
+        if not candidates:
+            return 0
+
+        # Snapshot current state so we can restore after the recovery loop
+        orig_image_path = self.image_path
+        if orig_image_path:
+            self._stash_canvas()
+        orig_per_box = self.sidebar.get_genotypes_per_box()
+        orig_cond = self.sidebar.entry_condition.get()
+
+        # Resolve image names → paths
+        name_to_path = {p.name: p for p in self.images}
+        recovered = 0
+        for img_name in candidates:
+            path = name_to_path.get(img_name)
+            if not path:
+                continue
+            cd = self._image_canvas_data[img_name]
+            try:
+                # Set canvas + image_path so _save_results reads the right state
+                self.image_path = path
+                self.canvas.clear_traces()
+                self.canvas.clear_roots()
+                self.canvas.clear_marks()
+                self._restore_image_canvas(img_name)
+
+                # Use per-image labels if stored, otherwise keep current sidebar
+                per_box = cd.get('genotypes_per_box')
+                cond = cd.get('condition')
+                if per_box:
+                    self.sidebar.set_genotypes_per_box(per_box)
+                if cond is not None:
+                    self.sidebar.entry_condition.delete(0, 'end')
+                    if cond:
+                        self.sidebar.entry_condition.insert(0, cond)
+
+                # Rebuild full result dicts from saved trace paths
+                self._rebuild_results_from_traces()
+                plates = self.canvas.get_plates()
+                self._save_results(
+                    self._results, plates, self._scale_val, silent=True)
+                self._processed_images.add(path)
+                recovered += 1
+            except Exception:
+                import traceback; traceback.print_exc()
+                continue
+
+        # Restore original sidebar labels and image
+        self.sidebar.set_genotypes_per_box(orig_per_box)
+        self.sidebar.entry_condition.delete(0, 'end')
+        if orig_cond:
+            self.sidebar.entry_condition.insert(0, orig_cond)
+        if orig_image_path:
+            self.image_path = orig_image_path
+            self.canvas.clear_traces()
+            self.canvas.clear_roots()
+            self.canvas.clear_marks()
+            self._restore_image_canvas(orig_image_path.name)
+        return recovered
 
     # --- Plate & root clicking flow ---
 

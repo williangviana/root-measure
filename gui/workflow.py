@@ -571,6 +571,7 @@ class MeasurementMixin:
             else:
                 res['segments'] = []
             self._results[ri] = res
+        self._canvas_dirty = True  # retrace changed results — Next Image saves
 
         self._rebuild_all_traces()
 
@@ -690,6 +691,7 @@ class MeasurementMixin:
             path=path, method='manual', warning=None,
             segments=segments, mark_coords=mark_coords)
         self._results[ri] = res
+        self._canvas_dirty = True  # manual trace changed results
 
         self._manual_trace_idx += 1
         self.canvas.confirm_manual_trace()
@@ -1051,6 +1053,7 @@ class MeasurementMixin:
         try:
             _log("  saving results...")
             self._save_results(self._results, plates, self._scale_val)
+            self._canvas_dirty = False  # results match CSV after explicit save
             _log("  results saved OK")
         except Exception as e:
             _log(f"ERROR in _save_results: {e}")
